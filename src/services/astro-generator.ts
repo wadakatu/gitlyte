@@ -126,22 +126,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: '10.12.1'
+          node-version: '18'
           
       - name: Install dependencies
         run: |
           cd docs
-          pnpm install
+          npm install
           
       - name: Build Astro
         run: |
           cd docs
-          pnpm run build
+          npm run build
           
       - name: Setup Pages
         uses: actions/configure-pages@v4
