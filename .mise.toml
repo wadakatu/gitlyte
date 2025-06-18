@@ -1,0 +1,26 @@
+[tools]
+node = "20.18.0"
+pnpm = "10.12.1"
+
+[env]
+PNPM_HOME = "{{config_root}}/tools/pnpm/bin"
+
+[tasks.dev]
+run = "pnpm run start"
+description = "Start the development server"
+
+[tasks.build]
+run = "pnpm run build"
+description = "Build the project"
+
+[tasks.test]
+run = "pnpm run test"
+description = "Run tests"
+
+[tasks.lint]
+run = "pnpm run lint"
+description = "Run linter"
+
+[tasks.format]
+run = "pnpm run format:fix"
+description = "Format code"
