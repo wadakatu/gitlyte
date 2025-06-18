@@ -2,7 +2,10 @@ import type { Context } from "probot";
 import type { RepoData } from "../types.js";
 import { batchCommitFiles, type FileChange } from "../utils/batch-commit.js";
 import { analyzeRepository, generateDesignStrategy } from "./ai-analyzer.js";
-import { generateAstroSite, type GeneratedAstroSite } from "./ai-code-generator.js";
+import {
+  type GeneratedAstroSite,
+  generateAstroSite,
+} from "./ai-code-generator.js";
 
 /** AI駆動でAstroサイトを生成 */
 export async function generateAIAstroSite(ctx: Context, data: RepoData) {
