@@ -2,9 +2,23 @@ import OpenAI from "openai";
 import type { RepoData } from "../types.js";
 
 // OpenAI クライアント初期化
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY environment variable is required");
+    }
+    openai = new OpenAI({ apiKey });
+  }
+  return openai;
+}
+
+// テスト用：OpenAIクライアントをモック可能にする
+export function setOpenAIClient(client: OpenAI | null) {
+  openai = client;
+}
 
 export interface RepoAnalysis {
   projectType:
@@ -70,7 +84,8 @@ export async function analyzeRepository(
 }`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const client = getOpenAIClient();
+    const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
@@ -135,7 +150,8 @@ export async function generateDesignStrategy(
 }`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const client = getOpenAIClient();
+    const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
