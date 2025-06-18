@@ -72,6 +72,7 @@ async function generatePackageJson(repoData: RepoData): Promise<string> {
       name: `${repoData.repo.name}-site`,
       type: "module",
       version: "0.0.1",
+      packageManager: "pnpm@10.12.1",
       scripts: {
         dev: "astro dev",
         start: "astro dev",
