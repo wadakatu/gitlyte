@@ -11,7 +11,13 @@ export interface RepoData {
     user: { login: string } | null;
     merged_at: string | null;
   }>;
-  issues: Array<any>;
+  issues: Array<{
+    title: string;
+    number: number;
+    state: string;
+    user: { login: string } | null;
+    created_at: string;
+  }>;
 }
 
 export interface PullRequest {
