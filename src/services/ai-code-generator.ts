@@ -1,5 +1,5 @@
-import { RepoData } from '../types.js';
-import { RepoAnalysis, DesignStrategy } from './ai-analyzer.js';
+import type { RepoData } from "../types.js";
+import type { DesignStrategy, RepoAnalysis } from "./ai-analyzer.js";
 
 export interface GeneratedAstroSite {
   packageJson: string;
@@ -17,7 +17,6 @@ export async function generateAstroSite(
   analysis: RepoAnalysis,
   design: DesignStrategy
 ): Promise<GeneratedAstroSite> {
-  
   const baseContext = `
 リポジトリ情報:
 - 名前: ${repoData.repo.name}
@@ -45,7 +44,7 @@ export async function generateAstroSite(
     heroComponent,
     featuresComponent,
     indexPage,
-    globalStyles
+    globalStyles,
   ] = await Promise.all([
     generatePackageJson(repoData),
     generateAstroConfig(repoData),
@@ -53,7 +52,7 @@ export async function generateAstroSite(
     generateHeroComponent(baseContext, repoData, design),
     generateFeaturesComponent(baseContext, repoData, design),
     generateIndexPage(baseContext, repoData, design),
-    generateGlobalStyles(baseContext, design)
+    generateGlobalStyles(baseContext, design),
   ]);
 
   return {
@@ -63,25 +62,29 @@ export async function generateAstroSite(
     heroComponent,
     featuresComponent,
     indexPage,
-    globalStyles
+    globalStyles,
   };
 }
 
 async function generatePackageJson(repoData: RepoData): Promise<string> {
-  return JSON.stringify({
-    name: `${repoData.repo.name}-site`,
-    type: "module",
-    version: "0.0.1",
-    scripts: {
-      dev: "astro dev",
-      start: "astro dev",
-      build: "astro build",
-      preview: "astro preview"
+  return JSON.stringify(
+    {
+      name: `${repoData.repo.name}-site`,
+      type: "module",
+      version: "0.0.1",
+      scripts: {
+        dev: "astro dev",
+        start: "astro dev",
+        build: "astro build",
+        preview: "astro preview",
+      },
+      dependencies: {
+        astro: "^4.0.0",
+      },
     },
-    dependencies: {
-      astro: "^4.0.0"
-    }
-  }, null, 2);
+    null,
+    2
+  );
 }
 
 async function generateAstroConfig(_repoData: RepoData): Promise<string> {
@@ -97,7 +100,10 @@ export default defineConfig({
 });`;
 }
 
-async function generateLayout(_context: string, design: DesignStrategy): Promise<string> {
+async function generateLayout(
+  _context: string,
+  design: DesignStrategy
+): Promise<string> {
   return `---
 export interface Props {
   title: string;
@@ -147,7 +153,11 @@ const { title, description } = Astro.props;
 </style>`;
 }
 
-async function generateHeroComponent(_context: string, _repoData: RepoData, design: DesignStrategy): Promise<string> {
+async function generateHeroComponent(
+  _context: string,
+  _repoData: RepoData,
+  design: DesignStrategy
+): Promise<string> {
   return `---
 export interface Props {
   title: string;
@@ -228,7 +238,11 @@ const { title, description, stats } = Astro.props;
 </style>`;
 }
 
-async function generateFeaturesComponent(_context: string, _repoData: RepoData, _design: DesignStrategy): Promise<string> {
+async function generateFeaturesComponent(
+  _context: string,
+  _repoData: RepoData,
+  _design: DesignStrategy
+): Promise<string> {
   return `---
 export interface Props {
   prs: Array<{
@@ -312,7 +326,11 @@ const { prs } = Astro.props;
 </style>`;
 }
 
-async function generateIndexPage(_context: string, _repoData: RepoData, _design: DesignStrategy): Promise<string> {
+async function generateIndexPage(
+  _context: string,
+  _repoData: RepoData,
+  _design: DesignStrategy
+): Promise<string> {
   return `---
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
@@ -400,7 +418,10 @@ const stats = {
 </style>`;
 }
 
-async function generateGlobalStyles(_context: string, design: DesignStrategy): Promise<string> {
+async function generateGlobalStyles(
+  _context: string,
+  design: DesignStrategy
+): Promise<string> {
   return `/* Global Styles for AI-Generated Site */
 
 :root {

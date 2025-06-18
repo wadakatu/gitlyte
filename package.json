@@ -14,7 +14,13 @@
   "scripts": {
     "build": "tsc",
     "start": "probot run ./lib/index.js",
-    "test": "vitest"
+    "test": "vitest",
+    "lint": "biome lint src/",
+    "lint:fix": "biome lint --fix src/",
+    "format": "biome format src/",
+    "format:fix": "biome format --write src/",
+    "check": "biome check src/",
+    "check:fix": "biome check --fix src/"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
@@ -22,6 +28,7 @@
     "probot": "^13.4.5"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
     "@types/node": "^20.0.0",
     "nock": "^14.0.5",
     "smee-client": "^2.0.0",
