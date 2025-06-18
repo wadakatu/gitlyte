@@ -1,0 +1,104 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import PullRequestCard from '../components/PullRequestCard.astro';
+
+// この部分はテンプレート変数で置き換えられます
+const repoData = {{REPO_DATA}};
+const { repo, prs, readme } = repoData;
+
+const stats = {
+  stars: repo.stargazers_count,
+  forks: repo.forks_count,
+  issues: repoData.issues.length
+};
+---
+
+<Layout title={`${repo.name} - Project Dashboard`}>
+  <Hero 
+    title={repo.name}
+    description={repo.description}
+    stats={stats}
+  />
+  
+  <div class="container main-content">
+    <section class="recent-activity">
+      <h2>Recent Pull Requests</h2>
+      <div class="pr-grid">
+        {prs.slice(0, 6).map((pr) => (
+          <PullRequestCard
+            title={pr.title}
+            author={pr.user?.login || 'Unknown'}
+            date={pr.merged_at ? new Date(pr.merged_at).toLocaleDateString() : 'Unknown date'}
+          />
+        ))}
+      </div>
+    </section>
+    
+    <section class="about">
+      <h2>About</h2>
+      <div class="readme-content">
+        <p>{readme ? readme.replace(/^# .+$/m, '').trim() : 'No description available.'}</p>
+      </div>
+    </section>
+  </div>
+  
+  <footer>
+    <div class="container">
+      <p>Generated with GitLyte ✨</p>
+    </div>
+  </footer>
+</Layout>
+
+<style>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .main-content {
+    background: white;
+    margin: -2rem auto 0;
+    border-radius: 20px;
+    padding: 3rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  section {
+    margin-bottom: 3rem;
+  }
+
+  h2 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+  }
+
+  .pr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .readme-content {
+    background: #f7fafc;
+    padding: 2rem;
+    border-radius: 12px;
+    border-left: 4px solid #667eea;
+  }
+
+  footer {
+    text-align: center;
+    padding: 2rem 0;
+    color: white;
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .main-content {
+      margin: -1rem auto 0;
+      padding: 2rem;
+    }
+  }
+</style>
