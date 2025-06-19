@@ -267,12 +267,22 @@ ${repoData.prs
       cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
     }
 
-    // JSON修正
+    // JSON修正: 制御文字とエスケープの処理
     cleanContent = cleanContent
+      // 制御文字を除去（改行、タブ、制御文字）
+      .replace(/[\x00-\x1F\x7F]/g, "")
+      // 改行文字を\\nに変換
+      .replace(/\n/g, "\\n")
+      .replace(/\r/g, "\\r")
+      .replace(/\t/g, "\\t")
+      // 未エスケープの引用符を修正
       .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
       .replace(/:\s*'([^']*)'/g, ': "$1"')
+      // 末尾のカンマを除去
       .replace(/,\s*}/g, "}")
-      .replace(/,\s*]/g, "]");
+      .replace(/,\s*]/g, "]")
+      // バックスラッシュの重複エスケープを修正
+      .replace(/\\\\/g, "\\");
 
     return JSON.parse(cleanContent) as ContentAnalysis;
   } catch (error) {
