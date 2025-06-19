@@ -1,6 +1,11 @@
 import type { RepoData } from "../types.js";
 import type { RepoAnalysis } from "./ai-analyzer.js";
 import OpenAI from "openai";
+import {
+  analyzeRepositoryContent,
+  generateSectionContent,
+  type ContentAnalysis,
+} from "./content-analyzer.js";
 
 // OpenAI クライアント初期化
 let openai: OpenAI | null = null;
@@ -209,8 +214,39 @@ const { title, description, stats } = Astro.props;
 
   .subtitle {
     font-size: 1.2rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     opacity: 0.9;
+  }
+  
+  .unique-value {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    opacity: 0.95;
+    font-weight: 500;
+  }
+  
+  .benefits {
+    margin-bottom: 2rem;
+  }
+  
+  .benefits-text {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+  }
+  
+  .cta-section {
+    margin-bottom: 2rem;
+  }
+  
+  .install-command {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-family: var(--font-code, monospace);
+    font-size: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: inline-block;
   }
 
   .stats {
@@ -652,11 +688,12 @@ export async function generateCustomizationRules(
   }
 }
 
-/** Step 3: テンプレートにカスタマイズを適用 */
-export function applyCustomization(
+/** Step 3: テンプレートにカスタマイズとリッチコンテンツを適用 */
+export function applyCustomizationWithContent(
   template: Template,
   customization: CustomizationRules,
-  repoData: RepoData
+  repoData: RepoData,
+  contentAnalysis: ContentAnalysis
 ): HybridAstroSite {
   const customizedFiles: { [path: string]: string } = {};
 
@@ -700,20 +737,40 @@ export function applyCustomization(
         customization.styling.borderRadius
       );
 
-      // コンテンツカスタマイズ
+      // リッチコンテンツカスタマイズ
+      const heroContent = generateSectionContent(contentAnalysis, "hero");
+      const featuresContent = generateSectionContent(
+        contentAnalysis,
+        "features"
+      );
+
       content = content.replace(
         /{{HERO_TITLE}}/g,
-        customization.content.heroTitle
+        heroContent.title || customization.content.heroTitle
       );
       content = content.replace(
         /{{HERO_SUBTITLE}}/g,
-        customization.content.heroSubtitle
+        heroContent.subtitle || customization.content.heroSubtitle
       );
       content = content.replace(
         /{{FEATURES_TITLE}}/g,
-        customization.content.sectionTitles.features || "Recent Pull Requests"
+        featuresContent.title || "Key Features"
       );
       content = content.replace(/{{TITLE_SUFFIX}}/g, "Project Showcase");
+
+      // 追加のリッチコンテンツ
+      content = content.replace(
+        /{{UNIQUE_VALUE}}/g,
+        contentAnalysis.appeal.uniqueValue
+      );
+      content = content.replace(
+        /{{KEY_BENEFITS}}/g,
+        contentAnalysis.appeal.keyBenefits.join(", ")
+      );
+      content = content.replace(
+        /{{INSTALLATION_COMMAND}}/g,
+        contentAnalysis.usage.installation.command
+      );
 
       // 追加スタイル（空の場合はデフォルト）
       content = content.replace(/{{HERO_STYLES}}/g, "");
@@ -779,6 +836,9 @@ export async function generateHybridAstroSite(
   console.log("🎯 Selecting optimal template...");
   const template = selectOptimalTemplate(analysis);
 
+  console.log("📚 Analyzing repository content...");
+  const contentAnalysis = await analyzeRepositoryContent(repoData, analysis);
+
   console.log(`📐 Selected template: ${template.name}`);
   const customization = await generateCustomizationRules(
     analysis,
@@ -787,7 +847,12 @@ export async function generateHybridAstroSite(
   );
 
   console.log("🎨 Applying customization...");
-  const hybridSite = applyCustomization(template, customization, repoData);
+  const hybridSite = applyCustomizationWithContent(
+    template,
+    customization,
+    repoData,
+    contentAnalysis
+  );
 
   console.log(`✅ Hybrid site generated with template: ${template.id}`);
   return hybridSite;
