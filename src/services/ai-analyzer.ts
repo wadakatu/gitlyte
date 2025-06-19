@@ -146,7 +146,7 @@ export async function generateDesignStrategy(
 ## デザイン要件
 1. **視覚的インパクト**: 第一印象で強い印象を与える
 2. **ユーザビリティ**: 情報の階層が明確で使いやすい
-3. **モダン性**: 2024年のトレンドを反映
+3. **モダン性**: 2025年のトレンドを反映
 4. **差別化**: 他のプロジェクトサイトとの明確な差別化
 5. **アクセシビリティ**: WCAG 2.1 AA準拠のカラーコントラスト
 
@@ -156,24 +156,33 @@ export async function generateDesignStrategy(
 - **Game**: 創造性とエネルギーを表現する大胆な配色
 - **Documentation**: 読みやすさと理解しやすさを重視した配色
 
-以下のJSON形式で、具体的で実装可能な配色とスタイルを提案してください:
+**重要**: 回答は必ず有効なJSON形式で、余計な説明は一切含めないでください。
+
 {
   "colorScheme": {
-    "primary": "#具体的なhex色（メインブランドカラー）",
-    "secondary": "#具体的なhex色（補完色）", 
-    "accent": "#具体的なhex色（アクセントカラー）",
-    "background": "#具体的なhex色（背景色）"
+    "primary": "#667eea",
+    "secondary": "#764ba2", 
+    "accent": "#f093fb",
+    "background": "#ffffff"
   },
   "typography": {
-    "heading": "具体的なフォント名（モダンで読みやすい）",
-    "body": "具体的なフォント名（長文に適した）",
-    "code": "具体的なフォント名（コード表示用）"
+    "heading": "Inter, sans-serif",
+    "body": "system-ui, sans-serif",
+    "code": "JetBrains Mono, monospace"
   },
-  "layout": "minimal|grid|sidebar|hero-focused|content-heavy",
-  "style": "modern|minimalist|gradient|glassmorphism|tech-forward|vibrant",
-  "animations": true/false,
-  "darkMode": true/false
+  "layout": "hero-focused",
+  "style": "modern",
+  "animations": true,
+  "darkMode": false,
+  "effects": {
+    "blur": true,
+    "shadows": "subtle",
+    "borders": "rounded",
+    "spacing": "normal"
+  }
 }`;
+
+  let cleanContent = "";
 
   try {
     const client = getOpenAIClient();
@@ -181,18 +190,52 @@ export async function generateDesignStrategy(
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
-      max_tokens: 600,
+      max_tokens: 800,
     });
 
     const content = response.choices[0].message.content;
     if (!content) throw new Error("No response from OpenAI");
 
-    // JSONコードブロックを除去
-    const cleanContent = content.replace(/```json\n?|\n?```/g, "").trim();
+    // より強力なJSONクリーニングと解析
+    cleanContent = content
+      .replace(/```json\n?|\n?```/g, "") // JSONコードブロック除去
+      .replace(/```\n?|\n?```/g, "") // 一般的なコードブロック除去
+      .replace(/\/\*[\s\S]*?\*\//g, "") // コメント除去
+      .replace(/\/\/.*$/gm, "") // 単行コメント除去
+      .trim();
+
+    // JSONの開始と終了を探す
+    const jsonStart = cleanContent.indexOf("{");
+    const jsonEnd = cleanContent.lastIndexOf("}");
+
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
+    }
+
+    // 追加のクリーニング: 一般的なJSON問題を修正
+    cleanContent = cleanContent
+      .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":') // プロパティ名をクォート
+      .replace(/:\s*'([^']*)'/g, ': "$1"') // シングルクォートをダブルクォートに
+      .replace(/,\s*}/g, "}") // 末尾カンマ除去
+      .replace(/,\s*]/g, "]") // 配列末尾カンマ除去
+      .replace(/:\s*#([a-fA-F0-9]{3,8})\s*/g, ': "#$1"') // 色コードをクォート
+      .replace(/(\d+)px/g, '"$1px"') // CSSユニットをクォート
+      // boolean、null、numberを保護してからクォート（booleanとnullと数値以外をクォート）
+      .replace(
+        /:\s*(?!(true|false|null|\d+(\.\d+)?)\s*[,}])([a-zA-Z][a-zA-Z0-9\-_]*)\s*([,}])/g,
+        ': "$3"$4'
+      )
+      .replace(/\s+/g, " ") // 余分な空白を整理
+      .trim();
+
+    console.log("Cleaned JSON content:", cleanContent);
 
     return JSON.parse(cleanContent) as DesignStrategy;
   } catch (error) {
     console.error("Design strategy generation failed:", error);
+    if (cleanContent) {
+      console.error("Problematic content:", cleanContent);
+    }
     // フォールバック: プロジェクトタイプ別の最適化されたデザイン
     const fallbackDesigns = {
       library: {
