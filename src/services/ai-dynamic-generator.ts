@@ -39,37 +39,35 @@ export async function generateSiteStructure(
 ): Promise<DynamicAstroSite> {
   // 各セクションのコンポーネント仕様を並行生成
   console.log("🏗️ Generating component specifications...");
-  
-  const componentSpecsPromises = architecture.layout.sections.map(section =>
+
+  const componentSpecsPromises = architecture.layout.sections.map((section) =>
     generateComponentSpecs(section, architecture, repoData)
   );
-  
+
   const allComponentSpecs = await Promise.all(componentSpecsPromises);
   const flatComponentSpecs = allComponentSpecs.flat();
 
   // 基本ファイルを並行生成
   console.log("📦 Generating core files...");
-  
-  const [
-    packageJson,
-    astroConfig,
-    layout,
-    indexPage,
-    globalStyles
-  ] = await Promise.all([
-    generateDynamicPackageJson(repoData),
-    generateDynamicAstroConfig(repoData),
-    generateDynamicLayout(architecture, repoData),
-    generateDynamicIndexPage(architecture, flatComponentSpecs, repoData),
-    generateDynamicGlobalStyles(architecture)
-  ]);
+
+  const [packageJson, astroConfig, layout, indexPage, globalStyles] =
+    await Promise.all([
+      generateDynamicPackageJson(repoData),
+      generateDynamicAstroConfig(repoData),
+      generateDynamicLayout(architecture, repoData),
+      generateDynamicIndexPage(architecture, flatComponentSpecs, repoData),
+      generateDynamicGlobalStyles(architecture),
+    ]);
 
   // コンポーネントファイルを生成
   console.log("🎨 Generating custom components...");
-  
+
   const components: { [key: string]: string } = {};
   for (const spec of flatComponentSpecs) {
-    components[`${spec.name}.astro`] = await generateAstroComponent(spec, architecture);
+    components[`${spec.name}.astro`] = await generateAstroComponent(
+      spec,
+      architecture
+    );
   }
 
   return {
@@ -78,7 +76,7 @@ export async function generateSiteStructure(
     layout,
     components,
     indexPage,
-    globalStyles
+    globalStyles,
   };
 }
 
@@ -146,7 +144,9 @@ ${spec.responsive_rules}
 }
 
 /** 動的package.json生成 */
-async function generateDynamicPackageJson(_repoData: RepoData): Promise<string> {
+async function generateDynamicPackageJson(
+  _repoData: RepoData
+): Promise<string> {
   return JSON.stringify(
     {
       name: `${_repoData.repo.name}-site`,
@@ -162,7 +162,7 @@ async function generateDynamicPackageJson(_repoData: RepoData): Promise<string> 
       dependencies: {
         astro: "^4.0.0",
         "@astrojs/tailwind": "^5.0.0",
-        tailwindcss: "^3.0.0"
+        tailwindcss: "^3.0.0",
       },
     },
     null,
@@ -171,7 +171,9 @@ async function generateDynamicPackageJson(_repoData: RepoData): Promise<string> 
 }
 
 /** 動的astro.config生成 */
-async function generateDynamicAstroConfig(_repoData: RepoData): Promise<string> {
+async function generateDynamicAstroConfig(
+  _repoData: RepoData
+): Promise<string> {
   return `import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 
@@ -292,9 +294,11 @@ async function generateDynamicIndexPage(
   componentSpecs: ComponentSpec[],
   _repoData: RepoData
 ): Promise<string> {
-  const componentNames = componentSpecs.map(spec => spec.name);
-  const imports = componentNames.map(name => `import ${name} from '../components/${name}.astro';`).join('\n');
-  
+  const componentNames = componentSpecs.map((spec) => spec.name);
+  const imports = componentNames
+    .map((name) => `import ${name} from '../components/${name}.astro';`)
+    .join("\n");
+
   return `---
 import Layout from '../layouts/Layout.astro';
 ${imports}
@@ -308,15 +312,19 @@ const issues = repoData.issues || [];
 ---
 
 <Layout title={repo.name + ' - ${architecture.concept.theme}'} description={repo.description}>
-  ${architecture.layout.sections.map((_section, index) => {
-    const componentName = componentSpecs[index]?.name || 'div';
-    return `<${componentName} />`;
-  }).join('\n  ')}
+  ${architecture.layout.sections
+    .map((_section, index) => {
+      const componentName = componentSpecs[index]?.name || "div";
+      return `<${componentName} />`;
+    })
+    .join("\n  ")}
 </Layout>`;
 }
 
 /** 動的グローバルスタイル生成 */
-async function generateDynamicGlobalStyles(architecture: SiteArchitecture): Promise<string> {
+async function generateDynamicGlobalStyles(
+  architecture: SiteArchitecture
+): Promise<string> {
   const prompt = `
 以下のデザインシステムに基づいて、包括的なグローバルCSSを生成してください。
 
@@ -387,7 +395,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /** Step 2: セクション設計から具体的なコンポーネント仕様を生成 */
 async function generateComponentSpecs(
-  section: any,
+  section: SiteSection,
   _architecture: SiteArchitecture,
   _repoData: RepoData
 ): Promise<ComponentSpec[]> {
@@ -400,7 +408,7 @@ async function generateComponentSpecs(
 - インタラクション: ${section.design_spec.interaction}
 
 ## データソース
-${section.content_strategy.data_source.map((source: string) => `- ${source}`).join('\n')}
+${section.content_strategy.data_source.map((source: string) => `- ${source}`).join("\n")}
 
 このセクションに最適な1-2個のコンポーネント仕様を JSON配列形式で回答してください:
 
@@ -438,8 +446,8 @@ ${section.content_strategy.data_source.map((source: string) => `- ${source}`).jo
         props_interface: "export interface Props { data: any; }",
         html_structure: `<section class="${section.type}"><h2>Section</h2></section>`,
         css_styles: `.${section.type} { padding: 2rem; }`,
-        responsive_rules: `@media (max-width: 768px) { .${section.type} { padding: 1rem; } }`
-      }
+        responsive_rules: `@media (max-width: 768px) { .${section.type} { padding: 1rem; } }`,
+      },
     ];
   }
 }

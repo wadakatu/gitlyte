@@ -3,9 +3,9 @@ import type { RepoData } from "../types.js";
 import { batchCommitFiles, type FileChange } from "../utils/batch-commit.js";
 import { analyzeRepository } from "./ai-analyzer.js";
 import { designSiteArchitecture } from "./ai-site-architect.js";
-import { 
+import {
   generateSiteStructure,
-  type DynamicAstroSite 
+  type DynamicAstroSite,
 } from "./ai-dynamic-generator.js";
 
 /** AI駆動でAstroサイトを生成 */
@@ -79,16 +79,18 @@ async function batchCommitDynamicFiles(
   for (const [filename, content] of Object.entries(dynamicSite.components)) {
     files.push({
       path: `docs/src/components/${filename}`,
-      content: content
+      content: content,
     });
   }
 
   // 追加ファイルがあれば追加
   if (dynamicSite.additionalFiles) {
-    for (const [filename, content] of Object.entries(dynamicSite.additionalFiles)) {
+    for (const [filename, content] of Object.entries(
+      dynamicSite.additionalFiles
+    )) {
       files.push({
         path: `docs/${filename}`,
-        content: content
+        content: content,
       });
     }
   }

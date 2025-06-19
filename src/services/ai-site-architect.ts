@@ -29,14 +29,14 @@ export interface SiteArchitecture {
     mood: string; // "energetic", "professional", "creative", "minimalist"
     target_impression: string; // "cutting-edge", "trustworthy", "approachable"
   };
-  
+
   // レイアウト構成
   layout: {
     structure: "single-page" | "multi-section" | "dashboard" | "portfolio";
     navigation: "none" | "sticky-header" | "sidebar" | "floating" | "bottom";
     sections: SiteSection[];
   };
-  
+
   // デザインシステム
   design: {
     color_palette: {
@@ -72,7 +72,13 @@ export interface SiteArchitecture {
       rhythm: "geometric" | "organic" | "modular";
     };
     visual_style: {
-      approach: "gradient" | "solid" | "glassmorphism" | "neumorphism" | "brutalist" | "minimal";
+      approach:
+        | "gradient"
+        | "solid"
+        | "glassmorphism"
+        | "neumorphism"
+        | "brutalist"
+        | "minimal";
       borders: "none" | "subtle" | "prominent" | "decorative";
       shadows: "none" | "soft" | "dramatic" | "colorful";
       animations: "none" | "subtle" | "engaging" | "playful";
@@ -83,7 +89,15 @@ export interface SiteArchitecture {
 /** 個別セクションの設計 */
 export interface SiteSection {
   id: string;
-  type: "hero" | "stats" | "features" | "about" | "gallery" | "timeline" | "contact" | "custom";
+  type:
+    | "hero"
+    | "stats"
+    | "features"
+    | "about"
+    | "gallery"
+    | "timeline"
+    | "contact"
+    | "custom";
   position: number;
   content_strategy: {
     focus: string; // "repository-stats", "recent-activity", "project-showcase"
@@ -235,7 +249,7 @@ export async function designSiteArchitecture(
       concept: {
         theme: "Modern Project Showcase",
         mood: "professional",
-        target_impression: "trustworthy"
+        target_impression: "trustworthy",
       },
       layout: {
         structure: "single-page",
@@ -248,16 +262,16 @@ export async function designSiteArchitecture(
             content_strategy: {
               focus: "repository-overview",
               tone: "welcoming",
-              data_source: ["repo"]
+              data_source: ["repo"],
             },
             design_spec: {
               layout_pattern: "centered",
               visual_hierarchy: "prominent",
               interaction: "static",
-              responsive_behavior: "stack vertically on mobile"
-            }
-          }
-        ]
+              responsive_behavior: "stack vertically on mobile",
+            },
+          },
+        ],
       },
       design: {
         color_palette: {
@@ -269,36 +283,36 @@ export async function designSiteArchitecture(
           text: {
             primary: "#2d3748",
             secondary: "#718096",
-            accent: "#667eea"
-          }
+            accent: "#667eea",
+          },
         },
         typography: {
           heading: {
             font: "Inter, sans-serif",
             weight: "700",
-            scale: "moderate"
+            scale: "moderate",
           },
           body: {
             font: "system-ui, sans-serif",
             size: "16px",
-            line_height: "1.6"
+            line_height: "1.6",
           },
           code: {
             font: "JetBrains Mono, monospace",
-            style: "minimal"
-          }
+            style: "minimal",
+          },
         },
         spacing: {
           scale: "normal",
-          rhythm: "geometric"
+          rhythm: "geometric",
         },
         visual_style: {
           approach: "gradient",
           borders: "subtle",
           shadows: "soft",
-          animations: "subtle"
-        }
-      }
+          animations: "subtle",
+        },
+      },
     };
   }
 }
@@ -374,10 +388,11 @@ export async function generateComponentSpecs(
         name: `${section.type.charAt(0).toUpperCase() + section.type.slice(1)}Section`,
         purpose: `Display ${section.type} information`,
         props_interface: "export interface Props { title: string; }",
-        html_structure: `<section><h2>{title}</h2></section>`,
+        html_structure: "<section><h2>{title}</h2></section>",
         css_styles: "section { padding: 2rem; }",
-        responsive_rules: "@media (max-width: 768px) { section { padding: 1rem; } }"
-      }
+        responsive_rules:
+          "@media (max-width: 768px) { section { padding: 1rem; } }",
+      },
     ];
   }
 }
