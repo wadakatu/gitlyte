@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 import type { RepoData } from "../types.js";
-import type { SiteArchitecture, ComponentSpec } from "./ai-site-architect.js";
+import type {
+  SiteArchitecture,
+  ComponentSpec,
+  SiteSection,
+} from "./ai-site-architect.js";
 
 // OpenAI クライアント初期化
 let openai: OpenAI | null = null;
