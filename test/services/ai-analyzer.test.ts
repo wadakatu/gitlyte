@@ -83,10 +83,9 @@ describe("AI Analyzer", () => {
 
       expect(result).toEqual(mockAnalysis);
       expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages: [{ role: "user", content: expect.stringContaining("test-repo") }],
         temperature: 0.3,
-        max_tokens: 500,
       });
     });
 
@@ -198,12 +197,12 @@ describe("AI Analyzer", () => {
 
       expect(result).toEqual(mockDesign);
       expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages: [
           { role: "user", content: expect.stringContaining("application") },
         ],
         temperature: 0.7,
-        max_tokens: 600,
+        max_tokens: 800,
       });
     });
 
@@ -216,20 +215,26 @@ describe("AI Analyzer", () => {
 
       expect(result).toEqual({
         colorScheme: {
-          primary: "#667eea",
-          secondary: "#764ba2",
-          accent: "#f093fb",
-          background: "#ffffff",
+          primary: "#7c3aed",
+          secondary: "#5b21b6", 
+          accent: "#a855f7",
+          background: "#fafafa",
         },
         typography: {
-          heading: "Inter, sans-serif",
-          body: "system-ui, sans-serif",
-          code: "JetBrains Mono, monospace",
+          heading: "Inter, system-ui, sans-serif",
+          body: "system-ui, -apple-system, sans-serif",
+          code: "JetBrains Mono, Fira Code, monospace",
         },
         layout: "hero-focused",
         style: "modern",
         animations: true,
         darkMode: false,
+        effects: {
+          blur: true,
+          shadows: "subtle",
+          borders: "rounded",
+          spacing: "normal",
+        },
       });
     });
   });

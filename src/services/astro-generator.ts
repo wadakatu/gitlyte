@@ -1,16 +1,20 @@
 import type { Context } from "probot";
 import type { RepoData } from "../types.js";
 import { batchCommitFiles, type FileChange } from "../utils/batch-commit.js";
-import { analyzeRepository, generateDesignStrategy } from "./ai-analyzer.js";
 import {
-  type GeneratedAstroSite,
+  analyzeRepository,
+  generateDesignStrategy,
+  type DesignStrategy,
+} from "./ai-analyzer.js";
+import {
   generateAstroSite,
+  type GeneratedAstroSite,
 } from "./ai-code-generator.js";
 
 /** AI駆動でAstroサイトを生成 */
 export async function generateAIAstroSite(ctx: Context, data: RepoData) {
   try {
-    ctx.log.info("🤖 Starting AI analysis...");
+    ctx.log.info("🤖 Starting enhanced AI-powered site generation...");
 
     // Step 1: リポジトリ分析
     const analysis = await analyzeRepository(data);
@@ -18,20 +22,27 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
       `📊 Analysis complete: ${analysis.projectType} project for ${analysis.audience}`
     );
 
-    // Step 2: デザイン戦略決定
-    const design = await generateDesignStrategy(analysis);
+    // Step 2: AIデザイン戦略生成
+    const designStrategy = await generateDesignStrategy(analysis);
     ctx.log.info(
-      `🎨 Design strategy: ${design.style} with ${design.layout} layout`
+      `🎨 Design strategy generated: ${designStrategy.style} style with ${designStrategy.colorScheme.primary} primary color`
     );
 
-    // Step 3: Astroコード生成
-    const generatedSite = await generateAstroSite(data, analysis, design);
-    ctx.log.info("⚡ AI code generation complete");
+    // Step 3: 高品質AI生成Astroサイト作成
+    const generatedSite = await generateAstroSite(
+      data,
+      analysis,
+      designStrategy
+    );
+    ctx.log.info("✨ Enhanced AI site generation complete");
+    ctx.log.info(
+      "🎯 Generated components: Layout, Hero, Features, Index, Global Styles"
+    );
 
     // Step 4: ファイル一括コミット（ワークフロー含む）
-    await batchCommitAIGeneratedFiles(ctx, data, generatedSite);
+    await batchCommitGeneratedFiles(ctx, data, generatedSite, designStrategy);
 
-    ctx.log.info("🚀 AI-generated Astro site deployed successfully");
+    ctx.log.info("🚀 Enhanced AI-generated Astro site deployed successfully");
   } catch (error) {
     ctx.log.error("Failed to generate AI Astro site:", error);
     throw error;
@@ -39,10 +50,11 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
 }
 
 /** AI生成されたファイルを一括コミット */
-async function batchCommitAIGeneratedFiles(
+async function batchCommitGeneratedFiles(
   ctx: Context,
   data: RepoData,
-  generatedSite: GeneratedAstroSite
+  generatedSite: GeneratedAstroSite,
+  designStrategy: DesignStrategy
 ) {
   const repoInfo = ctx.repo();
 
@@ -55,30 +67,59 @@ async function batchCommitAIGeneratedFiles(
     .replace(/{{REPO_NAME}}/g, repoInfo.repo)
     .replace(/{{OWNER}}/g, repoInfo.owner);
 
+  // リポジトリデータを実際の値に置換
+  const layoutContent = generatedSite.layout;
+  const heroComponent = generatedSite.heroComponent;
+  const featuresComponent = generatedSite.featuresComponent;
+  const globalStyles = generatedSite.globalStyles;
+
+  // インデックスページにリポジトリデータとコンテンツ分析を埋め込み
+  // まずコンテンツ分析を実行
+  const { analyzeRepositoryContent } = await import("./content-analyzer.js");
+  const analysis = await analyzeRepository(data);
+  const contentAnalysis = await analyzeRepositoryContent(data, analysis);
+
+  // JSON データを安全にエスケープして文字列リテラルに埋め込み
+  function safeJSONStringify(obj: unknown): string {
+    const jsonString = JSON.stringify(obj);
+    return (
+      jsonString
+        // バックスラッシュを最初にエスケープ（他のエスケープ処理の前に行う）
+        .replace(/\\/g, "\\\\")
+        // 改行文字をエスケープ
+        .replace(/\n/g, "\\n")
+        .replace(/\r/g, "\\r")
+        .replace(/\t/g, "\\t")
+        // 引用符をエスケープ
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        // その他の制御文字をエスケープ
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: 制御文字のエスケープに必要
+        .replace(/[\x00-\x1F\x7F]/g, (match) => {
+          return `\\u${(`0000${match.charCodeAt(0).toString(16)}`).slice(-4)}`;
+        })
+    );
+  }
+
+  const safeRepoData = safeJSONStringify(data);
+  const safeContentAnalysis = safeJSONStringify(contentAnalysis);
+
+  const indexPage = generatedSite.indexPage
+    .replace(/{{REPO_DATA}}/g, safeRepoData)
+    .replace(/{{CONTENT_ANALYSIS}}/g, safeContentAnalysis);
+
   // GitHub Actions ワークフローコンテンツ
   const workflowContent = generateWorkflowContent();
 
-  // データを置換
-  const indexPageWithData = generatedSite.indexPage.replace(
-    "{{REPO_DATA}}",
-    JSON.stringify(data, null, 2)
-  );
-
-  // ファイル配列（一括コミット用、ワークフロー含む）
+  // ファイル配列
   const files: FileChange[] = [
     { path: "docs/package.json", content: packageJson },
     { path: "docs/astro.config.mjs", content: astroConfig },
-    { path: "docs/src/layouts/Layout.astro", content: generatedSite.layout },
-    {
-      path: "docs/src/components/Hero.astro",
-      content: generatedSite.heroComponent,
-    },
-    {
-      path: "docs/src/components/Features.astro",
-      content: generatedSite.featuresComponent,
-    },
-    { path: "docs/src/pages/index.astro", content: indexPageWithData },
-    { path: "docs/src/styles/global.css", content: generatedSite.globalStyles },
+    { path: "docs/src/layouts/Layout.astro", content: layoutContent },
+    { path: "docs/src/components/Hero.astro", content: heroComponent },
+    { path: "docs/src/components/Features.astro", content: featuresComponent },
+    { path: "docs/src/pages/index.astro", content: indexPage },
+    { path: "docs/public/styles/global.css", content: globalStyles },
     { path: ".github/workflows/deploy-astro.yml", content: workflowContent },
   ];
 
@@ -86,14 +127,17 @@ async function batchCommitAIGeneratedFiles(
   await batchCommitFiles(
     ctx,
     files,
-    `🚀 Generate AI-powered Astro site
+    `✨ Generate enhanced AI-powered Astro site
 
-- Add Astro project configuration
-- Generate custom components based on repository analysis
-- Apply AI-selected design strategy and color scheme
-- Create responsive layouts optimized for project type
+🎨 Design Features:
+- Advanced Hero with gradient text, CTA buttons & animated stats
+- Modern Features showcasing project value & benefits
+- Professional typography system with ${designStrategy.typography.heading}
+- ${designStrategy.style} style with ${designStrategy.colorScheme.primary} primary color
+- Responsive design with glassmorphism & hover effects
 
-🤖 Generated with AI analysis and custom design`
+📊 Project: ${data.repo.name} (⭐${data.repo.stargazers_count} stars, 🍴${data.repo.forks_count} forks)
+🤖 Powered by next-generation AI creativity!`
   );
 }
 
