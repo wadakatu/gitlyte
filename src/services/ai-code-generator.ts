@@ -810,7 +810,7 @@ const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
           <details class="readme-details">
             <summary>📖 View Full README</summary>
             <div class="readme-content">
-              <pre>{readme.slice(0, 1500)}{readme.length > 1500 ? '...\n\n[View complete README on GitHub]' : ''}</pre>
+              <pre>{readme.slice(0, 1500)}{readme.length > 1500 ? '...\\n\\n[View complete README on GitHub]' : ''}</pre>
             </div>
           </details>
         )}
