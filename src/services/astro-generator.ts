@@ -2,11 +2,10 @@ import type { Context } from "probot";
 import type { RepoData } from "../types.js";
 import { batchCommitFiles, type FileChange } from "../utils/batch-commit.js";
 import { analyzeRepository } from "./ai-analyzer.js";
-import { designSiteArchitecture } from "./ai-site-architect.js";
 import {
-  generateSiteStructure,
-  type DynamicAstroSite,
-} from "./ai-dynamic-generator.js";
+  generateHybridAstroSite,
+  type HybridAstroSite,
+} from "./hybrid-generator.js";
 
 /** AI駆動でAstroサイトを生成 */
 export async function generateAIAstroSite(ctx: Context, data: RepoData) {
@@ -19,94 +18,69 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
       `📊 Analysis complete: ${analysis.projectType} project for ${analysis.audience}`
     );
 
-    // Step 2: サイト全体のアーキテクチャ設計
-    const architecture = await designSiteArchitecture(data, analysis);
-    ctx.log.info(
-      `🏗️ Site architecture: ${architecture.concept.theme} with ${architecture.layout.sections.length} sections`
-    );
+    // Step 2: ハイブリッドサイト生成（テンプレート + AI カスタマイズ）
+    const hybridSite = await generateHybridAstroSite(data, analysis);
+    ctx.log.info("🎨 Hybrid AI site generation complete");
 
-    // Step 3: 完全カスタムサイト生成
-    const dynamicSite = await generateSiteStructure(architecture, data);
-    ctx.log.info("⚡ Dynamic AI site generation complete");
+    // Step 3: ファイル一括コミット（ワークフロー含む）
+    await batchCommitHybridFiles(ctx, data, hybridSite);
 
-    // Step 4: ファイル一括コミット（ワークフロー含む）
-    await batchCommitDynamicFiles(ctx, data, dynamicSite);
-
-    ctx.log.info("🚀 AI-architected Astro site deployed successfully");
+    ctx.log.info("🚀 Hybrid AI-customized Astro site deployed successfully");
   } catch (error) {
     ctx.log.error("Failed to generate AI Astro site:", error);
     throw error;
   }
 }
 
-/** 動的AI生成されたファイルを一括コミット */
-async function batchCommitDynamicFiles(
+/** ハイブリッドAI生成されたファイルを一括コミット */
+async function batchCommitHybridFiles(
   ctx: Context,
-  data: RepoData,
-  dynamicSite: DynamicAstroSite
+  _data: RepoData,
+  hybridSite: HybridAstroSite
 ) {
   const repoInfo = ctx.repo();
 
   // 変数置換
-  const packageJson = dynamicSite.packageJson
+  const packageJson = hybridSite.packageJson
     .replace(/{{REPO_NAME}}/g, repoInfo.repo)
     .replace(/{{OWNER}}/g, repoInfo.owner);
 
-  const astroConfig = dynamicSite.astroConfig
+  const astroConfig = hybridSite.astroConfig
     .replace(/{{REPO_NAME}}/g, repoInfo.repo)
     .replace(/{{OWNER}}/g, repoInfo.owner);
 
   // GitHub Actions ワークフローコンテンツ
   const workflowContent = generateWorkflowContent();
 
-  // データを置換
-  const indexPageWithData = dynamicSite.indexPage.replace(
-    "{{REPO_DATA}}",
-    JSON.stringify(data, null, 2)
-  );
-
   // 基本ファイル配列
   const files: FileChange[] = [
     { path: "docs/package.json", content: packageJson },
     { path: "docs/astro.config.mjs", content: astroConfig },
-    { path: "docs/src/layouts/Layout.astro", content: dynamicSite.layout },
-    { path: "docs/src/pages/index.astro", content: indexPageWithData },
-    { path: "docs/src/styles/global.css", content: dynamicSite.globalStyles },
     { path: ".github/workflows/deploy-astro.yml", content: workflowContent },
   ];
 
-  // 動的生成されたコンポーネントを追加
-  for (const [filename, content] of Object.entries(dynamicSite.components)) {
+  // ハイブリッド生成されたファイルを追加
+  for (const [filePath, content] of Object.entries(
+    hybridSite.customizedFiles
+  )) {
     files.push({
-      path: `docs/src/components/${filename}`,
+      path: `docs/${filePath}`,
       content: content,
     });
-  }
-
-  // 追加ファイルがあれば追加
-  if (dynamicSite.additionalFiles) {
-    for (const [filename, content] of Object.entries(
-      dynamicSite.additionalFiles
-    )) {
-      files.push({
-        path: `docs/${filename}`,
-        content: content,
-      });
-    }
   }
 
   // 一括コミット実行
   await batchCommitFiles(
     ctx,
     files,
-    `🎨 Generate fully AI-architected Astro site
+    `🎨 Generate hybrid AI-customized Astro site
 
-- Create unique site architecture with AI-designed layout
-- Generate ${Object.keys(dynamicSite.components).length} custom components
-- Apply revolutionary design patterns and visual systems
-- Build responsive experiences optimized for project characteristics
+- Selected template: ${hybridSite.templateId}
+- Applied AI-driven color schemes and typography
+- Generated ${Object.keys(hybridSite.customizedFiles).length} customized files
+- Optimized design for project characteristics
 
-🚀 Powered by complete AI creativity - no templates used!`
+🚀 Powered by hybrid AI creativity with stable foundation!`
   );
 }
 
