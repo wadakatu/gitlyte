@@ -439,7 +439,20 @@ ${section.content_strategy.data_source.map((source: string) => `- ${source}`).jo
     const content = response.choices[0].message.content;
     if (!content) throw new Error("No response from OpenAI");
 
-    const cleanContent = content.replace(/```json\n?|\n?```/g, "").trim();
+    // より強力なJSONクリーニング
+    let cleanContent = content
+      .replace(/```json\n?|\n?```/g, "") // コードブロック除去
+      .replace(/```\n?|\n?```/g, "") // 一般的なコードブロック除去
+      .trim();
+
+    // JSONの開始と終了を探す
+    const jsonStart = cleanContent.indexOf("[");
+    const jsonEnd = cleanContent.lastIndexOf("]");
+
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
+    }
+
     return JSON.parse(cleanContent) as ComponentSpec[];
   } catch (error) {
     console.error("Component specs generation failed:", error);
