@@ -63,11 +63,15 @@ async function batchCommitGeneratedFiles(
   const featuresComponent = generatedSite.featuresComponent;
   const globalStyles = generatedSite.globalStyles;
   
-  // インデックスページにリポジトリデータを埋め込み
-  const indexPage = generatedSite.indexPage.replace(
-    /{{REPO_DATA}}/g,
-    JSON.stringify(data, null, 2)
-  );
+  // インデックスページにリポジトリデータとコンテンツ分析を埋め込み
+  // まずコンテンツ分析を実行
+  const { analyzeRepositoryContent } = await import("./content-analyzer.js");
+  const analysis = await analyzeRepository(data);
+  const contentAnalysis = await analyzeRepositoryContent(data, analysis);
+  
+  const indexPage = generatedSite.indexPage
+    .replace(/{{REPO_DATA}}/g, JSON.stringify(data, null, 2))
+    .replace(/{{CONTENT_ANALYSIS}}/g, JSON.stringify(contentAnalysis, null, 2));
 
   // GitHub Actions ワークフローコンテンツ
   const workflowContent = generateWorkflowContent();

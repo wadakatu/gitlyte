@@ -1,5 +1,6 @@
 import type { RepoData } from "../types.js";
 import type { DesignStrategy, RepoAnalysis } from "./ai-analyzer.js";
+import { analyzeRepositoryContent, type ContentAnalysis } from "./content-analyzer.js";
 
 // 型拡張: 新しいデザインプロパティを含む
 interface EnhancedDesignStrategy extends Omit<DesignStrategy, "effects"> {
@@ -37,6 +38,10 @@ export async function generateAstroSite(
       spacing: "normal",
     },
   };
+
+  // コンテンツ分析を実行
+  const contentAnalysis = await analyzeRepositoryContent(repoData, analysis);
+
   const baseContext = `
 リポジトリ情報:
 - 名前: ${repoData.repo.name}
@@ -71,7 +76,7 @@ export async function generateAstroSite(
     generateLayout(baseContext, enhancedDesign),
     generateHeroComponent(baseContext, repoData, enhancedDesign),
     generateFeaturesComponent(baseContext, repoData, enhancedDesign),
-    generateIndexPage(baseContext, repoData, enhancedDesign),
+    generateIndexPage(baseContext, repoData, enhancedDesign, contentAnalysis),
     generateGlobalStyles(baseContext, enhancedDesign),
   ]);
 
@@ -724,7 +729,8 @@ const projectFeatures = [
 async function generateIndexPage(
   _context: string,
   _repoData: RepoData,
-  _design: EnhancedDesignStrategy
+  _design: EnhancedDesignStrategy,
+  _contentAnalysis: ContentAnalysis
 ): Promise<string> {
   return `---
 import Layout from '../layouts/Layout.astro';
@@ -743,6 +749,16 @@ const stats = {
   forks: repo.forks_count || 0,
   issues: issues.length || 0
 };
+
+// Content analysis data
+const contentAnalysis = {{CONTENT_ANALYSIS}};
+const uniqueValue = contentAnalysis?.appeal?.uniqueValue || 'Delivers exceptional value through innovative features and robust architecture.';
+const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
+  'Easy to use and integrate with comprehensive documentation',
+  'High performance with modern technology stack optimization',
+  'Enterprise-grade security and reliability standards',
+  'Active community support with regular updates and improvements'
+];
 ---
 
 <Layout title={repo.name + ' - Project Dashboard'} description={repo.description}>
@@ -757,8 +773,42 @@ const stats = {
   <section class="about">
     <div class="container">
       <h2>About This Project</h2>
-      <div class="readme-content">
-        <p>{readme ? readme.slice(0, 500) + '...' : 'No description available.'}</p>
+      <div class="project-overview">
+        <div class="main-description">
+          <h3>🎯 What makes this project special?</h3>
+          <p>{repo.description || 'An innovative solution for modern development challenges.'}</p>
+          <div class="unique-value">
+            <strong>💡 Unique Value:</strong> {uniqueValue}
+          </div>
+        </div>
+        
+        <div class="features-grid">
+          <div class="feature-highlight">
+            <h4>🚀 Quick Start</h4>
+            <p>{keyBenefits[0]}</p>
+          </div>
+          <div class="feature-highlight">
+            <h4>⚡ High Performance</h4>
+            <p>{keyBenefits[1]}</p>
+          </div>
+          <div class="feature-highlight">
+            <h4>🛡️ Enterprise Ready</h4>
+            <p>{keyBenefits[2]}</p>
+          </div>
+          <div class="feature-highlight">
+            <h4>🌟 Community Driven</h4>
+            <p>{keyBenefits[3]}</p>
+          </div>
+        </div>
+
+        {readme && (
+          <details class="readme-details">
+            <summary>📖 View Full README</summary>
+            <div class="readme-content">
+              <pre>{readme.slice(0, 1500)}{readme.length > 1500 ? '...\n\n[View complete README on GitHub]' : ''}</pre>
+            </div>
+          </details>
+        )}
       </div>
     </div>
   </section>
@@ -772,8 +822,8 @@ const stats = {
 
 <style>
   .about {
-    padding: 3rem 0;
-    background: #f8fafc;
+    padding: 4rem 0;
+    background: linear-gradient(135deg, #f8fafc, #ffffff);
   }
 
   .container {
@@ -783,20 +833,131 @@ const stats = {
   }
 
   h2 {
-    font-size: 2rem;
-    margin-bottom: 2rem;
+    font-size: 2.5rem;
+    margin-bottom: 3rem;
     text-align: center;
+    color: var(--text-primary);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .project-overview {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .main-description {
+    text-align: center;
+    margin-bottom: 3rem;
+    background: white;
+    padding: 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border-top: 4px solid var(--primary);
+  }
+
+  .main-description h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
     color: var(--text-primary);
   }
 
-  .readme-content {
+  .main-description p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  .unique-value {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--primary)10, var(--accent)10);
+    border-radius: 8px;
+    border-left: 3px solid var(--primary);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .feature-highlight {
     background: white;
-    padding: 2rem;
+    padding: 1.5rem;
     border-radius: 12px;
-    border-left: 4px solid var(--primary);
-    max-width: 800px;
-    margin: 0 auto;
-    line-height: 1.7;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border-left: 3px solid var(--accent);
+  }
+
+  .feature-highlight:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .feature-highlight h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+  }
+
+  .feature-highlight p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  .readme-details {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+
+  .readme-details summary {
+    padding: 1.5rem;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s ease;
+  }
+
+  .readme-details summary:hover {
+    background: var(--secondary);
+  }
+
+  .readme-content {
+    padding: 2rem;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .readme-content pre {
+    font-family: var(--font-code, monospace);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .main-description {
+      padding: 1.5rem;
+    }
   }
 
   footer {
