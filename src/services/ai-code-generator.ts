@@ -1,6 +1,9 @@
 import type { RepoData } from "../types.js";
 import type { DesignStrategy, RepoAnalysis } from "./ai-analyzer.js";
-import { analyzeRepositoryContent, type ContentAnalysis } from "./content-analyzer.js";
+import {
+  analyzeRepositoryContent,
+  type ContentAnalysis,
+} from "./content-analyzer.js";
 
 // 型拡張: 新しいデザインプロパティを含む
 interface EnhancedDesignStrategy extends Omit<DesignStrategy, "effects"> {
@@ -738,7 +741,8 @@ import Hero from '../components/Hero.astro';
 import Features from '../components/Features.astro';
 
 // Repository data will be replaced during generation
-const repoData = {{REPO_DATA}};
+const repoDataJson = '{{REPO_DATA}}';
+const repoData = JSON.parse(repoDataJson);
 const repo = repoData.repo || {};
 const prs = repoData.prs || [];
 const readme = repoData.readme || '';
@@ -751,7 +755,8 @@ const stats = {
 };
 
 // Content analysis data
-const contentAnalysis = {{CONTENT_ANALYSIS}};
+const contentAnalysisJson = '{{CONTENT_ANALYSIS}}';
+const contentAnalysis = JSON.parse(contentAnalysisJson);
 const uniqueValue = contentAnalysis?.appeal?.uniqueValue || 'Delivers exceptional value through innovative features and robust architecture.';
 const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
   'Easy to use and integrate with comprehensive documentation',

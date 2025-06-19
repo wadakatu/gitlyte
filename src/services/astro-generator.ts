@@ -1,7 +1,11 @@
 import type { Context } from "probot";
 import type { RepoData } from "../types.js";
 import { batchCommitFiles, type FileChange } from "../utils/batch-commit.js";
-import { analyzeRepository, generateDesignStrategy, type DesignStrategy } from "./ai-analyzer.js";
+import {
+  analyzeRepository,
+  generateDesignStrategy,
+  type DesignStrategy,
+} from "./ai-analyzer.js";
 import {
   generateAstroSite,
   type GeneratedAstroSite,
@@ -25,9 +29,15 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
     );
 
     // Step 3: 高品質AI生成Astroサイト作成
-    const generatedSite = await generateAstroSite(data, analysis, designStrategy);
+    const generatedSite = await generateAstroSite(
+      data,
+      analysis,
+      designStrategy
+    );
     ctx.log.info("✨ Enhanced AI site generation complete");
-    ctx.log.info(`🎯 Generated components: Layout, Hero, Features, Index, Global Styles`);
+    ctx.log.info(
+      "🎯 Generated components: Layout, Hero, Features, Index, Global Styles"
+    );
 
     // Step 4: ファイル一括コミット（ワークフロー含む）
     await batchCommitGeneratedFiles(ctx, data, generatedSite, designStrategy);
@@ -62,16 +72,25 @@ async function batchCommitGeneratedFiles(
   const heroComponent = generatedSite.heroComponent;
   const featuresComponent = generatedSite.featuresComponent;
   const globalStyles = generatedSite.globalStyles;
-  
+
   // インデックスページにリポジトリデータとコンテンツ分析を埋め込み
   // まずコンテンツ分析を実行
   const { analyzeRepositoryContent } = await import("./content-analyzer.js");
   const analysis = await analyzeRepository(data);
   const contentAnalysis = await analyzeRepositoryContent(data, analysis);
-  
+
+  // JSON データを安全にエスケープして文字列リテラルに埋め込み
+  const safeRepoData = JSON.stringify(data)
+    .replace(/\\/g, "\\\\") // バックスラッシュをエスケープ
+    .replace(/'/g, "\\'"); // シングルクォートをエスケープ
+
+  const safeContentAnalysis = JSON.stringify(contentAnalysis)
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'");
+
   const indexPage = generatedSite.indexPage
-    .replace(/{{REPO_DATA}}/g, JSON.stringify(data, null, 2))
-    .replace(/{{CONTENT_ANALYSIS}}/g, JSON.stringify(contentAnalysis, null, 2));
+    .replace(/{{REPO_DATA}}/g, safeRepoData)
+    .replace(/{{CONTENT_ANALYSIS}}/g, safeContentAnalysis);
 
   // GitHub Actions ワークフローコンテンツ
   const workflowContent = generateWorkflowContent();
