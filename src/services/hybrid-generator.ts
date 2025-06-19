@@ -535,40 +535,44 @@ export async function generateCustomizationRules(
 - 名前: ${template.name}
 - 説明: ${template.description}
 
-このプロジェクトに最適化されたデザインカスタマイズを以下のJSON形式で提案してください:
+このプロジェクトに最適化されたデザインカスタマイズを提案してください。
+
+**重要**: 回答は必ず有効なJSON形式で、余計な説明は一切含めないでください。
 
 {
   "colors": {
-    "primary": "#hex色",
-    "secondary": "#hex色",
-    "accent": "#hex色",
-    "background": "#hex色",
-    "text": "#hex色"
+    "primary": "#667eea",
+    "secondary": "#764ba2", 
+    "accent": "#f093fb",
+    "background": "#ffffff",
+    "text": "#2d3748"
   },
   "typography": {
-    "headingFont": "フォント名",
-    "bodyFont": "フォント名",
-    "codeFont": "コードフォント名"
+    "headingFont": "Inter, sans-serif",
+    "bodyFont": "system-ui, sans-serif", 
+    "codeFont": "JetBrains Mono, monospace"
   },
   "styling": {
     "borderRadius": "8px",
-    "shadows": "box-shadow値",
-    "spacing": "スペーシング値",
-    "animations": true/false
+    "shadows": "0 4px 6px rgba(0, 0, 0, 0.1)",
+    "spacing": "1rem",
+    "animations": true
   },
   "content": {
-    "heroTitle": "魅力的なタイトル",
-    "heroSubtitle": "説明文",
+    "heroTitle": "${repoData.repo.name}",
+    "heroSubtitle": "${repoData.repo.description || "An innovative project"}",
     "sectionTitles": {
-      "features": "セクションタイトル"
+      "features": "Recent Pull Requests"
     }
   },
   "layout": {
-    "structure": "minimal|detailed|showcase",
-    "navigation": true/false,
+    "structure": "detailed",
+    "navigation": false,
     "sidebar": false
   }
 }`;
+
+  let cleanContent = "";
 
   try {
     const client = getOpenAIClient();
@@ -582,12 +586,15 @@ export async function generateCustomizationRules(
     const content = response.choices[0].message.content;
     if (!content) throw new Error("No response from OpenAI");
 
-    // JSONクリーニング
-    let cleanContent = content
-      .replace(/```json\n?|\n?```/g, "")
-      .replace(/```\n?|\n?```/g, "")
+    // より強力なJSONクリーニング
+    cleanContent = content
+      .replace(/```json\n?|\n?```/g, "") // JSONコードブロック除去
+      .replace(/```\n?|\n?```/g, "") // 一般的なコードブロック除去
+      .replace(/\/\*[\s\S]*?\*\//g, "") // コメント除去
+      .replace(/\/\/.*$/gm, "") // 単行コメント除去
       .trim();
 
+    // JSONの開始と終了を探す
     const jsonStart = cleanContent.indexOf("{");
     const jsonEnd = cleanContent.lastIndexOf("}");
 
@@ -595,10 +602,21 @@ export async function generateCustomizationRules(
       cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
     }
 
+    // 追加のクリーニング: 不正な文字を修正
+    cleanContent = cleanContent
+      .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":') // プロパティ名をクォート
+      .replace(/:\s*'([^']*)'/g, ': "$1"') // シングルクォートをダブルクォートに
+      .replace(/,\s*}/g, "}") // 末尾カンマ除去
+      .replace(/,\s*]/g, "]"); // 配列末尾カンマ除去
+
     return JSON.parse(cleanContent) as CustomizationRules;
   } catch (error) {
     console.error("Customization rules generation failed:", error);
-    // フォールバック: デフォルトカスタマイズ
+    if (cleanContent) {
+      console.error("Problematic content:", cleanContent);
+    }
+
+    // 最終フォールバック: JSON解析に失敗した場合でも動作するデフォルト
     return {
       colors: {
         primary: "#667eea",
