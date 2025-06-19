@@ -100,10 +100,9 @@ export async function analyzeRepository(
   try {
     const client = getOpenAIClient();
     const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
-      max_tokens: 500,
     });
 
     const content = response.choices[0].message.content;
@@ -134,7 +133,7 @@ export async function generateDesignStrategy(
   analysis: RepoAnalysis
 ): Promise<DesignStrategy> {
   const prompt = `
-あなたは世界最高峰のWebデザイナー兼UXスペシャリストです。2024年のデザイントレンドを踏まえ、このプロジェクトに最適で視覚的に魅力的なデザイン戦略を提案してください。
+あなたは世界最高峰のWebデザイナー兼UXスペシャリストです。2025年のデザイントレンドを踏まえ、このプロジェクトに最適で視覚的に魅力的なデザイン戦略を提案してください。
 
 ## プロジェクト分析
 - **プロジェクトタイプ**: ${analysis.projectType}
@@ -179,7 +178,7 @@ export async function generateDesignStrategy(
   try {
     const client = getOpenAIClient();
     const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
       max_tokens: 600,
