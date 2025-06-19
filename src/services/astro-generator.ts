@@ -1,16 +1,16 @@
 import type { Context } from "probot";
 import type { RepoData } from "../types.js";
 import { batchCommitFiles, type FileChange } from "../utils/batch-commit.js";
-import { analyzeRepository } from "./ai-analyzer.js";
+import { analyzeRepository, generateDesignStrategy, type DesignStrategy } from "./ai-analyzer.js";
 import {
-  generateHybridAstroSite,
-  type HybridAstroSite,
-} from "./hybrid-generator.js";
+  generateAstroSite,
+  type GeneratedAstroSite,
+} from "./ai-code-generator.js";
 
 /** AI駆動でAstroサイトを生成 */
 export async function generateAIAstroSite(ctx: Context, data: RepoData) {
   try {
-    ctx.log.info("🤖 Starting AI-powered site architecture...");
+    ctx.log.info("🤖 Starting enhanced AI-powered site generation...");
 
     // Step 1: リポジトリ分析
     const analysis = await analyzeRepository(data);
@@ -18,69 +18,87 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
       `📊 Analysis complete: ${analysis.projectType} project for ${analysis.audience}`
     );
 
-    // Step 2: ハイブリッドサイト生成（テンプレート + AI カスタマイズ）
-    const hybridSite = await generateHybridAstroSite(data, analysis);
-    ctx.log.info("🎨 Hybrid AI site generation complete");
+    // Step 2: AIデザイン戦略生成
+    const designStrategy = await generateDesignStrategy(analysis);
+    ctx.log.info(
+      `🎨 Design strategy generated: ${designStrategy.style} style with ${designStrategy.colorScheme.primary} primary color`
+    );
 
-    // Step 3: ファイル一括コミット（ワークフロー含む）
-    await batchCommitHybridFiles(ctx, data, hybridSite);
+    // Step 3: 高品質AI生成Astroサイト作成
+    const generatedSite = await generateAstroSite(data, analysis, designStrategy);
+    ctx.log.info("✨ Enhanced AI site generation complete");
+    ctx.log.info(`🎯 Generated components: Layout, Hero, Features, Index, Global Styles`);
 
-    ctx.log.info("🚀 Hybrid AI-customized Astro site deployed successfully");
+    // Step 4: ファイル一括コミット（ワークフロー含む）
+    await batchCommitGeneratedFiles(ctx, data, generatedSite, designStrategy);
+
+    ctx.log.info("🚀 Enhanced AI-generated Astro site deployed successfully");
   } catch (error) {
     ctx.log.error("Failed to generate AI Astro site:", error);
     throw error;
   }
 }
 
-/** ハイブリッドAI生成されたファイルを一括コミット */
-async function batchCommitHybridFiles(
+/** AI生成されたファイルを一括コミット */
+async function batchCommitGeneratedFiles(
   ctx: Context,
-  _data: RepoData,
-  hybridSite: HybridAstroSite
+  data: RepoData,
+  generatedSite: GeneratedAstroSite,
+  designStrategy: DesignStrategy
 ) {
   const repoInfo = ctx.repo();
 
   // 変数置換
-  const packageJson = hybridSite.packageJson
+  const packageJson = generatedSite.packageJson
     .replace(/{{REPO_NAME}}/g, repoInfo.repo)
     .replace(/{{OWNER}}/g, repoInfo.owner);
 
-  const astroConfig = hybridSite.astroConfig
+  const astroConfig = generatedSite.astroConfig
     .replace(/{{REPO_NAME}}/g, repoInfo.repo)
     .replace(/{{OWNER}}/g, repoInfo.owner);
+
+  // リポジトリデータを実際の値に置換
+  const layoutContent = generatedSite.layout;
+  const heroComponent = generatedSite.heroComponent;
+  const featuresComponent = generatedSite.featuresComponent;
+  const globalStyles = generatedSite.globalStyles;
+  
+  // インデックスページにリポジトリデータを埋め込み
+  const indexPage = generatedSite.indexPage.replace(
+    /{{REPO_DATA}}/g,
+    JSON.stringify(data, null, 2)
+  );
 
   // GitHub Actions ワークフローコンテンツ
   const workflowContent = generateWorkflowContent();
 
-  // 基本ファイル配列
+  // ファイル配列
   const files: FileChange[] = [
     { path: "docs/package.json", content: packageJson },
     { path: "docs/astro.config.mjs", content: astroConfig },
+    { path: "docs/src/layouts/Layout.astro", content: layoutContent },
+    { path: "docs/src/components/Hero.astro", content: heroComponent },
+    { path: "docs/src/components/Features.astro", content: featuresComponent },
+    { path: "docs/src/pages/index.astro", content: indexPage },
+    { path: "docs/public/styles/global.css", content: globalStyles },
     { path: ".github/workflows/deploy-astro.yml", content: workflowContent },
   ];
-
-  // ハイブリッド生成されたファイルを追加
-  for (const [filePath, content] of Object.entries(
-    hybridSite.customizedFiles
-  )) {
-    files.push({
-      path: `docs/${filePath}`,
-      content: content,
-    });
-  }
 
   // 一括コミット実行
   await batchCommitFiles(
     ctx,
     files,
-    `🎨 Generate hybrid AI-customized Astro site
+    `✨ Generate enhanced AI-powered Astro site
 
-- Selected template: ${hybridSite.templateId}
-- Applied AI-driven color schemes and typography
-- Generated ${Object.keys(hybridSite.customizedFiles).length} customized files
-- Optimized design for project characteristics
+🎨 Design Features:
+- Advanced Hero with gradient text, CTA buttons & animated stats
+- Modern Features showcasing project value & benefits
+- Professional typography system with ${designStrategy.typography.heading}
+- ${designStrategy.style} style with ${designStrategy.colorScheme.primary} primary color
+- Responsive design with glassmorphism & hover effects
 
-🚀 Powered by hybrid AI creativity with stable foundation!`
+📊 Project: ${data.repo.name} (⭐${data.repo.stargazers_count} stars, 🍴${data.repo.forks_count} forks)
+🤖 Powered by next-generation AI creativity!`
   );
 }
 
