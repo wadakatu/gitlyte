@@ -270,6 +270,7 @@ ${repoData.prs
     // JSON修正: 制御文字とエスケープの処理
     cleanContent = cleanContent
       // 制御文字を除去（改行、タブ、制御文字）
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: 制御文字の除去に必要
       .replace(/[\x00-\x1F\x7F]/g, "")
       // 改行文字を\\nに変換
       .replace(/\n/g, "\\n")

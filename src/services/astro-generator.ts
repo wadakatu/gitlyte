@@ -80,22 +80,25 @@ async function batchCommitGeneratedFiles(
   const contentAnalysis = await analyzeRepositoryContent(data, analysis);
 
   // JSON データを安全にエスケープして文字列リテラルに埋め込み
-  function safeJSONStringify(obj: any): string {
+  function safeJSONStringify(obj: unknown): string {
     const jsonString = JSON.stringify(obj);
-    return jsonString
-      // バックスラッシュを最初にエスケープ（他のエスケープ処理の前に行う）
-      .replace(/\\/g, "\\\\")
-      // 改行文字をエスケープ
-      .replace(/\n/g, "\\n")
-      .replace(/\r/g, "\\r")
-      .replace(/\t/g, "\\t")
-      // 引用符をエスケープ
-      .replace(/'/g, "\\'")
-      .replace(/"/g, '\\"')
-      // その他の制御文字をエスケープ
-      .replace(/[\x00-\x1F\x7F]/g, (match) => {
-        return "\\u" + ("0000" + match.charCodeAt(0).toString(16)).slice(-4);
-      });
+    return (
+      jsonString
+        // バックスラッシュを最初にエスケープ（他のエスケープ処理の前に行う）
+        .replace(/\\/g, "\\\\")
+        // 改行文字をエスケープ
+        .replace(/\n/g, "\\n")
+        .replace(/\r/g, "\\r")
+        .replace(/\t/g, "\\t")
+        // 引用符をエスケープ
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        // その他の制御文字をエスケープ
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: 制御文字のエスケープに必要
+        .replace(/[\x00-\x1F\x7F]/g, (match) => {
+          return `\\u${(`0000${match.charCodeAt(0).toString(16)}`).slice(-4)}`;
+        })
+    );
   }
 
   const safeRepoData = safeJSONStringify(data);
