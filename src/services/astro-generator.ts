@@ -1,16 +1,17 @@
 import type { Context } from "probot";
 import type { RepoData } from "../types.js";
 import { batchCommitFiles, type FileChange } from "../utils/batch-commit.js";
-import { analyzeRepository, generateDesignStrategy } from "./ai-analyzer.js";
-import {
-  type GeneratedAstroSite,
-  generateAstroSite,
-} from "./ai-code-generator.js";
+import { analyzeRepository } from "./ai-analyzer.js";
+import { designSiteArchitecture } from "./ai-site-architect.js";
+import { 
+  generateSiteStructure,
+  type DynamicAstroSite 
+} from "./ai-dynamic-generator.js";
 
 /** AI駆動でAstroサイトを生成 */
 export async function generateAIAstroSite(ctx: Context, data: RepoData) {
   try {
-    ctx.log.info("🤖 Starting AI analysis...");
+    ctx.log.info("🤖 Starting AI-powered site architecture...");
 
     // Step 1: リポジトリ分析
     const analysis = await analyzeRepository(data);
@@ -18,40 +19,40 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
       `📊 Analysis complete: ${analysis.projectType} project for ${analysis.audience}`
     );
 
-    // Step 2: デザイン戦略決定
-    const design = await generateDesignStrategy(analysis);
+    // Step 2: サイト全体のアーキテクチャ設計
+    const architecture = await designSiteArchitecture(data, analysis);
     ctx.log.info(
-      `🎨 Design strategy: ${design.style} with ${design.layout} layout`
+      `🏗️ Site architecture: ${architecture.concept.theme} with ${architecture.layout.sections.length} sections`
     );
 
-    // Step 3: Astroコード生成
-    const generatedSite = await generateAstroSite(data, analysis, design);
-    ctx.log.info("⚡ AI code generation complete");
+    // Step 3: 完全カスタムサイト生成
+    const dynamicSite = await generateSiteStructure(architecture, data);
+    ctx.log.info("⚡ Dynamic AI site generation complete");
 
     // Step 4: ファイル一括コミット（ワークフロー含む）
-    await batchCommitAIGeneratedFiles(ctx, data, generatedSite);
+    await batchCommitDynamicFiles(ctx, data, dynamicSite);
 
-    ctx.log.info("🚀 AI-generated Astro site deployed successfully");
+    ctx.log.info("🚀 AI-architected Astro site deployed successfully");
   } catch (error) {
     ctx.log.error("Failed to generate AI Astro site:", error);
     throw error;
   }
 }
 
-/** AI生成されたファイルを一括コミット */
-async function batchCommitAIGeneratedFiles(
+/** 動的AI生成されたファイルを一括コミット */
+async function batchCommitDynamicFiles(
   ctx: Context,
   data: RepoData,
-  generatedSite: GeneratedAstroSite
+  dynamicSite: DynamicAstroSite
 ) {
   const repoInfo = ctx.repo();
 
   // 変数置換
-  const packageJson = generatedSite.packageJson
+  const packageJson = dynamicSite.packageJson
     .replace(/{{REPO_NAME}}/g, repoInfo.repo)
     .replace(/{{OWNER}}/g, repoInfo.owner);
 
-  const astroConfig = generatedSite.astroConfig
+  const astroConfig = dynamicSite.astroConfig
     .replace(/{{REPO_NAME}}/g, repoInfo.repo)
     .replace(/{{OWNER}}/g, repoInfo.owner);
 
@@ -59,41 +60,51 @@ async function batchCommitAIGeneratedFiles(
   const workflowContent = generateWorkflowContent();
 
   // データを置換
-  const indexPageWithData = generatedSite.indexPage.replace(
+  const indexPageWithData = dynamicSite.indexPage.replace(
     "{{REPO_DATA}}",
     JSON.stringify(data, null, 2)
   );
 
-  // ファイル配列（一括コミット用、ワークフロー含む）
+  // 基本ファイル配列
   const files: FileChange[] = [
     { path: "docs/package.json", content: packageJson },
     { path: "docs/astro.config.mjs", content: astroConfig },
-    { path: "docs/src/layouts/Layout.astro", content: generatedSite.layout },
-    {
-      path: "docs/src/components/Hero.astro",
-      content: generatedSite.heroComponent,
-    },
-    {
-      path: "docs/src/components/Features.astro",
-      content: generatedSite.featuresComponent,
-    },
+    { path: "docs/src/layouts/Layout.astro", content: dynamicSite.layout },
     { path: "docs/src/pages/index.astro", content: indexPageWithData },
-    { path: "docs/src/styles/global.css", content: generatedSite.globalStyles },
+    { path: "docs/src/styles/global.css", content: dynamicSite.globalStyles },
     { path: ".github/workflows/deploy-astro.yml", content: workflowContent },
   ];
+
+  // 動的生成されたコンポーネントを追加
+  for (const [filename, content] of Object.entries(dynamicSite.components)) {
+    files.push({
+      path: `docs/src/components/${filename}`,
+      content: content
+    });
+  }
+
+  // 追加ファイルがあれば追加
+  if (dynamicSite.additionalFiles) {
+    for (const [filename, content] of Object.entries(dynamicSite.additionalFiles)) {
+      files.push({
+        path: `docs/${filename}`,
+        content: content
+      });
+    }
+  }
 
   // 一括コミット実行
   await batchCommitFiles(
     ctx,
     files,
-    `🚀 Generate AI-powered Astro site
+    `🎨 Generate fully AI-architected Astro site
 
-- Add Astro project configuration
-- Generate custom components based on repository analysis
-- Apply AI-selected design strategy and color scheme
-- Create responsive layouts optimized for project type
+- Create unique site architecture with AI-designed layout
+- Generate ${Object.keys(dynamicSite.components).length} custom components
+- Apply revolutionary design patterns and visual systems
+- Build responsive experiences optimized for project characteristics
 
-🤖 Generated with AI analysis and custom design`
+🚀 Powered by complete AI creativity - no templates used!`
   );
 }
 
