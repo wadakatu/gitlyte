@@ -93,7 +93,7 @@ describe("AI Code Generator", () => {
 
       // Featuresコンポーネントにpropsが含まれることを確認
       expect(result.featuresComponent).toContain("prs");
-      expect(result.featuresComponent).toContain("Recent Pull Requests");
+      expect(result.featuresComponent).toContain("Why Choose This Project?");
 
       // インデックスページにデータプレースホルダーが含まれることを確認
       expect(result.indexPage).toContain("{{REPO_DATA}}");
@@ -115,7 +115,7 @@ describe("AI Code Generator", () => {
       const result = await generateAstroSite(repoDataNoDesc, mockAnalysis, mockDesign);
 
       expect(result.packageJson).toBeDefined();
-      expect(result.heroComponent).toContain("An amazing project");
+      expect(result.heroComponent).toContain("An innovative solution for modern development");
     });
 
     it("should generate responsive CSS", async () => {
