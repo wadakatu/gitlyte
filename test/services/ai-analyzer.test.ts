@@ -83,10 +83,9 @@ describe("AI Analyzer", () => {
 
       expect(result).toEqual(mockAnalysis);
       expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages: [{ role: "user", content: expect.stringContaining("test-repo") }],
         temperature: 0.3,
-        max_tokens: 500,
       });
     });
 
@@ -198,12 +197,12 @@ describe("AI Analyzer", () => {
 
       expect(result).toEqual(mockDesign);
       expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages: [
           { role: "user", content: expect.stringContaining("application") },
         ],
         temperature: 0.7,
-        max_tokens: 600,
+        max_tokens: 800,
       });
     });
 
