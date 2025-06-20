@@ -102,6 +102,13 @@ export interface ContentAnalysis {
       description: string;
       impact: string;
     }>;
+    whyChoose: Array<{
+      icon: string;
+      title: string;
+      description: string;
+      highlight: string;
+      priority: number;
+    }>; // Why Choose This Project用動的カード
   };
 
   // プロジェクト実績
@@ -139,6 +146,212 @@ export interface ContentAnalysis {
 /**
  * プロジェクトタイプに基づいたコンテンツ生成
  */
+/**
+ * Why Choose This Project用フォールバックカード生成
+ */
+function generateWhyChooseCards(projectType: string, techStack: string[]) {
+  const whyChooseTemplates = {
+    library: [
+      {
+        icon: "⚡",
+        title: "High Performance",
+        description:
+          "Optimized algorithms and minimal overhead for maximum speed",
+        highlight: "10x faster",
+        priority: 10,
+      },
+      {
+        icon: "🔧",
+        title: "Easy Integration",
+        description: "Simple installation and intuitive API design",
+        highlight: "5-minute setup",
+        priority: 9,
+      },
+      {
+        icon: "📚",
+        title: "Rich Documentation",
+        description: "Comprehensive guides, examples, and API references",
+        highlight: "100% coverage",
+        priority: 8,
+      },
+      {
+        icon: "🌟",
+        title: "Active Community",
+        description:
+          "Vibrant ecosystem with regular updates and community support",
+        highlight: "1000+ contributors",
+        priority: 7,
+      },
+    ],
+    application: [
+      {
+        icon: "🎯",
+        title: "User-Focused Design",
+        description: "Intuitive interface designed for optimal user experience",
+        highlight: "95% satisfaction",
+        priority: 10,
+      },
+      {
+        icon: "🚀",
+        title: "Scalable Architecture",
+        description: "Built to handle growth from startup to enterprise scale",
+        highlight: "Million+ users",
+        priority: 9,
+      },
+      {
+        icon: "🛡️",
+        title: "Enterprise Security",
+        description: "Industry-standard security practices and compliance",
+        highlight: "SOC 2 certified",
+        priority: 8,
+      },
+      {
+        icon: "🔄",
+        title: "Continuous Updates",
+        description: "Regular feature releases and security patches",
+        highlight: "Weekly releases",
+        priority: 7,
+      },
+    ],
+    tool: [
+      {
+        icon: "⚡",
+        title: "Productivity Boost",
+        description: "Automate repetitive tasks and streamline workflows",
+        highlight: "80% time saved",
+        priority: 10,
+      },
+      {
+        icon: "🔧",
+        title: "Highly Customizable",
+        description: "Flexible configuration options for any workflow",
+        highlight: "500+ options",
+        priority: 9,
+      },
+      {
+        icon: "🌐",
+        title: "Cross-Platform",
+        description: "Works seamlessly across all major operating systems",
+        highlight: "All platforms",
+        priority: 8,
+      },
+      {
+        icon: "💡",
+        title: "Smart Automation",
+        description: "Intelligent features that learn from your usage patterns",
+        highlight: "AI-powered",
+        priority: 7,
+      },
+    ],
+    website: [
+      {
+        icon: "📱",
+        title: "Responsive Design",
+        description: "Perfect display on all devices and screen sizes",
+        highlight: "100% mobile",
+        priority: 10,
+      },
+      {
+        icon: "⚡",
+        title: "Lightning Fast",
+        description: "Optimized loading times for better user experience",
+        highlight: "<1s load time",
+        priority: 9,
+      },
+      {
+        icon: "🎯",
+        title: "SEO Optimized",
+        description: "Built-in SEO best practices for maximum visibility",
+        highlight: "Top rankings",
+        priority: 8,
+      },
+      {
+        icon: "♿",
+        title: "Accessible",
+        description: "WCAG compliant design for inclusive user experience",
+        highlight: "AA compliant",
+        priority: 7,
+      },
+    ],
+    documentation: [
+      {
+        icon: "📖",
+        title: "Clear & Comprehensive",
+        description: "Well-structured documentation that's easy to follow",
+        highlight: "99% helpful",
+        priority: 10,
+      },
+      {
+        icon: "🔍",
+        title: "Searchable Content",
+        description:
+          "Find information quickly with powerful search capabilities",
+        highlight: "Instant results",
+        priority: 9,
+      },
+      {
+        icon: "💡",
+        title: "Rich Examples",
+        description: "Practical code examples and real-world use cases",
+        highlight: "500+ examples",
+        priority: 8,
+      },
+      {
+        icon: "🔄",
+        title: "Always Updated",
+        description: "Documentation stays current with every code change",
+        highlight: "Real-time sync",
+        priority: 7,
+      },
+    ],
+    game: [
+      {
+        icon: "🎮",
+        title: "Immersive Experience",
+        description: "Engaging gameplay with stunning visuals and sound",
+        highlight: "4.9/5 rating",
+        priority: 10,
+      },
+      {
+        icon: "🏆",
+        title: "Competitive Features",
+        description: "Leaderboards, achievements, and multiplayer modes",
+        highlight: "Global rankings",
+        priority: 9,
+      },
+      {
+        icon: "🎨",
+        title: "Beautiful Graphics",
+        description: "High-quality visuals optimized for all devices",
+        highlight: "4K support",
+        priority: 8,
+      },
+      {
+        icon: "🔄",
+        title: "Regular Content",
+        description: "New levels, characters, and features added regularly",
+        highlight: "Monthly updates",
+        priority: 7,
+      },
+    ],
+  };
+
+  const baseCards =
+    whyChooseTemplates[projectType as keyof typeof whyChooseTemplates] ||
+    whyChooseTemplates.library;
+
+  // 技術スタックに応じて追加カードを生成
+  const techCards = techStack.slice(0, 2).map((tech, index) => ({
+    icon: getTechIcon(tech),
+    title: `${tech} Powered`,
+    description: `Leveraging the full potential of ${tech} for optimal performance`,
+    highlight: `${tech} optimized`,
+    priority: 6 - index,
+  }));
+
+  return [...baseCards.slice(0, 4), ...techCards].slice(0, 6);
+}
+
 /**
  * プロジェクトタイプに基づいたフォールバックカード生成
  */
@@ -484,10 +697,12 @@ ${repoData.prs
 このプロジェクトの価値と魅力を最大限に伝える包括的なコンテンツ分析を以下のJSON形式で作成してください：
 
 ## 動的カード生成の指針
-- **dynamicCards**: プロジェクトの特性に応じて3-6枚のカードを生成
+- **dynamicCards**: プロジェクトの特性に応じて3-6枚のカードを生成（About This Project用）
+- **whyChoose**: プロジェクトを選ぶ理由を表す3-6枚のカードを生成（Why Choose This Project用）
 - **title**: プロジェクトタイプと技術スタックに応じた具体的なタイトル
 - **icon**: 内容に合った絵文字（🚀⚡🛡️🌟💡🔧📊🎯🏆⭐など）
 - **description**: 各カードの具体的なメリットや特徴
+- **highlight**: 数値や短いキャッチコピー（Why Choose用）
 - **priority**: 表示優先度（1-10、高いほど重要）
 - プロジェクトタイプ別推奨カード：
   - Library: "簡単導入", "高性能", "豊富なAPI", "活発コミュニティ"
@@ -544,6 +759,22 @@ ${repoData.prs
         "title": "ハイライト1",
         "description": "詳細説明",
         "impact": "与える影響"
+      }
+    ],
+    "whyChoose": [
+      {
+        "icon": "⚡",
+        "title": "プロジェクトを選ぶ理由のタイトル",
+        "description": "なぜこのプロジェクトが優れているかの説明",
+        "highlight": "99.9% uptime",
+        "priority": 10
+      },
+      {
+        "icon": "🔧",
+        "title": "別の選択理由",
+        "description": "このプロジェクトの魅力的な特徴",
+        "highlight": "5-minute setup",
+        "priority": 9
       }
     ]
   },
@@ -736,6 +967,10 @@ ${repoData.prs
             impact: "Faster development cycles",
           },
         ],
+        whyChoose: generateWhyChooseCards(
+          analysis.projectType,
+          analysis.techStack
+        ),
       },
       achievements: {
         metrics: {
