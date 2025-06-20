@@ -4,6 +4,7 @@ import {
   analyzeRepositoryContent,
   type ContentAnalysis,
 } from "./content-analyzer.js";
+import { generateDocsPage } from "./docs-generator.js";
 
 // 型拡張: 新しいデザインプロパティを含む
 interface EnhancedDesignStrategy extends Omit<DesignStrategy, "effects"> {
@@ -22,6 +23,7 @@ export interface GeneratedAstroSite {
   heroComponent: string;
   featuresComponent: string;
   indexPage: string;
+  docsPage?: string; // 新しく追加
   globalStyles: string;
 }
 
@@ -72,6 +74,7 @@ export async function generateAstroSite(
     heroComponent,
     featuresComponent,
     indexPage,
+    docsPageResult,
     globalStyles,
   ] = await Promise.all([
     generatePackageJson(repoData),
@@ -80,6 +83,9 @@ export async function generateAstroSite(
     generateHeroComponent(baseContext, repoData, enhancedDesign),
     generateFeaturesComponent(baseContext, repoData, enhancedDesign),
     generateIndexPage(baseContext, repoData, enhancedDesign, contentAnalysis),
+    repoData.readme
+      ? generateDocsPage(repoData, design)
+      : Promise.resolve(null),
     generateGlobalStyles(baseContext, enhancedDesign),
   ]);
 
@@ -90,6 +96,7 @@ export async function generateAstroSite(
     heroComponent,
     featuresComponent,
     indexPage,
+    docsPage: docsPageResult?.docsPage,
     globalStyles,
   };
 }
@@ -214,10 +221,27 @@ export interface Props {
     forks: number;
     issues: number;
   };
+  hasReadme?: boolean;
+  repoUrl?: string;
 }
 
-const { title, description, stats } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl } = Astro.props;
 ---
+
+<header class="site-header">
+  <div class="container">
+    <nav class="main-nav">
+      <div class="nav-brand">
+        <h1>{title}</h1>
+      </div>
+      <div class="nav-links">
+        <a href="./" class="nav-link">🏠 Home</a>
+        {hasReadme && <a href="./docs" class="nav-link">📖 Docs</a>}
+        <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
+      </div>
+    </nav>
+  </div>
+</header>
 
 <section class="hero">
   <div class="hero-background"></div>
@@ -229,7 +253,8 @@ const { title, description, stats } = Astro.props;
       
       <div class="cta-section">
         <a href="#getting-started" class="cta-primary">Get Started</a>
-        <a href="#docs" class="cta-secondary">View Docs</a>
+        {hasReadme && <a href="./docs" class="cta-secondary">📖 Documentation</a>}
+        <a href={repoUrl} class="cta-secondary" target="_blank" rel="noopener">🔗 GitHub</a>
       </div>
       
       <div class="stats">
@@ -251,6 +276,115 @@ const { title, description, stats } = Astro.props;
 </section>
 
 <style>
+  .site-header {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .site-header .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .main-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    min-height: 4rem;
+  }
+
+  .nav-brand {
+    flex-shrink: 0;
+  }
+
+  .nav-brand h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--primary);
+    font-family: ${design.typography.heading};
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: #374151;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .nav-link:hover {
+    background: var(--primary)15;
+    color: var(--primary);
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 1024px) {
+    .main-nav {
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem 0;
+    }
+    
+    .nav-brand h1 {
+      font-size: 1.25rem;
+    }
+    
+    .nav-links {
+      gap: 0.25rem;
+      justify-content: center;
+    }
+    
+    .nav-link {
+      font-size: 0.85rem;
+      padding: 0.4rem 0.8rem;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .site-header .container {
+      padding: 0 0.75rem;
+    }
+    
+    .main-nav {
+      padding: 0.75rem 0;
+    }
+    
+    .nav-brand h1 {
+      font-size: 1.1rem;
+    }
+    
+    .nav-links {
+      gap: 0.25rem;
+    }
+    
+    .nav-link {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.6rem;
+    }
+  }
+
   .hero {
     position: relative;
     background: ${
@@ -771,6 +905,8 @@ const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
     title={repo.name}
     description={repo.description}
     stats={stats}
+    hasReadme={!!readme}
+    repoUrl={repo.html_url}
   />
   
   <Features prs={prs || []} />
