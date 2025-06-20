@@ -755,12 +755,12 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
 
   .features-grid {
     display: grid;
-    gap: 2rem;
+    gap: 2.5rem;
     margin-bottom: 5rem;
     margin-left: auto;
     margin-right: auto;
     justify-content: center;
-    place-items: center;
+    align-items: start;
   }
   
   /* カード枚数別のレイアウト */
@@ -771,22 +771,22 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   
   .features-grid.grid-double {
     grid-template-columns: repeat(2, 1fr);
-    max-width: 760px;
+    max-width: 740px;
   }
   
   .features-grid.grid-triple {
     grid-template-columns: repeat(3, 1fr);
-    max-width: 1140px;
+    max-width: 1110px;
   }
   
   .features-grid.grid-quad {
     grid-template-columns: repeat(2, 1fr);
-    max-width: 760px;
+    max-width: 740px;
   }
   
   .features-grid.grid-multi {
     grid-template-columns: repeat(3, 1fr);
-    max-width: 1140px;
+    max-width: 1110px;
   }
   
   /* 大画面での最適化 */
@@ -819,12 +819,12 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
     .features-grid.grid-quad,
     .features-grid.grid-multi {
       grid-template-columns: repeat(2, 1fr);
-      max-width: 600px;
+      max-width: 640px;
     }
     
     .features-grid.grid-triple {
       grid-template-columns: repeat(2, 1fr);
-      max-width: 600px;
+      max-width: 640px;
     }
   }
   
@@ -845,7 +845,10 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
     background: white;
     padding: 2rem;
     width: 100%;
-    max-width: 320px;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
     border-radius: ${borderRadius};
     box-shadow: ${shadowLevel};
     text-align: center;
