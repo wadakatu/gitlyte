@@ -80,13 +80,6 @@ GitLyte can automatically detect logos and themes, but you can explicitly config
   },
   "favicon": {
     "path": "./assets/favicon.ico"
-  },
-  "site": {
-    "theme": {
-      "primary": "#3b82f6",
-      "secondary": "#8b5cf6",
-      "accent": "#06b6d4"
-    }
   }
 }
 ```
@@ -96,7 +89,6 @@ GitLyte can automatically detect logos and themes, but you can explicitly config
 - **logo.path**: Path to your logo image (relative path or absolute URL)
 - **logo.alt**: Alt text for the logo
 - **favicon.path**: Path to your favicon
-- **site.theme**: Custom color scheme (hex colors)
 
 ### Priority Order
 
