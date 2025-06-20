@@ -1,0 +1,9 @@
+{
+  "logo": {
+    "path": "./assets/logo.svg",
+    "alt": "GitLyte Logo"
+  },
+  "favicon": {
+    "path": "./assets/favicon.ico"
+  }
+}

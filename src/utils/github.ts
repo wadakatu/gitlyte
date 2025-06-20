@@ -97,10 +97,53 @@ export async function collectRepoData(ctx: Context): Promise<RepoData> {
     ctx.log.warn(`Failed to fetch README: ${(e as Error).message}`);
   }
 
+  // 設定ファイルの取得を試行
+  const configFile = await getFileContent(
+    ctx.octokit,
+    ctx.repo().owner,
+    ctx.repo().repo,
+    ".gitlyte.json"
+  );
+  const packageJson = await getFileContent(
+    ctx.octokit,
+    ctx.repo().owner,
+    ctx.repo().repo,
+    "package.json"
+  );
+
   return {
     repo: repoInfo.data,
     readme,
+    configFile,
+    packageJson,
     prs: prs,
     issues: issues,
   };
+}
+
+/**
+ * ファイルの内容を取得するヘルパー関数
+ */
+async function getFileContent(
+  octokit: Context["octokit"],
+  owner: string,
+  repo: string,
+  path: string
+): Promise<string | undefined> {
+  try {
+    const response = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path,
+    });
+
+    if ("content" in response.data && response.data.content) {
+      return Buffer.from(response.data.content, "base64").toString("utf-8");
+    }
+  } catch (e: unknown) {
+    // ファイルが存在しない場合は静かに失敗
+    console.debug(`File ${path} not found: ${(e as Error).message}`);
+  }
+
+  return undefined;
 }

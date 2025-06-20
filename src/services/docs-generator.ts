@@ -1,5 +1,6 @@
 import type { RepoData } from "../types.js";
 import type { DesignStrategy } from "./ai-analyzer.js";
+import { detectRepoLogo } from "../utils/logo-detector.js";
 
 /** Markdownコンテンツの構造分析結果 */
 export interface DocumentStructure {
@@ -192,6 +193,9 @@ export async function generateDocsPage(
   const readme = repoData.readme || "";
   const docStructure = analyzeDocumentStructure(readme);
 
+  // ロゴ検出を実行（設定ファイルのみ）
+  const logoResult = await detectRepoLogo(repoData);
+
   // 検索用データ生成
   const searchData = generateSearchData(docStructure);
 
@@ -202,7 +206,8 @@ export async function generateDocsPage(
   const docsPage = await generateDocsPageContent(
     repoData,
     docStructure,
-    design
+    design,
+    logoResult
   );
 
   return {
@@ -291,7 +296,8 @@ ${renderTocItems(structure.tableOfContents)}
 async function generateDocsPageContent(
   repoData: RepoData,
   structure: DocumentStructure,
-  design: DesignStrategy
+  design: DesignStrategy,
+  logoResult?: { hasLogo: boolean; logoUrl?: string; faviconUrl?: string }
 ): Promise<string> {
   const processedContent = await processMarkdownContent(structure, repoData);
 
@@ -307,7 +313,21 @@ const docStructure = ${JSON.stringify(structure)};
     <div class="container">
       <nav class="main-nav">
         <div class="nav-brand">
-          <h1>{repoData.repo.name}</h1>
+          ${
+            logoResult?.hasLogo && logoResult.logoUrl
+              ? `
+          <a href="../" class="brand-link">
+            <div class="brand-with-logo">
+              <img src="${logoResult.logoUrl}" alt="${repoData.repo.name} logo" class="brand-logo" />
+            </div>
+          </a>
+          `
+              : `
+          <a href="../" class="brand-link">
+            <h1>{repoData.repo.name}</h1>
+          </a>
+          `
+          }
         </div>
         <div class="nav-links">
           <a href="../" class="nav-link">🏠 Home</a>
@@ -386,6 +406,11 @@ const docStructure = ${JSON.stringify(structure)};
     flex-shrink: 0;
   }
 
+  .brand-link {
+    text-decoration: none;
+    display: block;
+  }
+
   .nav-brand h1 {
     margin: 0;
     font-size: 1.5rem;
@@ -393,6 +418,30 @@ const docStructure = ${JSON.stringify(structure)};
     font-family: ${design.typography.heading};
     font-weight: 700;
     white-space: nowrap;
+    transition: color 0.2s ease;
+  }
+
+  .brand-link:hover h1 {
+    color: ${design.colorScheme.secondary};
+  }
+
+  .brand-with-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-logo {
+    height: 2.5rem;
+    width: auto;
+    max-width: 12rem;
+    object-fit: contain;
+    border-radius: 4px;
+    transition: transform 0.2s ease;
+  }
+
+  .brand-link:hover .brand-logo {
+    transform: scale(1.05);
   }
 
   .nav-links {

@@ -97,23 +97,39 @@ export async function analyzeRepository(
   "complexity": "simple|moderate|complex"
 }`;
 
+  let cleanContent = "";
+
   try {
     const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
-    });
+    const response = await client.chat.completions.create(
+      {
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+      },
+      {
+        timeout: 60000, // 60秒タイムアウト
+      }
+    );
 
     const content = response.choices[0].message.content;
     if (!content) throw new Error("No response from OpenAI");
 
-    // JSONコードブロックを除去
-    const cleanContent = content.replace(/```json\n?|\n?```/g, "").trim();
+    // より強力なJSONクリーニング
+    cleanContent = content
+      .replace(/```json\n?|\n?```/g, "") // JSONコードブロック除去
+      .replace(/```\n?|\n?```/g, "") // 一般的なコードブロック除去
+      .replace(/\/\*[\s\S]*?\*\//g, "") // コメント除去
+      .replace(/\/\/.*$/gm, "") // 単行コメント除去
+      .replace(/:\s*""([^"]*)""/g, ': "$1"') // 二重引用符修正: ""value"" -> "value"
+      .replace(/:\s*"([^"]*)""/g, ': "$1"') // 末尾の二重引用符修正: "value"" -> "value"
+      .replace(/:\s*""([^"]*)"/g, ': "$1"') // 先頭の二重引用符修正: ""value" -> "value"
+      .trim();
 
     return JSON.parse(cleanContent) as RepoAnalysis;
   } catch (error) {
     console.error("Repository analysis failed:", error);
+    console.log("Cleaned JSON content:", cleanContent);
     // フォールバック: 基本的な分析
     return {
       projectType: "application",
@@ -186,12 +202,17 @@ export async function generateDesignStrategy(
 
   try {
     const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 800,
-    });
+    const response = await client.chat.completions.create(
+      {
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 800,
+      },
+      {
+        timeout: 60000, // 60秒タイムアウト
+      }
+    );
 
     const content = response.choices[0].message.content;
     if (!content) throw new Error("No response from OpenAI");
@@ -202,6 +223,9 @@ export async function generateDesignStrategy(
       .replace(/```\n?|\n?```/g, "") // 一般的なコードブロック除去
       .replace(/\/\*[\s\S]*?\*\//g, "") // コメント除去
       .replace(/\/\/.*$/gm, "") // 単行コメント除去
+      .replace(/:\s*""([^"]*)""/g, ': "$1"') // 二重引用符修正: ""value"" -> "value"
+      .replace(/:\s*"([^"]*)""/g, ': "$1"') // 末尾の二重引用符修正: "value"" -> "value"
+      .replace(/:\s*""([^"]*)"/g, ': "$1"') // 先頭の二重引用符修正: ""value" -> "value"
       .trim();
 
     // JSONの開始と終了を探す

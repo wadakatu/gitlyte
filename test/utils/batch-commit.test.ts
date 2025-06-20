@@ -129,7 +129,7 @@ describe("Batch Commit", () => {
       ).rejects.toThrow("API Error");
 
       expect(ctx.log.error).toHaveBeenCalledWith(
-        "Batch commit failed:",
+        "❌ Batch commit failed:",
         expect.any(Error)
       );
     });

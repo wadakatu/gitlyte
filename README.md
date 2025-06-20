@@ -60,12 +60,37 @@ docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> -e OPENAI_API_KEY=<open
 ## 🎯 How It Works
 
 1. **Install the GitHub App** on your repository
-2. **Create a PR** with `enhancement` or `feat` label
-3. **Merge the PR** - GitLyte automatically:
+2. **(Optional) Configure your site** with `.gitlyte.json` (see below)
+3. **Create a PR** with `enhancement` or `feat` label
+4. **Merge the PR** - GitLyte automatically:
    - Analyzes your repository (tech stack, purpose, audience)
    - Generates a custom design strategy with AI
    - Creates Astro components with unique styling
    - Deploys to GitHub Pages via Actions
+
+## ⚙️ Configuration
+
+To display your logo in the generated website, create a `.gitlyte.json` file in your repository root:
+
+```json
+{
+  "logo": {
+    "path": "./assets/logo.svg",
+    "alt": "MyProject Logo"
+  },
+  "favicon": {
+    "path": "./assets/favicon.ico"
+  }
+}
+```
+
+### Configuration Options
+
+- **logo.path**: Path to your logo image (relative path or absolute URL)
+- **logo.alt**: Alt text for the logo
+- **favicon.path**: Path to your favicon
+
+If no configuration file is provided, the site will display the repository name without a logo.
 
 ## 🛠 Architecture
 
