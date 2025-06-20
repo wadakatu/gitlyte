@@ -86,6 +86,8 @@ describe("AI Analyzer", () => {
         model: "gpt-4o",
         messages: [{ role: "user", content: expect.stringContaining("test-repo") }],
         temperature: 0.3,
+      }, {
+        timeout: 60000,
       });
     });
 
@@ -203,6 +205,8 @@ describe("AI Analyzer", () => {
         ],
         temperature: 0.7,
         max_tokens: 800,
+      }, {
+        timeout: 60000,
       });
     });
 

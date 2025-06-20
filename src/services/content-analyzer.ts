@@ -390,10 +390,10 @@ ${repoData.prs
       cleanContent = cleanContent.replace(/:\s*"([^"]*?)"/g, (_, content) => {
         // 文字列内の改行をエスケープ
         const escapedContent = content
-          .replace(/\\/g, "\\\\")  // バックスラッシュをエスケープ
-          .replace(/"/g, '\\"')   // ダブルクォートをエスケープ
-          .replace(/\n/g, "\\n")  // 改行をエスケープ
-          .replace(/\r/g, "\\r")  // キャリッジリターンをエスケープ
+          .replace(/\\/g, "\\\\") // バックスラッシュをエスケープ
+          .replace(/"/g, '\\"') // ダブルクォートをエスケープ
+          .replace(/\n/g, "\\n") // 改行をエスケープ
+          .replace(/\r/g, "\\r") // キャリッジリターンをエスケープ
           .replace(/\t/g, "\\t"); // タブをエスケープ
         return `: "${escapedContent}"`;
       });
