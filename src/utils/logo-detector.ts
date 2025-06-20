@@ -132,7 +132,7 @@ export function extractLogoFromReadme(
 ): LogoDetectionResult {
   const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
   let match: RegExpExecArray | null = imageRegex.exec(readme);
-  
+
   while (match !== null) {
     const altText = match[1].toLowerCase();
     const imagePath = match[2];
@@ -157,7 +157,7 @@ export function extractLogoFromReadme(
         faviconUrl: logoUrl,
       };
     }
-    
+
     match = imageRegex.exec(readme);
   }
 

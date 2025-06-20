@@ -93,7 +93,13 @@ export async function generateAstroSite(
     generateLayout(baseContext, enhancedDesign, logoResult),
     generateHeroComponent(baseContext, repoData, enhancedDesign, logoResult),
     generateFeaturesComponent(baseContext, repoData, enhancedDesign),
-    generateIndexPage(baseContext, repoData, enhancedDesign, contentAnalysis, logoResult),
+    generateIndexPage(
+      baseContext,
+      repoData,
+      enhancedDesign,
+      contentAnalysis,
+      logoResult
+    ),
     repoData.readme
       ? generateDocsPage(repoData, design)
       : Promise.resolve(null),
