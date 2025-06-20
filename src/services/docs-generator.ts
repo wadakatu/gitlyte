@@ -316,13 +316,16 @@ const docStructure = ${JSON.stringify(structure)};
           ${
             logoResult?.hasLogo && logoResult.logoUrl
               ? `
-          <div class="brand-with-logo">
-            <img src="${logoResult.logoUrl}" alt="${repoData.repo.name} logo" class="brand-logo" />
-            <h1>{repoData.repo.name}</h1>
-          </div>
+          <a href="../" class="brand-link">
+            <div class="brand-with-logo">
+              <img src="${logoResult.logoUrl}" alt="${repoData.repo.name} logo" class="brand-logo" />
+            </div>
+          </a>
           `
               : `
-          <h1>{repoData.repo.name}</h1>
+          <a href="../" class="brand-link">
+            <h1>{repoData.repo.name}</h1>
+          </a>
           `
           }
         </div>
@@ -403,6 +406,11 @@ const docStructure = ${JSON.stringify(structure)};
     flex-shrink: 0;
   }
 
+  .brand-link {
+    text-decoration: none;
+    display: block;
+  }
+
   .nav-brand h1 {
     margin: 0;
     font-size: 1.5rem;
@@ -410,20 +418,30 @@ const docStructure = ${JSON.stringify(structure)};
     font-family: ${design.typography.heading};
     font-weight: 700;
     white-space: nowrap;
+    transition: color 0.2s ease;
+  }
+
+  .brand-link:hover h1 {
+    color: ${design.colorScheme.secondary};
   }
 
   .brand-with-logo {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    justify-content: center;
   }
 
   .brand-logo {
     height: 2.5rem;
     width: auto;
-    max-width: 2.5rem;
+    max-width: 12rem;
     object-fit: contain;
     border-radius: 4px;
+    transition: transform 0.2s ease;
+  }
+
+  .brand-link:hover .brand-logo {
+    transform: scale(1.05);
   }
 
   .nav-links {
