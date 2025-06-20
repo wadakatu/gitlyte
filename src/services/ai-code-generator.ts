@@ -85,7 +85,12 @@ export async function generateAstroSite(
     generateAstroConfig(repoData),
     generateLayout(baseContext, enhancedDesign, logoResult),
     generateHeroComponent(baseContext, repoData, enhancedDesign, logoResult),
-    generateFeaturesComponent(baseContext, repoData, enhancedDesign),
+    generateFeaturesComponent(
+      baseContext,
+      repoData,
+      enhancedDesign,
+      contentAnalysis
+    ),
     generateIndexPage(
       baseContext,
       repoData,
@@ -616,7 +621,8 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
 async function generateFeaturesComponent(
   _context: string,
   _repoData: RepoData,
-  design: EnhancedDesignStrategy
+  design: EnhancedDesignStrategy,
+  contentAnalysis: ContentAnalysis
 ): Promise<string> {
   const borderRadius =
     design.effects.borders === "pill"
@@ -631,6 +637,9 @@ async function generateFeaturesComponent(
         ? "0 4px 6px rgba(0, 0, 0, 0.07)"
         : "none";
 
+  // whyChooseCardsを取得（フォールバックも含む）
+  const whyChooseCards = contentAnalysis.features.whyChoose || [];
+
   return `---
 export interface Props {
   prs: Array<{
@@ -642,33 +651,11 @@ export interface Props {
 
 const { prs } = Astro.props;
 
-// Sample features for demonstration
-const projectFeatures = [
-  {
-    icon: "⚡",
-    title: "High Performance",
-    description: "Optimized for speed and efficiency with modern technology stack",
-    highlight: "99.9% uptime"
-  },
-  {
-    icon: "🔧",
-    title: "Easy Integration",
-    description: "Simple setup with comprehensive documentation and examples",
-    highlight: "5-minute setup"
-  },
-  {
-    icon: "🛡️",
-    title: "Secure & Reliable",
-    description: "Built with security best practices and enterprise-grade reliability",
-    highlight: "SOC 2 compliant"
-  },
-  {
-    icon: "🌟",
-    title: "Community Driven",
-    description: "Backed by an active community and regular updates",
-    highlight: "1000+ contributors"
-  }
-];
+// 動的Why Choose Cardsの取得
+const whyChooseCards = ${JSON.stringify(whyChooseCards)};
+
+// 優先度でソートし、最大6枚まで表示
+const sortedWhyChooseCards = whyChooseCards.sort((a, b) => b.priority - a.priority).slice(0, 6);
 ---
 
 <section class="features">
@@ -679,7 +666,7 @@ const projectFeatures = [
     </div>
     
     <div class="features-grid">
-      {projectFeatures.map((feature, index) => (
+      {sortedWhyChooseCards.map((feature, index) => (
         <div class="feature-card" style={\`animation-delay: \${index * 0.1}s\`}>
           <div class="feature-icon">{feature.icon}</div>
           <h3>{feature.title}</h3>
