@@ -323,5 +323,48 @@ def hello():
       expect(result.docsPage).toContain('navigator.clipboard.writeText');
       expect(result.docsPage).toContain('alert');
     });
+
+    it("should handle logo detection from README images", async () => {
+      const readmeWithLogo = `# Project
+
+![Logo](./assets/logo.png)
+
+## Features
+
+Description here.`;
+      
+      const mockRepoDataWithLogo = {
+        ...mockRepoData,
+        readme: readmeWithLogo
+      };
+      
+      const result = await generateDocsPage(mockRepoDataWithLogo, mockDesignStrategy);
+      
+      // ロゴが検出された場合のHTML要素が含まれる
+      expect(result.docsPage).toContain('<div class="brand-with-logo">');
+      expect(result.docsPage).toContain('class="brand-logo"');
+      expect(result.docsPage).toContain('https://github.com/user/test-repo/raw/main/./assets/logo.png');
+    });
+
+    it("should fallback to text header when no logo found", async () => {
+      const readmeWithoutLogo = `# Project
+
+![Screenshot](./screenshot.png)
+
+## Features
+
+Description here.`;
+      
+      const mockRepoDataWithoutLogo = {
+        ...mockRepoData,
+        readme: readmeWithoutLogo
+      };
+      
+      const result = await generateDocsPage(mockRepoDataWithoutLogo, mockDesignStrategy);
+      
+      // ロゴが見つからない場合はテキストヘッダーのみ
+      expect(result.docsPage).not.toContain('<div class="brand-with-logo">');
+      expect(result.docsPage).toContain('<h1>{repoData.repo.name}</h1>');
+    });
   });
 });
