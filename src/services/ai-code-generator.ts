@@ -656,6 +656,17 @@ const whyChooseCards = ${JSON.stringify(whyChooseCards)};
 
 // 優先度でソートし、最大6枚まで表示
 const sortedWhyChooseCards = whyChooseCards.sort((a, b) => b.priority - a.priority).slice(0, 6);
+
+// カード枚数に応じたCSSクラス生成
+const getGridClass = (cardCount) => {
+  if (cardCount <= 1) return 'grid-single';
+  if (cardCount === 2) return 'grid-double';
+  if (cardCount === 3) return 'grid-triple';
+  if (cardCount === 4) return 'grid-quad';
+  return 'grid-multi';
+};
+
+const gridClass = getGridClass(sortedWhyChooseCards.length);
 ---
 
 <section class="features">
@@ -665,7 +676,7 @@ const sortedWhyChooseCards = whyChooseCards.sort((a, b) => b.priority - a.priori
       <p class="section-subtitle">Discover the powerful features that make this project stand out</p>
     </div>
     
-    <div class="features-grid">
+    <div class={\`features-grid \${gridClass}\`}>
       {sortedWhyChooseCards.map((feature, index) => (
         <div class="feature-card" style={\`animation-delay: \${index * 0.1}s\`}>
           <div class="feature-icon">{feature.icon}</div>
@@ -744,32 +755,97 @@ const sortedWhyChooseCards = whyChooseCards.sort((a, b) => b.priority - a.priori
 
   .features-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
     gap: 2rem;
     margin-bottom: 5rem;
-    max-width: 1000px;
     margin-left: auto;
     margin-right: auto;
+    justify-content: center;
+    place-items: center;
   }
   
-  /* 大画面では4列表示 */
+  /* カード枚数別のレイアウト */
+  .features-grid.grid-single {
+    grid-template-columns: 1fr;
+    max-width: 350px;
+  }
+  
+  .features-grid.grid-double {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 760px;
+  }
+  
+  .features-grid.grid-triple {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 1140px;
+  }
+  
+  .features-grid.grid-quad {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 760px;
+  }
+  
+  .features-grid.grid-multi {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 1140px;
+  }
+  
+  /* 大画面での最適化 */
   @media (min-width: 1200px) {
-    .features-grid {
+    .features-grid.grid-single {
+      max-width: 320px;
+    }
+    
+    .features-grid.grid-double {
+      max-width: 680px;
+    }
+    
+    .features-grid.grid-triple {
+      max-width: 1020px;
+    }
+    
+    .features-grid.grid-quad {
       grid-template-columns: repeat(4, 1fr);
-      max-width: 1200px;
+      max-width: 1360px;
+    }
+    
+    .features-grid.grid-multi {
+      grid-template-columns: repeat(3, 1fr);
+      max-width: 1020px;
     }
   }
   
-  /* モバイルでは1列表示 */
+  /* タブレット対応 */
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .features-grid.grid-quad,
+    .features-grid.grid-multi {
+      grid-template-columns: repeat(2, 1fr);
+      max-width: 600px;
+    }
+    
+    .features-grid.grid-triple {
+      grid-template-columns: repeat(2, 1fr);
+      max-width: 600px;
+    }
+  }
+  
+  /* モバイルでは全て1列表示 */
   @media (max-width: 768px) {
-    .features-grid {
+    .features-grid,
+    .features-grid.grid-single,
+    .features-grid.grid-double,
+    .features-grid.grid-triple,
+    .features-grid.grid-quad,
+    .features-grid.grid-multi {
       grid-template-columns: 1fr;
+      max-width: 400px;
     }
   }
 
   .feature-card {
     background: white;
     padding: 2rem;
+    width: 100%;
+    max-width: 320px;
     border-radius: ${borderRadius};
     box-shadow: ${shadowLevel};
     text-align: center;
