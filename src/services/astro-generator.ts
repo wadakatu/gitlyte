@@ -10,6 +10,11 @@ import {
   type GeneratedAstroSite,
   generateAstroSite,
 } from "./ai-code-generator.js";
+import {
+  generateConfigTemplate,
+  generateConfigFileContent,
+} from "../utils/config-template.js";
+import { loadGitLyteConfig } from "../utils/config-loader.js";
 
 /** AI駆動でAstroサイトを生成 */
 export async function generateAIAstroSite(ctx: Context, data: RepoData) {
@@ -111,7 +116,7 @@ async function batchCommitGeneratedFiles(
   // GitHub Actions ワークフローコンテンツ
   const workflowContent = generateWorkflowContent();
 
-  // ファイル配列
+  // .gitlyte.json 雛形生成（存在しない場合のみ）
   const files: FileChange[] = [
     { path: "docs/package.json", content: packageJson },
     { path: "docs/astro.config.mjs", content: astroConfig },
@@ -122,6 +127,29 @@ async function batchCommitGeneratedFiles(
     { path: "docs/public/styles/global.css", content: globalStyles },
     { path: ".github/workflows/deploy-astro.yml", content: workflowContent },
   ];
+
+  // .gitlyte.json が存在しない場合は雛形を生成
+  const configResult = await loadGitLyteConfig(data);
+  if (!configResult.found) {
+    ctx.log.info("📝 Generating .gitlyte.json template...");
+    const configTemplate = generateConfigTemplate(
+      data,
+      analysis,
+      designStrategy
+    );
+    const configContent = generateConfigFileContent(configTemplate);
+    files.push({
+      path: ".gitlyte.json",
+      content: configContent,
+    });
+    ctx.log.info(
+      "✨ .gitlyte.json template generated with project-specific settings"
+    );
+  } else {
+    ctx.log.info(
+      "📋 .gitlyte.json already exists, skipping template generation"
+    );
+  }
 
   // Docsページがある場合は追加
   if (generatedSite.docsPage) {
@@ -134,22 +162,22 @@ async function batchCommitGeneratedFiles(
     ctx.log.info("📖 No docs page generated - README might be missing");
   }
 
-  // 一括コミット実行
-  await batchCommitFiles(
-    ctx,
-    files,
-    `✨ Generate enhanced AI-powered Astro site
+  // コミットメッセージを動的に生成
+  const hasConfigTemplate = !configResult.found;
+  const commitMessage = `✨ Generate enhanced AI-powered Astro site${hasConfigTemplate ? " with configuration template" : ""}
 
 🎨 Design Features:
 - Advanced Hero with gradient text, CTA buttons & animated stats
 - Modern Features showcasing project value & benefits
 - Professional typography system with ${designStrategy.typography.heading}
 - ${designStrategy.style} style with ${designStrategy.colorScheme.primary} primary color
-- Responsive design with glassmorphism & hover effects
+- Responsive design with glassmorphism & hover effects${hasConfigTemplate ? "\n- Generated .gitlyte.json template with project-specific settings" : ""}
 
 📊 Project: ${data.repo.name} (⭐${data.repo.stargazers_count} stars, 🍴${data.repo.forks_count} forks)
-🤖 Powered by next-generation AI creativity!`
-  );
+🤖 Powered by next-generation AI creativity!`;
+
+  // 一括コミット実行
+  await batchCommitFiles(ctx, files, commitMessage);
 }
 
 /** ワークフローコンテンツを生成 */
