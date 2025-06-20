@@ -1097,9 +1097,27 @@ const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
 
   .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
     margin-bottom: 3rem;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  /* 大画面では4列表示 */
+  @media (min-width: 1200px) {
+    .features-grid {
+      grid-template-columns: repeat(4, 1fr);
+      max-width: 1100px;
+    }
+  }
+  
+  /* モバイルでは1列表示 */
+  @media (max-width: 768px) {
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   .feature-highlight {
@@ -1166,10 +1184,6 @@ const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
   }
 
   @media (max-width: 768px) {
-    .features-grid {
-      grid-template-columns: 1fr;
-    }
-    
     .main-description {
       padding: 1.5rem;
     }
