@@ -21,7 +21,7 @@
     "format:fix": "biome format --write src/",
     "check": "biome check src/",
     "check:fix": "biome check --fix src/",
-    "ci:check": "pnpm run build && pnpm run format && pnpm run lint && pnpm test"
+    "ci:check": "pnpm run build && pnpm run format && pnpm run lint && pnpm exec vitest run"
   },
   "dependencies": {
     "date-fns": "^4.1.0",

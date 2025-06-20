@@ -210,17 +210,19 @@ function getProjectTypeContent(projectType: string, projectName: string) {
  * リトライ機能付きのOpenAI API呼び出し
  */
 async function callOpenAIWithRetry(
-  client: any,
-  params: any,
-  options: any = {},
+  client: OpenAI,
+  params: OpenAI.Chat.ChatCompletionCreateParams,
+  options: { timeout?: number } = {},
   maxRetries = 3,
   delay = 2000
-): Promise<any> {
+) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await client.chat.completions.create(params, options);
-    } catch (error: any) {
-      console.log(`Attempt ${attempt} failed:`, error.message);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      console.log(`Attempt ${attempt} failed:`, errorMessage);
 
       if (attempt === maxRetries) {
         throw error;
@@ -232,6 +234,9 @@ async function callOpenAIWithRetry(
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
   }
+
+  // この行は理論的に到達しないが、TypeScriptの型チェックを満たすため
+  throw new Error("Unexpected end of retry loop");
 }
 
 export async function analyzeRepositoryContent(
@@ -346,7 +351,7 @@ ${repoData.prs
 
   try {
     const client = getOpenAIClient();
-    const response = await callOpenAIWithRetry(
+    const response = (await callOpenAIWithRetry(
       client,
       {
         model: "gpt-4o",
@@ -357,7 +362,7 @@ ${repoData.prs
       {
         timeout: 60000, // 60秒タイムアウト
       }
-    );
+    )) as OpenAI.Chat.ChatCompletion;
 
     const content = response.choices[0].message.content;
     if (!content) throw new Error("No response from OpenAI");
@@ -422,7 +427,7 @@ ${repoData.prs
 
     // エラーの種類によって詳細ログを出力
     if (error && typeof error === "object") {
-      const apiError = error as any;
+      const apiError = error as { code?: string; message?: string };
       if (apiError.code === "UND_ERR_SOCKET") {
         console.error(
           "Network connection error detected. Using fallback content."
