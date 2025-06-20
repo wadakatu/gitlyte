@@ -5,10 +5,7 @@ import {
   type ContentAnalysis,
 } from "./content-analyzer.js";
 import { generateDocsPage } from "./docs-generator.js";
-import {
-  detectRepoLogo,
-  extractLogoFromReadme,
-} from "../utils/logo-detector.js";
+import { detectRepoLogo } from "../utils/logo-detector.js";
 
 // 型拡張: 新しいデザインプロパティを含む
 interface EnhancedDesignStrategy extends Omit<DesignStrategy, "effects"> {
@@ -51,12 +48,8 @@ export async function generateAstroSite(
   // コンテンツ分析を実行
   const contentAnalysis = await analyzeRepositoryContent(repoData, analysis);
 
-  // ロゴ検出を実行
-  let logoResult = await detectRepoLogo(repoData);
-  if (!logoResult.hasLogo && repoData.readme) {
-    // リポジトリファイルから見つからない場合、README内の画像をチェック
-    logoResult = extractLogoFromReadme(repoData.readme, repoData);
-  }
+  // ロゴ検出を実行（設定ファイルのみ）
+  const logoResult = await detectRepoLogo(repoData);
 
   const baseContext = `
 リポジトリ情報:

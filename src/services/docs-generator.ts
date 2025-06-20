@@ -1,9 +1,6 @@
 import type { RepoData } from "../types.js";
 import type { DesignStrategy } from "./ai-analyzer.js";
-import {
-  detectRepoLogo,
-  extractLogoFromReadme,
-} from "../utils/logo-detector.js";
+import { detectRepoLogo } from "../utils/logo-detector.js";
 
 /** Markdownコンテンツの構造分析結果 */
 export interface DocumentStructure {
@@ -196,11 +193,8 @@ export async function generateDocsPage(
   const readme = repoData.readme || "";
   const docStructure = analyzeDocumentStructure(readme);
 
-  // ロゴ検出を実行
-  let logoResult = await detectRepoLogo(repoData);
-  if (!logoResult.hasLogo && repoData.readme) {
-    logoResult = extractLogoFromReadme(repoData.readme, repoData);
-  }
+  // ロゴ検出を実行（設定ファイルのみ）
+  const logoResult = await detectRepoLogo(repoData);
 
   // 検索用データ生成
   const searchData = generateSearchData(docStructure);
