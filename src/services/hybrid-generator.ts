@@ -1,10 +1,10 @@
+import OpenAI from "openai";
 import type { RepoData } from "../types.js";
 import type { RepoAnalysis } from "./ai-analyzer.js";
-import OpenAI from "openai";
 import {
   analyzeRepositoryContent,
-  generateSectionContent,
   type ContentAnalysis,
+  generateSectionContent,
 } from "./content-analyzer.js";
 
 // OpenAI クライアント初期化

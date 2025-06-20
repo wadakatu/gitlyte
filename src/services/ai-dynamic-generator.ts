@@ -1,8 +1,8 @@
 import OpenAI from "openai";
 import type { RepoData } from "../types.js";
 import type {
-  SiteArchitecture,
   ComponentSpec,
+  SiteArchitecture,
   SiteSection,
 } from "./ai-site-architect.js";
 

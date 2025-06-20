@@ -1,9 +1,19 @@
 export interface RepoData {
   repo: {
     name: string;
+    full_name: string;
     description: string | null;
+    html_url: string;
     stargazers_count: number;
     forks_count: number;
+    language: string | null;
+    topics?: string[];
+    created_at: string;
+    updated_at: string;
+    pushed_at: string;
+    size: number;
+    default_branch: string;
+    license: { key: string; name: string } | null;
   };
   readme: string;
   prs: Array<{
