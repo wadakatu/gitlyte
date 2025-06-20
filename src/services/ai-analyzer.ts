@@ -101,11 +101,16 @@ export async function analyzeRepository(
 
   try {
     const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
-    });
+    const response = await client.chat.completions.create(
+      {
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+      },
+      {
+        timeout: 60000, // 60秒タイムアウト
+      }
+    );
 
     const content = response.choices[0].message.content;
     if (!content) throw new Error("No response from OpenAI");
@@ -197,12 +202,17 @@ export async function generateDesignStrategy(
 
   try {
     const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 800,
-    });
+    const response = await client.chat.completions.create(
+      {
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 800,
+      },
+      {
+        timeout: 60000, // 60秒タイムアウト
+      }
+    );
 
     const content = response.choices[0].message.content;
     if (!content) throw new Error("No response from OpenAI");

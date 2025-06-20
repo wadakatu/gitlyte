@@ -197,7 +197,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -236,7 +236,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Wait for any previous deployments
+        run: |
+          echo "Waiting 30 seconds to avoid deployment conflicts..."
+          sleep 30
+          
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4`;
+        uses: actions/deploy-pages@v4
+        with:
+          timeout: 300000
+        continue-on-error: false`;
 }
