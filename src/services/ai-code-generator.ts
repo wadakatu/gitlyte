@@ -1141,12 +1141,20 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
         </div>
 
         {readme && (
-          <details class="readme-details">
-            <summary>📖 View Full README</summary>
-            <div class="readme-content">
-              <pre>{readme.slice(0, 1500)}{readme.length > 1500 ? '...\\n\\n[View complete README on GitHub]' : ''}</pre>
+          <div class="readme-preview">
+            <div class="readme-header">
+              <h3>📖 Documentation</h3>
+              <p>Get comprehensive documentation and usage examples.</p>
             </div>
-          </details>
+            <div class="readme-actions">
+              <a href="./docs" class="docs-link-primary">
+                📚 View Full Documentation
+              </a>
+              <a href={repo.html_url + '/blob/main/README.md'} class="docs-link-secondary" target="_blank" rel="noopener">
+                🔗 View on GitHub
+              </a>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -1285,45 +1293,87 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
     margin: 0;
   }
 
-  .readme-details {
+  .readme-preview {
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
+    padding: 2rem;
+    text-align: center;
   }
 
-  .readme-details summary {
-    padding: 1.5rem;
+  .readme-header h3 {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-size: 1.3rem;
+  }
+
+  .readme-header p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+  }
+
+  .readme-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .docs-link-primary {
     background: var(--primary);
     color: white;
-    cursor: pointer;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
     font-weight: 600;
-    transition: background 0.3s ease;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
-  .readme-details summary:hover {
+  .docs-link-primary:hover {
     background: var(--secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
-  .readme-content {
-    padding: 2rem;
-    max-height: 400px;
-    overflow-y: auto;
+  .docs-link-secondary {
+    background: transparent;
+    color: var(--primary);
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
-  .readme-content pre {
-    font-family: var(--font-code, monospace);
-    font-size: 0.9rem;
-    line-height: 1.5;
-    color: var(--text-primary);
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    margin: 0;
+  .docs-link-secondary:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
   }
 
   @media (max-width: 768px) {
     .main-description {
       padding: 1.5rem;
+    }
+    
+    .readme-actions {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .docs-link-primary,
+    .docs-link-secondary {
+      width: 100%;
+      max-width: 280px;
+      justify-content: center;
     }
   }
 
