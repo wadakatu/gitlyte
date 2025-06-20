@@ -125,7 +125,7 @@ export async function collectRepoData(ctx: Context): Promise<RepoData> {
  * ファイルの内容を取得するヘルパー関数
  */
 async function getFileContent(
-  octokit: any,
+  octokit: Context["octokit"],
   owner: string,
   repo: string,
   path: string
