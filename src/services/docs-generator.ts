@@ -1,5 +1,9 @@
 import type { RepoData } from "../types.js";
 import type { DesignStrategy } from "./ai-analyzer.js";
+import {
+  detectRepoLogo,
+  extractLogoFromReadme,
+} from "../utils/logo-detector.js";
 
 /** Markdownコンテンツの構造分析結果 */
 export interface DocumentStructure {
@@ -192,6 +196,12 @@ export async function generateDocsPage(
   const readme = repoData.readme || "";
   const docStructure = analyzeDocumentStructure(readme);
 
+  // ロゴ検出を実行
+  let logoResult = await detectRepoLogo(repoData);
+  if (!logoResult.hasLogo && repoData.readme) {
+    logoResult = extractLogoFromReadme(repoData.readme, repoData);
+  }
+
   // 検索用データ生成
   const searchData = generateSearchData(docStructure);
 
@@ -202,7 +212,8 @@ export async function generateDocsPage(
   const docsPage = await generateDocsPageContent(
     repoData,
     docStructure,
-    design
+    design,
+    logoResult
   );
 
   return {
@@ -291,7 +302,8 @@ ${renderTocItems(structure.tableOfContents)}
 async function generateDocsPageContent(
   repoData: RepoData,
   structure: DocumentStructure,
-  design: DesignStrategy
+  design: DesignStrategy,
+  logoResult?: { hasLogo: boolean; logoUrl?: string; faviconUrl?: string }
 ): Promise<string> {
   const processedContent = await processMarkdownContent(structure, repoData);
 
@@ -307,7 +319,18 @@ const docStructure = ${JSON.stringify(structure)};
     <div class="container">
       <nav class="main-nav">
         <div class="nav-brand">
+          ${
+            logoResult?.hasLogo && logoResult.logoUrl
+              ? `
+          <div class="brand-with-logo">
+            <img src="${logoResult.logoUrl}" alt="${repoData.repo.name} logo" class="brand-logo" />
+            <h1>{repoData.repo.name}</h1>
+          </div>
+          `
+              : `
           <h1>{repoData.repo.name}</h1>
+          `
+          }
         </div>
         <div class="nav-links">
           <a href="../" class="nav-link">🏠 Home</a>
@@ -393,6 +416,20 @@ const docStructure = ${JSON.stringify(structure)};
     font-family: ${design.typography.heading};
     font-weight: 700;
     white-space: nowrap;
+  }
+
+  .brand-with-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .brand-logo {
+    height: 2.5rem;
+    width: auto;
+    max-width: 2.5rem;
+    object-fit: contain;
+    border-radius: 4px;
   }
 
   .nav-links {

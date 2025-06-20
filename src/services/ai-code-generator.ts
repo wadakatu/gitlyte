@@ -5,6 +5,10 @@ import {
   type ContentAnalysis,
 } from "./content-analyzer.js";
 import { generateDocsPage } from "./docs-generator.js";
+import {
+  detectRepoLogo,
+  extractLogoFromReadme,
+} from "../utils/logo-detector.js";
 
 // 型拡張: 新しいデザインプロパティを含む
 interface EnhancedDesignStrategy extends Omit<DesignStrategy, "effects"> {
@@ -47,6 +51,13 @@ export async function generateAstroSite(
   // コンテンツ分析を実行
   const contentAnalysis = await analyzeRepositoryContent(repoData, analysis);
 
+  // ロゴ検出を実行
+  let logoResult = await detectRepoLogo(repoData);
+  if (!logoResult.hasLogo && repoData.readme) {
+    // リポジトリファイルから見つからない場合、README内の画像をチェック
+    logoResult = extractLogoFromReadme(repoData.readme, repoData);
+  }
+
   const baseContext = `
 リポジトリ情報:
 - 名前: ${repoData.repo.name}
@@ -79,10 +90,10 @@ export async function generateAstroSite(
   ] = await Promise.all([
     generatePackageJson(repoData),
     generateAstroConfig(repoData),
-    generateLayout(baseContext, enhancedDesign),
-    generateHeroComponent(baseContext, repoData, enhancedDesign),
+    generateLayout(baseContext, enhancedDesign, logoResult),
+    generateHeroComponent(baseContext, repoData, enhancedDesign, logoResult),
     generateFeaturesComponent(baseContext, repoData, enhancedDesign),
-    generateIndexPage(baseContext, repoData, enhancedDesign, contentAnalysis),
+    generateIndexPage(baseContext, repoData, enhancedDesign, contentAnalysis, logoResult),
     repoData.readme
       ? generateDocsPage(repoData, design)
       : Promise.resolve(null),
@@ -137,7 +148,8 @@ export default defineConfig({
 
 async function generateLayout(
   _context: string,
-  design: EnhancedDesignStrategy
+  design: EnhancedDesignStrategy,
+  logoResult?: { hasLogo: boolean; faviconUrl?: string }
 ): Promise<string> {
   return `---
 export interface Props {
@@ -155,6 +167,7 @@ const { title, description } = Astro.props;
     <meta name="description" content={description || "AI-generated project site"} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
+    ${logoResult?.hasLogo && logoResult.faviconUrl ? `<link rel="icon" type="image/png" href="${logoResult.faviconUrl}" />` : ""}
     <link rel="stylesheet" href="/styles/global.css" />
   </head>
   <body>
@@ -191,7 +204,8 @@ const { title, description } = Astro.props;
 async function generateHeroComponent(
   _context: string,
   _repoData: RepoData,
-  design: EnhancedDesignStrategy
+  design: EnhancedDesignStrategy,
+  _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   const borderRadius =
     design.effects.borders === "pill"
@@ -223,16 +237,25 @@ export interface Props {
   };
   hasReadme?: boolean;
   repoUrl?: string;
+  hasLogo?: boolean;
+  logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
 ---
 
 <header class="site-header">
   <div class="container">
     <nav class="main-nav">
       <div class="nav-brand">
-        <h1>{title}</h1>
+        {hasLogo && logoUrl ? (
+          <div class="brand-with-logo">
+            <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
+            <h1>{title}</h1>
+          </div>
+        ) : (
+          <h1>{title}</h1>
+        )}
       </div>
       <div class="nav-links">
         <a href="./" class="nav-link">🏠 Home</a>
@@ -311,6 +334,20 @@ const { title, description, stats, hasReadme, repoUrl } = Astro.props;
     font-family: ${design.typography.heading};
     font-weight: 700;
     white-space: nowrap;
+  }
+
+  .brand-with-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .brand-logo {
+    height: 2.5rem;
+    width: auto;
+    max-width: 2.5rem;
+    object-fit: contain;
+    border-radius: 4px;
   }
 
   .nav-links {
@@ -867,7 +904,8 @@ async function generateIndexPage(
   _context: string,
   _repoData: RepoData,
   _design: EnhancedDesignStrategy,
-  _contentAnalysis: ContentAnalysis
+  _contentAnalysis: ContentAnalysis,
+  logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
 import Layout from '../layouts/Layout.astro';
@@ -907,6 +945,8 @@ const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
     stats={stats}
     hasReadme={!!readme}
     repoUrl={repo.html_url}
+    hasLogo={${logoResult?.hasLogo || false}}
+    logoUrl={"${logoResult?.logoUrl || ""}"}
   />
   
   <Features prs={prs || []} />
