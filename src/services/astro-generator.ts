@@ -3,12 +3,12 @@ import type { RepoData } from "../types.js";
 import { batchCommitFiles, type FileChange } from "../utils/batch-commit.js";
 import {
   analyzeRepository,
-  generateDesignStrategy,
   type DesignStrategy,
+  generateDesignStrategy,
 } from "./ai-analyzer.js";
 import {
-  generateAstroSite,
   type GeneratedAstroSite,
+  generateAstroSite,
 } from "./ai-code-generator.js";
 
 /** AI駆動でAstroサイトを生成 */
@@ -122,6 +122,17 @@ async function batchCommitGeneratedFiles(
     { path: "docs/public/styles/global.css", content: globalStyles },
     { path: ".github/workflows/deploy-astro.yml", content: workflowContent },
   ];
+
+  // Docsページがある場合は追加
+  if (generatedSite.docsPage) {
+    ctx.log.info("📖 Adding docs page to generated files");
+    files.push({
+      path: "docs/src/pages/docs.astro",
+      content: generatedSite.docsPage,
+    });
+  } else {
+    ctx.log.info("📖 No docs page generated - README might be missing");
+  }
 
   // 一括コミット実行
   await batchCommitFiles(
