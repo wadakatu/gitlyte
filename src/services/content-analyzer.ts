@@ -130,6 +130,110 @@ export interface ContentAnalysis {
 }
 
 /** Step 1: READMEとリポジトリデータから詳細分析 */
+/**
+ * プロジェクトタイプに基づいたコンテンツ生成
+ */
+function getProjectTypeContent(projectType: string, projectName: string) {
+  const contentMap = {
+    library: {
+      uniqueValue: `${projectName} is a powerful and flexible library that simplifies development workflows`,
+      keyBenefits: [
+        "Easy integration with existing projects",
+        "Comprehensive documentation and examples",
+        "Lightweight and performant",
+        "Well-tested and reliable",
+      ],
+      problemSolving:
+        "Streamlines common development tasks and reduces boilerplate code",
+    },
+    application: {
+      uniqueValue: `${projectName} delivers a complete solution for modern application development`,
+      keyBenefits: [
+        "Full-featured application framework",
+        "Scalable architecture",
+        "Rich user interface",
+        "Production-ready deployment",
+      ],
+      problemSolving:
+        "Provides end-to-end application development capabilities",
+    },
+    tool: {
+      uniqueValue: `${projectName} is an essential developer tool that enhances productivity`,
+      keyBenefits: [
+        "Command-line interface for efficiency",
+        "Automation capabilities",
+        "Cross-platform compatibility",
+        "Integration with popular workflows",
+      ],
+      problemSolving:
+        "Automates repetitive tasks and improves development efficiency",
+    },
+    website: {
+      uniqueValue: `${projectName} creates stunning and responsive web experiences`,
+      keyBenefits: [
+        "Modern web technologies",
+        "Responsive design",
+        "SEO optimized",
+        "Fast loading performance",
+      ],
+      problemSolving:
+        "Delivers engaging web experiences with optimal performance",
+    },
+    documentation: {
+      uniqueValue: `${projectName} provides comprehensive and accessible documentation`,
+      keyBenefits: [
+        "Clear and detailed explanations",
+        "Interactive examples",
+        "Searchable content",
+        "Regular updates",
+      ],
+      problemSolving: "Makes complex concepts easy to understand and implement",
+    },
+    game: {
+      uniqueValue: `${projectName} offers an immersive and entertaining gaming experience`,
+      keyBenefits: [
+        "Engaging gameplay mechanics",
+        "High-quality graphics",
+        "Smooth performance",
+        "Regular content updates",
+      ],
+      problemSolving: "Provides entertainment and challenge for players",
+    },
+  };
+
+  return (
+    contentMap[projectType as keyof typeof contentMap] || contentMap.library
+  );
+}
+
+/**
+ * リトライ機能付きのOpenAI API呼び出し
+ */
+async function callOpenAIWithRetry(
+  client: any,
+  params: any,
+  options: any = {},
+  maxRetries = 3,
+  delay = 2000
+): Promise<any> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await client.chat.completions.create(params, options);
+    } catch (error: any) {
+      console.log(`Attempt ${attempt} failed:`, error.message);
+
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // 指数バックオフで待機
+      const waitTime = delay * 2 ** (attempt - 1);
+      console.log(`Waiting ${waitTime}ms before retry...`);
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    }
+  }
+}
+
 export async function analyzeRepositoryContent(
   repoData: RepoData,
   analysis: RepoAnalysis
@@ -190,7 +294,7 @@ ${repoData.prs
         "name": "主要機能名",
         "description": "機能の説明",
         "benefit": "ユーザーへのメリット",
-        "codeSnippet": "関連するコード例（任意）"
+        "codeSnippet": "関連するコード例（1行で記述、改行や特殊文字は避ける）"
       }
     ],
     "highlights": [
@@ -242,12 +346,18 @@ ${repoData.prs
 
   try {
     const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.8,
-      max_tokens: 3000,
-    });
+    const response = await callOpenAIWithRetry(
+      client,
+      {
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.8,
+        max_tokens: 3000,
+      },
+      {
+        timeout: 60000, // 60秒タイムアウト
+      }
+    );
 
     const content = response.choices[0].message.content;
     if (!content) throw new Error("No response from OpenAI");
@@ -267,23 +377,41 @@ ${repoData.prs
       cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
     }
 
-    // JSON修正: 制御文字とエスケープの処理
-    cleanContent = cleanContent
-      // 制御文字を除去（改行、タブ、制御文字）
-      // biome-ignore lint/suspicious/noControlCharactersInRegex: 制御文字の除去に必要
-      .replace(/[\x00-\x1F\x7F]/g, "")
-      // 改行文字を\\nに変換
-      .replace(/\n/g, "\\n")
-      .replace(/\r/g, "\\r")
-      .replace(/\t/g, "\\t")
-      // 未エスケープの引用符を修正
-      .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
-      .replace(/:\s*'([^']*)'/g, ': "$1"')
-      // 末尾のカンマを除去
-      .replace(/,\s*}/g, "}")
-      .replace(/,\s*]/g, "]")
-      // バックスラッシュの重複エスケープを修正
-      .replace(/\\\\/g, "\\");
+    // JSON修正: 段階的な文字列処理
+    try {
+      // 1. 基本的なクリーニング
+      cleanContent = cleanContent
+        // プロパティ名をクォート
+        .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
+        // シングルクォートをダブルクォートに変換（文字列値のみ）
+        .replace(/:\s*'([^']*)'/g, ': "$1"');
+
+      // 2. 改行文字を含む文字列値を安全に処理
+      cleanContent = cleanContent.replace(/:\s*"([^"]*?)"/g, (_, content) => {
+        // 文字列内の改行をエスケープ
+        const escapedContent = content
+          .replace(/\\/g, "\\\\")  // バックスラッシュをエスケープ
+          .replace(/"/g, '\\"')   // ダブルクォートをエスケープ
+          .replace(/\n/g, "\\n")  // 改行をエスケープ
+          .replace(/\r/g, "\\r")  // キャリッジリターンをエスケープ
+          .replace(/\t/g, "\\t"); // タブをエスケープ
+        return `: "${escapedContent}"`;
+      });
+
+      // 3. 末尾のカンマを除去
+      cleanContent = cleanContent
+        .replace(/,(\s*[}\]])/g, "$1")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      // 4. JSONの妥当性チェック
+      if (!cleanContent.startsWith("{") || !cleanContent.endsWith("}")) {
+        throw new Error("Invalid JSON structure");
+      }
+    } catch (cleaningError) {
+      console.error("JSON cleaning failed:", cleaningError);
+      throw new Error("Failed to clean JSON response");
+    }
 
     return JSON.parse(cleanContent) as ContentAnalysis;
   } catch (error) {
@@ -292,17 +420,33 @@ ${repoData.prs
       console.error("Problematic content:", cleanContent);
     }
 
-    // フォールバック: 基本的なコンテンツ分析
+    // エラーの種類によって詳細ログを出力
+    if (error && typeof error === "object") {
+      const apiError = error as any;
+      if (apiError.code === "UND_ERR_SOCKET") {
+        console.error(
+          "Network connection error detected. Using fallback content."
+        );
+      } else if (apiError.message?.includes("terminated")) {
+        console.error(
+          "Request terminated error detected. Using fallback content."
+        );
+      } else if (apiError.message?.includes("timeout")) {
+        console.error("Timeout error detected. Using fallback content.");
+      }
+    }
+
+    // フォールバック: プロジェクト特性に基づいた詳細なコンテンツ分析
+    const projectTypeContent = getProjectTypeContent(
+      analysis.projectType,
+      repoData.repo.name
+    );
     return {
       appeal: {
-        uniqueValue: `${repoData.repo.name} provides powerful functionality for ${analysis.audience} developers`,
-        keyBenefits: [
-          "Easy to use and integrate",
-          "Well-documented and maintained",
-          "Active community support",
-        ],
-        targetUsers: [analysis.audience, "developers"],
-        problemSolving: "Simplifies common development tasks",
+        uniqueValue: projectTypeContent.uniqueValue,
+        keyBenefits: projectTypeContent.keyBenefits,
+        targetUsers: [analysis.audience, "developers", "engineers"],
+        problemSolving: projectTypeContent.problemSolving,
       },
       usage: {
         installation: {
