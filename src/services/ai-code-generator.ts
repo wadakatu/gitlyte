@@ -812,10 +812,9 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   .feature-card {
     background: white;
     padding: 2rem;
-    flex: 0 0 auto;
-    width: calc(50% - 1rem);
+    flex: 1 1 280px;
     min-width: 280px;
-    max-width: 350px;
+    max-width: 400px;
     min-height: 280px;
     display: flex;
     flex-direction: column;
@@ -833,35 +832,45 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   
   /* カード枚数に応じた幅調整 */
   .features-grid.grid-single .feature-card {
-    width: 100%;
-    max-width: 320px;
+    flex: 0 0 auto;
+    max-width: 400px;
   }
   
   .features-grid.grid-double .feature-card {
-    width: calc(50% - 1rem);
-    max-width: 350px;
+    flex: 1 1 calc(50% - 1rem);
+    max-width: 500px;
   }
   
   .features-grid.grid-triple .feature-card {
-    width: calc(33.333% - 1.33rem);
-    max-width: 320px;
+    flex: 1 1 calc(33.333% - 1.33rem);
+    max-width: 350px;
   }
   
   .features-grid.grid-quad .feature-card {
-    width: calc(50% - 1rem);
-    max-width: 320px;
+    flex: 1 1 calc(50% - 1rem);
+    max-width: 350px;
   }
   
   .features-grid.grid-multi .feature-card {
-    width: calc(33.333% - 1.33rem);
-    max-width: 320px;
+    flex: 1 1 calc(33.333% - 1.33rem);
+    max-width: 350px;
   }
   
   /* 大画面でのカード幅調整 */
   @media (min-width: 1200px) {
     .features-grid.grid-quad .feature-card {
-      width: calc(25% - 1.5rem);
-      max-width: 300px;
+      flex: 1 1 calc(25% - 1.5rem);
+      max-width: 320px;
+    }
+  }
+  
+  /* タブレットでのカード幅調整 */
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .features-grid.grid-triple .feature-card,
+    .features-grid.grid-quad .feature-card,
+    .features-grid.grid-multi .feature-card {
+      flex: 1 1 calc(50% - 1rem);
+      max-width: 320px;
     }
   }
   
@@ -873,8 +882,8 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
     .features-grid.grid-triple .feature-card,
     .features-grid.grid-quad .feature-card,
     .features-grid.grid-multi .feature-card {
-      width: 100%;
-      max-width: 350px;
+      flex: 1 1 100%;
+      max-width: 400px;
     }
   }
 
