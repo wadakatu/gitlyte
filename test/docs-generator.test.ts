@@ -324,7 +324,7 @@ def hello():
       expect(result.docsPage).toContain('alert');
     });
 
-    it("should handle logo detection from README images", async () => {
+    it("should handle logo detection from configuration file", async () => {
       const readmeWithLogo = `# Project
 
 ![Logo](./assets/logo.png)
@@ -335,15 +335,18 @@ Description here.`;
       
       const mockRepoDataWithLogo = {
         ...mockRepoData,
-        readme: readmeWithLogo
+        readme: readmeWithLogo,
+        configFile: JSON.stringify({
+          logo: { path: "./assets/logo.png", alt: "Project Logo" }
+        })
       };
       
       const result = await generateDocsPage(mockRepoDataWithLogo, mockDesignStrategy);
       
-      // ロゴが検出された場合のHTML要素が含まれる
+      // ロゴが設定ファイルから検出された場合のHTML要素が含まれる
       expect(result.docsPage).toContain('<div class="brand-with-logo">');
       expect(result.docsPage).toContain('class="brand-logo"');
-      expect(result.docsPage).toContain('https://github.com/user/test-repo/raw/main/./assets/logo.png');
+      expect(result.docsPage).toContain('https://github.com/user/test-repo/raw/main/assets/logo.png');
     });
 
     it("should fallback to text header when no logo found", async () => {
