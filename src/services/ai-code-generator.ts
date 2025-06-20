@@ -754,98 +754,68 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   }
 
   .features-grid {
-    display: grid;
-    gap: 3rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
     margin-bottom: 5rem;
     margin-left: auto;
     margin-right: auto;
     justify-content: center;
-    align-items: start;
+    align-items: stretch;
   }
   
   /* カード枚数別のレイアウト */
   .features-grid.grid-single {
-    grid-template-columns: 1fr;
     max-width: 350px;
   }
   
   .features-grid.grid-double {
-    grid-template-columns: repeat(2, 1fr);
     max-width: 800px;
   }
   
   .features-grid.grid-triple {
-    grid-template-columns: repeat(3, 1fr);
     max-width: 1200px;
   }
   
   .features-grid.grid-quad {
-    grid-template-columns: repeat(2, 1fr);
     max-width: 800px;
   }
   
   .features-grid.grid-multi {
-    grid-template-columns: repeat(3, 1fr);
     max-width: 1200px;
   }
   
   /* 大画面での最適化 */
   @media (min-width: 1200px) {
-    .features-grid.grid-single {
-      max-width: 320px;
-    }
-    
-    .features-grid.grid-double {
-      max-width: 740px;
-    }
-    
-    .features-grid.grid-triple {
-      max-width: 1110px;
-    }
-    
     .features-grid.grid-quad {
-      grid-template-columns: repeat(4, 1fr);
       max-width: 1480px;
-    }
-    
-    .features-grid.grid-multi {
-      grid-template-columns: repeat(3, 1fr);
-      max-width: 1110px;
     }
   }
   
   /* タブレット対応 */
   @media (max-width: 1024px) and (min-width: 769px) {
+    .features-grid.grid-triple,
     .features-grid.grid-quad,
     .features-grid.grid-multi {
-      grid-template-columns: repeat(2, 1fr);
-      max-width: 700px;
-    }
-    
-    .features-grid.grid-triple {
-      grid-template-columns: repeat(2, 1fr);
       max-width: 700px;
     }
   }
   
-  /* モバイルでは全て1列表示 */
+  /* モバイル対応 */
   @media (max-width: 768px) {
-    .features-grid,
-    .features-grid.grid-single,
-    .features-grid.grid-double,
-    .features-grid.grid-triple,
-    .features-grid.grid-quad,
-    .features-grid.grid-multi {
-      grid-template-columns: 1fr;
+    .features-grid {
       max-width: 400px;
-      gap: 2rem;
+      gap: 1.5rem;
     }
   }
 
   .feature-card {
     background: white;
     padding: 2rem;
-    width: 100%;
+    flex: 0 0 auto;
+    width: calc(50% - 1rem);
+    min-width: 280px;
+    max-width: 350px;
     min-height: 280px;
     display: flex;
     flex-direction: column;
@@ -857,7 +827,55 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
     border: 1px solid rgba(0, 0, 0, 0.05);
     position: relative;
     overflow: hidden;
+    margin-bottom: 1rem;
     ${design.animations ? "animation: slideInUp 0.6s ease forwards; opacity: 0;" : ""}
+  }
+  
+  /* カード枚数に応じた幅調整 */
+  .features-grid.grid-single .feature-card {
+    width: 100%;
+    max-width: 320px;
+  }
+  
+  .features-grid.grid-double .feature-card {
+    width: calc(50% - 1rem);
+    max-width: 350px;
+  }
+  
+  .features-grid.grid-triple .feature-card {
+    width: calc(33.333% - 1.33rem);
+    max-width: 320px;
+  }
+  
+  .features-grid.grid-quad .feature-card {
+    width: calc(50% - 1rem);
+    max-width: 320px;
+  }
+  
+  .features-grid.grid-multi .feature-card {
+    width: calc(33.333% - 1.33rem);
+    max-width: 320px;
+  }
+  
+  /* 大画面でのカード幅調整 */
+  @media (min-width: 1200px) {
+    .features-grid.grid-quad .feature-card {
+      width: calc(25% - 1.5rem);
+      max-width: 300px;
+    }
+  }
+  
+  /* モバイルでのカード幅調整 */
+  @media (max-width: 768px) {
+    .feature-card,
+    .features-grid.grid-single .feature-card,
+    .features-grid.grid-double .feature-card,
+    .features-grid.grid-triple .feature-card,
+    .features-grid.grid-quad .feature-card,
+    .features-grid.grid-multi .feature-card {
+      width: 100%;
+      max-width: 350px;
+    }
   }
 
   .feature-card::before {
