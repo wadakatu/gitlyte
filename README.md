@@ -70,7 +70,7 @@ docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> -e OPENAI_API_KEY=<open
 
 ## ⚙️ Configuration
 
-GitLyte can automatically detect logos and themes, but you can explicitly configure them by creating a `.gitlyte.json` file in your repository root:
+To display your logo in the generated website, create a `.gitlyte.json` file in your repository root:
 
 ```json
 {
@@ -90,13 +90,7 @@ GitLyte can automatically detect logos and themes, but you can explicitly config
 - **logo.alt**: Alt text for the logo
 - **favicon.path**: Path to your favicon
 
-### Priority Order
-
-1. **Manual Configuration**: `.gitlyte.json` or `package.json` gitlyte section
-2. **Auto-Detection**: Common logo file patterns (logo.png, icon.svg, etc.)
-3. **README Images**: Images with "logo", "icon", or "brand" in alt text
-
-If no configuration file is provided, GitLyte will automatically detect logos from your repository files and README images.
+If no configuration file is provided, the site will display the repository name without a logo.
 
 ## 🛠 Architecture
 
