@@ -964,12 +964,15 @@ const stats = {
 const contentAnalysisJson = '{{CONTENT_ANALYSIS}}';
 const contentAnalysis = JSON.parse(contentAnalysisJson);
 const uniqueValue = contentAnalysis?.appeal?.uniqueValue || 'Delivers exceptional value through innovative features and robust architecture.';
-const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
-  'Easy to use and integrate with comprehensive documentation',
-  'High performance with modern technology stack optimization',
-  'Enterprise-grade security and reliability standards',
-  'Active community support with regular updates and improvements'
+const dynamicCards = contentAnalysis?.appeal?.dynamicCards || [
+  { title: "Quick Start", icon: "🚀", description: "Easy to use and integrate with comprehensive documentation", priority: 10 },
+  { title: "High Performance", icon: "⚡", description: "Optimized for speed and efficiency", priority: 9 },
+  { title: "Enterprise Ready", icon: "🛡️", description: "Enterprise-grade security and reliability", priority: 8 },
+  { title: "Community Driven", icon: "🌟", description: "Active community support with regular updates", priority: 7 }
 ];
+
+// 優先度でソートし、最大6枚まで表示
+const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0, 6);
 ---
 
 <Layout title={repo.name + ' - Project Dashboard'} description={repo.description}>
@@ -998,22 +1001,12 @@ const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
         </div>
         
         <div class="features-grid">
-          <div class="feature-highlight">
-            <h4>🚀 Quick Start</h4>
-            <p>{keyBenefits[0]}</p>
-          </div>
-          <div class="feature-highlight">
-            <h4>⚡ High Performance</h4>
-            <p>{keyBenefits[1]}</p>
-          </div>
-          <div class="feature-highlight">
-            <h4>🛡️ Enterprise Ready</h4>
-            <p>{keyBenefits[2]}</p>
-          </div>
-          <div class="feature-highlight">
-            <h4>🌟 Community Driven</h4>
-            <p>{keyBenefits[3]}</p>
-          </div>
+          {sortedCards.map((card) => (
+            <div class="feature-highlight">
+              <h4>{card.icon} {card.title}</h4>
+              <p>{card.description}</p>
+            </div>
+          ))}
         </div>
 
         {readme && (
@@ -1096,27 +1089,38 @@ const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
   }
 
   .features-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 1.5rem;
     margin-bottom: 3rem;
-    max-width: 900px;
+    max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
+    justify-content: center;
   }
   
-  /* 大画面では4列表示 */
+  
+  /* 大画面では3列以上も対応 */
   @media (min-width: 1200px) {
-    .features-grid {
-      grid-template-columns: repeat(4, 1fr);
-      max-width: 1100px;
+    .feature-highlight {
+      flex: 1 1 calc(33.333% - 1rem);
+      min-width: 300px;
+    }
+  }
+  
+  /* 超大画面では4列 */
+  @media (min-width: 1600px) {
+    .feature-highlight {
+      flex: 1 1 calc(25% - 1.125rem);
+      min-width: 280px;
     }
   }
   
   /* モバイルでは1列表示 */
   @media (max-width: 768px) {
-    .features-grid {
-      grid-template-columns: 1fr;
+    .feature-highlight {
+      flex: 1 1 100%;
+      min-width: auto;
     }
   }
 
@@ -1127,6 +1131,9 @@ const keyBenefits = contentAnalysis?.appeal?.keyBenefits || [
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
     border-left: 3px solid var(--accent);
+    flex: 1 1 calc(50% - 0.75rem);
+    min-width: 280px;
+    max-width: 350px;
   }
 
   .feature-highlight:hover {
