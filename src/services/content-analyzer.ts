@@ -64,6 +64,12 @@ export interface ContentAnalysis {
     keyBenefits: string[]; // 主要なメリット3-5個
     targetUsers: string[]; // 想定ユーザー層
     problemSolving: string; // 解決する問題
+    dynamicCards: Array<{
+      title: string;
+      icon: string;
+      description: string;
+      priority: number; // 表示優先度 1-10
+    }>; // 動的生成カード
   };
 
   // 使用方法
@@ -133,6 +139,212 @@ export interface ContentAnalysis {
 /**
  * プロジェクトタイプに基づいたコンテンツ生成
  */
+/**
+ * プロジェクトタイプに基づいたフォールバックカード生成
+ */
+function generateFallbackCards(projectType: string, techStack: string[]) {
+  const cardTemplates = {
+    library: [
+      {
+        title: "簡単導入",
+        icon: "🚀",
+        description: "プロジェクトへの統合が簡単で、最小限の設定で利用開始可能",
+        priority: 10,
+      },
+      {
+        title: "高性能",
+        icon: "⚡",
+        description: "最適化されたコードで高速処理を実現",
+        priority: 9,
+      },
+      {
+        title: "豊富なAPI",
+        icon: "🔧",
+        description: "充実したAPIで柔軟な開発が可能",
+        priority: 8,
+      },
+      {
+        title: "活発コミュニティ",
+        icon: "🌟",
+        description: "アクティブなコミュニティサポート",
+        priority: 7,
+      },
+    ],
+    application: [
+      {
+        title: "優れたUX",
+        icon: "🎯",
+        description: "ユーザビリティを重視した直感的なインターフェース",
+        priority: 10,
+      },
+      {
+        title: "スケーラブル",
+        icon: "📊",
+        description: "成長に対応できる拡張性の高いアーキテクチャ",
+        priority: 9,
+      },
+      {
+        title: "セキュア",
+        icon: "🛡️",
+        description: "エンタープライズ級のセキュリティ対策",
+        priority: 8,
+      },
+      {
+        title: "機能豊富",
+        icon: "💡",
+        description: "包括的な機能セットで様々なニーズに対応",
+        priority: 7,
+      },
+    ],
+    tool: [
+      {
+        title: "効率向上",
+        icon: "⚡",
+        description: "作業効率を大幅に向上させる自動化機能",
+        priority: 10,
+      },
+      {
+        title: "カスタマイズ",
+        icon: "🔧",
+        description: "ニーズに合わせて柔軟にカスタマイズ可能",
+        priority: 9,
+      },
+      {
+        title: "互換性",
+        icon: "🌐",
+        description: "既存のワークフローと簡単に統合",
+        priority: 8,
+      },
+      {
+        title: "省時間",
+        icon: "⏱️",
+        description: "手動作業を削減し、貴重な時間を節約",
+        priority: 7,
+      },
+    ],
+    website: [
+      {
+        title: "レスポンシブ",
+        icon: "📱",
+        description: "あらゆるデバイスで最適な表示を実現",
+        priority: 10,
+      },
+      {
+        title: "高速表示",
+        icon: "⚡",
+        description: "最適化により高速なページ読み込み",
+        priority: 9,
+      },
+      {
+        title: "SEO最適化",
+        icon: "🎯",
+        description: "検索エンジンに最適化された構造",
+        priority: 8,
+      },
+      {
+        title: "アクセシブル",
+        icon: "♿",
+        description: "誰でも利用しやすいアクセシビリティ対応",
+        priority: 7,
+      },
+    ],
+    documentation: [
+      {
+        title: "分かりやすい",
+        icon: "📖",
+        description: "初心者にも理解しやすい丁寧な説明",
+        priority: 10,
+      },
+      {
+        title: "包括的",
+        icon: "📋",
+        description: "必要な情報を網羅した完全なドキュメント",
+        priority: 9,
+      },
+      {
+        title: "実例豊富",
+        icon: "💡",
+        description: "実用的なコード例とサンプル",
+        priority: 8,
+      },
+      {
+        title: "検索可能",
+        icon: "🔍",
+        description: "必要な情報を素早く見つけられる検索機能",
+        priority: 7,
+      },
+    ],
+    game: [
+      {
+        title: "エンゲージング",
+        icon: "🎮",
+        description: "没入感のあるゲームプレイ体験",
+        priority: 10,
+      },
+      {
+        title: "高品質",
+        icon: "🏆",
+        description: "美しいグラフィックとサウンド",
+        priority: 9,
+      },
+      {
+        title: "マルチプレイ",
+        icon: "👥",
+        description: "友達と一緒に楽しめる機能",
+        priority: 8,
+      },
+      {
+        title: "定期更新",
+        icon: "🔄",
+        description: "継続的なコンテンツ追加",
+        priority: 7,
+      },
+    ],
+  };
+
+  const baseCards =
+    cardTemplates[projectType as keyof typeof cardTemplates] ||
+    cardTemplates.library;
+
+  // 技術スタックに応じて追加カードを生成
+  const techCards = techStack.slice(0, 2).map((tech, index) => ({
+    title: `${tech}活用`,
+    icon: getTechIcon(tech),
+    description: `${tech}の力を最大限に活用した実装`,
+    priority: 6 - index,
+  }));
+
+  return [...baseCards.slice(0, 4), ...techCards].slice(0, 6);
+}
+
+/**
+ * 技術スタックに応じたアイコン取得
+ */
+function getTechIcon(tech: string): string {
+  const techIcons: Record<string, string> = {
+    JavaScript: "🟨",
+    TypeScript: "🔷",
+    Python: "🐍",
+    React: "⚛️",
+    Vue: "💚",
+    Angular: "🅰️",
+    "Node.js": "🟢",
+    Java: "☕",
+    "C++": "⚙️",
+    Go: "🐹",
+    Rust: "🦀",
+    PHP: "🐘",
+    Ruby: "💎",
+    Swift: "🍎",
+    Kotlin: "🎯",
+    Docker: "🐳",
+    AWS: "☁️",
+    Firebase: "🔥",
+  };
+
+  return techIcons[tech] || "💻";
+}
+
 function getProjectTypeContent(projectType: string, projectName: string) {
   const contentMap = {
     library: {
@@ -271,12 +483,37 @@ ${repoData.prs
 
 このプロジェクトの価値と魅力を最大限に伝える包括的なコンテンツ分析を以下のJSON形式で作成してください：
 
+## 動的カード生成の指針
+- **dynamicCards**: プロジェクトの特性に応じて3-6枚のカードを生成
+- **title**: プロジェクトタイプと技術スタックに応じた具体的なタイトル
+- **icon**: 内容に合った絵文字（🚀⚡🛡️🌟💡🔧📊🎯🏆⭐など）
+- **description**: 各カードの具体的なメリットや特徴
+- **priority**: 表示優先度（1-10、高いほど重要）
+- プロジェクトタイプ別推奨カード：
+  - Library: "簡単導入", "高性能", "豊富なAPI", "活発コミュニティ"
+  - Application: "ユーザビリティ", "スケーラビリティ", "セキュリティ", "機能豊富"
+  - Tool: "効率向上", "自動化", "カスタマイズ性", "互換性"
+
 {
   "appeal": {
     "uniqueValue": "このプロジェクトの独自価値（1-2文）",
     "keyBenefits": ["メリット1", "メリット2", "メリット3"],
     "targetUsers": ["ユーザー層1", "ユーザー層2"],
-    "problemSolving": "解決する具体的な問題"
+    "problemSolving": "解決する具体的な問題",
+    "dynamicCards": [
+      {
+        "title": "プロジェクト特性に合った魅力的なタイトル",
+        "icon": "🚀",
+        "description": "このカードの説明文",
+        "priority": 10
+      },
+      {
+        "title": "技術スタックに応じたタイトル",
+        "icon": "⚡",
+        "description": "このカードの説明文",
+        "priority": 9
+      }
+    ]
   },
   "usage": {
     "installation": {
@@ -452,6 +689,10 @@ ${repoData.prs
         keyBenefits: projectTypeContent.keyBenefits,
         targetUsers: [analysis.audience, "developers", "engineers"],
         problemSolving: projectTypeContent.problemSolving,
+        dynamicCards: generateFallbackCards(
+          analysis.projectType,
+          analysis.techStack
+        ),
       },
       usage: {
         installation: {
