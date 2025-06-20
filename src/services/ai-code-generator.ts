@@ -766,11 +766,11 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   
   /* カード枚数別のレイアウト */
   .features-grid.grid-single {
-    max-width: 350px;
+    max-width: 400px;
   }
   
   .features-grid.grid-double {
-    max-width: 800px;
+    max-width: 900px;
   }
   
   .features-grid.grid-triple {
@@ -778,7 +778,7 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   }
   
   .features-grid.grid-quad {
-    max-width: 800px;
+    max-width: 1200px;
   }
   
   .features-grid.grid-multi {
@@ -787,8 +787,20 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   
   /* 大画面での最適化 */
   @media (min-width: 1200px) {
+    .features-grid.grid-double {
+      max-width: 1000px;
+    }
+    
+    .features-grid.grid-triple {
+      max-width: 1400px;
+    }
+    
     .features-grid.grid-quad {
-      max-width: 1480px;
+      max-width: 1600px;
+    }
+    
+    .features-grid.grid-multi {
+      max-width: 1400px;
     }
   }
   
@@ -812,8 +824,8 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   .feature-card {
     background: white;
     padding: 2rem;
-    flex: 1 1 280px;
-    min-width: 280px;
+    flex: 1 1 200px;
+    min-width: 200px;
     max-width: 400px;
     min-height: 280px;
     display: flex;
@@ -834,33 +846,57 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   .features-grid.grid-single .feature-card {
     flex: 0 0 auto;
     max-width: 400px;
+    min-width: 300px;
   }
   
   .features-grid.grid-double .feature-card {
-    flex: 1 1 calc(50% - 1rem);
-    max-width: 500px;
+    flex: 1 1 350px;
+    max-width: 400px;
+    min-width: 280px;
   }
   
   .features-grid.grid-triple .feature-card {
-    flex: 1 1 calc(33.333% - 1.33rem);
+    flex: 1 1 300px;
     max-width: 350px;
+    min-width: 250px;
   }
   
   .features-grid.grid-quad .feature-card {
-    flex: 1 1 calc(50% - 1rem);
+    flex: 1 1 300px;
     max-width: 350px;
+    min-width: 250px;
   }
   
   .features-grid.grid-multi .feature-card {
-    flex: 1 1 calc(33.333% - 1.33rem);
-    max-width: 350px;
+    flex: 1 1 280px;
+    max-width: 320px;
+    min-width: 220px;
   }
   
   /* 大画面でのカード幅調整 */
   @media (min-width: 1200px) {
+    .features-grid.grid-double .feature-card {
+      flex: 1 1 400px;
+      max-width: 450px;
+      min-width: 350px;
+    }
+    
+    .features-grid.grid-triple .feature-card {
+      flex: 1 1 350px;
+      max-width: 400px;
+      min-width: 300px;
+    }
+    
     .features-grid.grid-quad .feature-card {
-      flex: 1 1 calc(25% - 1.5rem);
-      max-width: 320px;
+      flex: 1 1 300px;
+      max-width: 350px;
+      min-width: 280px;
+    }
+    
+    .features-grid.grid-multi .feature-card {
+      flex: 1 1 320px;
+      max-width: 380px;
+      min-width: 280px;
     }
   }
   
@@ -871,6 +907,7 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
     .features-grid.grid-multi .feature-card {
       flex: 1 1 calc(50% - 1rem);
       max-width: 320px;
+      min-width: 200px;
     }
   }
   
