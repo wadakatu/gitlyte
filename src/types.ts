@@ -16,6 +16,8 @@ export interface RepoData {
     license: { key: string; name: string } | null;
   };
   readme: string;
+  configFile?: string; // .gitlyte.json の内容
+  packageJson?: string; // package.json の内容
   prs: Array<{
     title: string;
     user: { login: string } | null;

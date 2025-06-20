@@ -1,4 +1,9 @@
 import type { RepoData } from "../types.js";
+import {
+  loadGitLyteConfig,
+  resolveLogoUrl,
+  resolveFaviconUrl,
+} from "./config-loader.js";
 
 /** ロゴ画像検出結果 */
 export interface LogoDetectionResult {
@@ -6,13 +11,61 @@ export interface LogoDetectionResult {
   logoUrl?: string;
   logoPath?: string;
   faviconUrl?: string;
+  source: "config" | "auto" | "none";
 }
 
 /**
- * リポジトリ内でロゴ画像を検出
- * 一般的なロゴファイル名とパスをチェック
+ * リポジトリのロゴを検出
+ * 優先順位: 設定ファイル > 自動検出 > README画像
  */
 export async function detectRepoLogo(
+  repoData: RepoData
+): Promise<LogoDetectionResult> {
+  // 1. 設定ファイルから読み込み（最優先）
+  const configResult = await loadGitLyteConfig(repoData);
+  if (configResult.found && configResult.config.logo) {
+    const logoUrl = resolveLogoUrl(configResult.config, repoData);
+    const faviconUrl =
+      resolveFaviconUrl(configResult.config, repoData) || logoUrl;
+
+    if (logoUrl) {
+      return {
+        hasLogo: true,
+        logoUrl,
+        logoPath: configResult.config.logo.path,
+        faviconUrl,
+        source: "config",
+      };
+    }
+  }
+
+  // 2. 自動検出を試行
+  const autoDetectResult = await detectRepoLogoAuto(repoData);
+  if (autoDetectResult.hasLogo) {
+    return {
+      ...autoDetectResult,
+      source: "auto",
+    };
+  }
+
+  // 3. README内の画像を試行
+  const readmeResult = extractLogoFromReadme(repoData.readme || "", repoData);
+  if (readmeResult.hasLogo) {
+    return {
+      ...readmeResult,
+      source: "auto",
+    };
+  }
+
+  // 4. ロゴが見つからない場合
+  return { hasLogo: false, source: "none" };
+}
+
+/**
+ * 自動検出によるロゴ検出（旧detectRepoLogo）
+ * 一般的なロゴファイル名とパスをチェック
+ */
+async function detectRepoLogoAuto(
   repoData: RepoData
 ): Promise<LogoDetectionResult> {
   const { repo } = repoData;
@@ -85,12 +138,13 @@ export async function detectRepoLogo(
           logoUrl,
           logoPath,
           faviconUrl: logoUrl,
+          source: "auto" as const,
         };
       }
     }
   }
 
-  return { hasLogo: false };
+  return { hasLogo: false, source: "none" as const };
 }
 
 /**
@@ -155,11 +209,12 @@ export function extractLogoFromReadme(
         logoUrl,
         logoPath: imagePath,
         faviconUrl: logoUrl,
+        source: "auto" as const,
       };
     }
 
     match = imageRegex.exec(readme);
   }
 
-  return { hasLogo: false };
+  return { hasLogo: false, source: "none" as const };
 }

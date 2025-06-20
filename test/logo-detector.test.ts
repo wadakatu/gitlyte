@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isLikelyLogo, extractLogoFromReadme } from "../src/utils/logo-detector.js";
+import { isLikelyLogo, extractLogoFromReadme, detectRepoLogo } from "../src/utils/logo-detector.js";
 import type { RepoData } from "../src/types.js";
 
 describe("Logo Detector", () => {
@@ -65,6 +65,7 @@ Description here.`;
       expect(result.hasLogo).toBe(true);
       expect(result.logoUrl).toBe("https://github.com/user/test-repo/raw/main/./assets/logo.png");
       expect(result.logoPath).toBe("./assets/logo.png");
+      expect(result.source).toBe("auto");
     });
 
     it("should extract logo with icon alt text", () => {
@@ -78,6 +79,7 @@ Description here.`;
       
       expect(result.hasLogo).toBe(true);
       expect(result.logoUrl).toBe("https://example.com/icon.svg");
+      expect(result.source).toBe("auto");
     });
 
     it("should extract logo with brand alt text", () => {
@@ -91,6 +93,7 @@ Description here.`;
       
       expect(result.hasLogo).toBe(true);
       expect(result.logoUrl).toBe("https://github.com/user/test-repo/raw/main/./brand.png");
+      expect(result.source).toBe("auto");
     });
 
     it("should return no logo when no logo-like images found", () => {
@@ -104,6 +107,7 @@ Description here.`;
       const result = extractLogoFromReadme(readmeWithoutLogo, mockRepoData);
       
       expect(result.hasLogo).toBe(false);
+      expect(result.source).toBe("none");
     });
 
     it("should handle absolute URLs correctly", () => {
@@ -117,6 +121,7 @@ Description here.`;
       
       expect(result.hasLogo).toBe(true);
       expect(result.logoUrl).toBe("https://cdn.example.com/logo.png");
+      expect(result.source).toBe("auto");
     });
 
     it("should handle multiple images and pick the first logo", () => {
@@ -132,12 +137,57 @@ Description here.`;
       
       expect(result.hasLogo).toBe(true);
       expect(result.logoUrl).toBe("https://github.com/user/test-repo/raw/main/./assets/logo.svg");
+      expect(result.source).toBe("auto");
     });
 
     it("should handle empty README", () => {
       const result = extractLogoFromReadme("", mockRepoData);
       
       expect(result.hasLogo).toBe(false);
+      expect(result.source).toBe("none");
+    });
+  });
+
+  describe("detectRepoLogo (integrated)", () => {
+    it("should prioritize config file over auto detection", async () => {
+      const repoDataWithConfig = {
+        ...mockRepoData,
+        configFile: JSON.stringify({
+          logo: { path: "./config-logo.png" }
+        }),
+        readme: "![Logo](./readme-logo.png)"
+      };
+
+      const result = await detectRepoLogo(repoDataWithConfig);
+
+      expect(result.hasLogo).toBe(true);
+      expect(result.logoUrl).toBe("https://github.com/user/test-repo/raw/main/config-logo.png");
+      expect(result.source).toBe("config");
+    });
+
+    it("should fall back to auto detection when no config", async () => {
+      const repoDataWithReadme = {
+        ...mockRepoData,
+        readme: "![Logo](./logo.png)"
+      };
+
+      const result = await detectRepoLogo(repoDataWithReadme);
+
+      expect(result.hasLogo).toBe(true);
+      expect(result.logoUrl).toBe("https://github.com/user/test-repo/raw/main/./logo.png");
+      expect(result.source).toBe("auto");
+    });
+
+    it("should return none when no logo found anywhere", async () => {
+      const repoDataEmpty = {
+        ...mockRepoData,
+        readme: "# Project\n\nNo logo here"
+      };
+
+      const result = await detectRepoLogo(repoDataEmpty);
+
+      expect(result.hasLogo).toBe(false);
+      expect(result.source).toBe("none");
     });
   });
 });
