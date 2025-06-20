@@ -60,12 +60,51 @@ docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> -e OPENAI_API_KEY=<open
 ## 🎯 How It Works
 
 1. **Install the GitHub App** on your repository
-2. **Create a PR** with `enhancement` or `feat` label
-3. **Merge the PR** - GitLyte automatically:
+2. **(Optional) Configure your site** with `.gitlyte.json` (see below)
+3. **Create a PR** with `enhancement` or `feat` label
+4. **Merge the PR** - GitLyte automatically:
    - Analyzes your repository (tech stack, purpose, audience)
    - Generates a custom design strategy with AI
    - Creates Astro components with unique styling
    - Deploys to GitHub Pages via Actions
+
+## ⚙️ Configuration
+
+GitLyte can automatically detect logos and themes, but you can explicitly configure them by creating a `.gitlyte.json` file in your repository root:
+
+```json
+{
+  "logo": {
+    "path": "./assets/logo.svg",
+    "alt": "MyProject Logo"
+  },
+  "favicon": {
+    "path": "./assets/favicon.ico"
+  },
+  "site": {
+    "theme": {
+      "primary": "#3b82f6",
+      "secondary": "#8b5cf6",
+      "accent": "#06b6d4"
+    }
+  }
+}
+```
+
+### Configuration Options
+
+- **logo.path**: Path to your logo image (relative path or absolute URL)
+- **logo.alt**: Alt text for the logo
+- **favicon.path**: Path to your favicon
+- **site.theme**: Custom color scheme (hex colors)
+
+### Priority Order
+
+1. **Manual Configuration**: `.gitlyte.json` or `package.json` gitlyte section
+2. **Auto-Detection**: Common logo file patterns (logo.png, icon.svg, etc.)
+3. **README Images**: Images with "logo", "icon", or "brand" in alt text
+
+If no configuration file is provided, GitLyte will automatically detect logos from your repository files and README images.
 
 ## 🛠 Architecture
 
