@@ -755,7 +755,7 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
 
   .features-grid {
     display: grid;
-    gap: 2.5rem;
+    gap: 3rem;
     margin-bottom: 5rem;
     margin-left: auto;
     margin-right: auto;
@@ -771,22 +771,22 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   
   .features-grid.grid-double {
     grid-template-columns: repeat(2, 1fr);
-    max-width: 740px;
+    max-width: 800px;
   }
   
   .features-grid.grid-triple {
     grid-template-columns: repeat(3, 1fr);
-    max-width: 1110px;
+    max-width: 1200px;
   }
   
   .features-grid.grid-quad {
     grid-template-columns: repeat(2, 1fr);
-    max-width: 740px;
+    max-width: 800px;
   }
   
   .features-grid.grid-multi {
     grid-template-columns: repeat(3, 1fr);
-    max-width: 1110px;
+    max-width: 1200px;
   }
   
   /* 大画面での最適化 */
@@ -796,21 +796,21 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
     }
     
     .features-grid.grid-double {
-      max-width: 680px;
+      max-width: 740px;
     }
     
     .features-grid.grid-triple {
-      max-width: 1020px;
+      max-width: 1110px;
     }
     
     .features-grid.grid-quad {
       grid-template-columns: repeat(4, 1fr);
-      max-width: 1360px;
+      max-width: 1480px;
     }
     
     .features-grid.grid-multi {
       grid-template-columns: repeat(3, 1fr);
-      max-width: 1020px;
+      max-width: 1110px;
     }
   }
   
@@ -819,12 +819,12 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
     .features-grid.grid-quad,
     .features-grid.grid-multi {
       grid-template-columns: repeat(2, 1fr);
-      max-width: 640px;
+      max-width: 700px;
     }
     
     .features-grid.grid-triple {
       grid-template-columns: repeat(2, 1fr);
-      max-width: 640px;
+      max-width: 700px;
     }
   }
   
@@ -838,6 +838,7 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
     .features-grid.grid-multi {
       grid-template-columns: 1fr;
       max-width: 400px;
+      gap: 2rem;
     }
   }
 
