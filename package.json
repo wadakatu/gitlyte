@@ -1,5 +1,5 @@
 {
-  "name": "gitlyte",
+  "name": "gitlyte-workspace",
   "version": "1.0.0",
   "private": true,
   "description": "Instantly turn your GitHub repo into a live website — no code needed.",
@@ -12,29 +12,22 @@
     "probot-app"
   ],
   "scripts": {
-    "build": "tsc",
-    "start": "probot run ./lib/index.js",
-    "test": "vitest",
-    "lint": "biome lint src/",
-    "lint:fix": "biome lint --fix src/",
-    "format": "biome format src/",
-    "format:fix": "biome format --write src/",
-    "check": "biome check src/",
-    "check:fix": "biome check --fix src/",
-    "ci:check": "pnpm run build && pnpm run format && pnpm run lint && pnpm exec vitest run"
-  },
-  "dependencies": {
-    "date-fns": "^4.1.0",
-    "openai": "^5.5.1",
-    "probot": "^13.4.5"
+    "build": "pnpm -r run build",
+    "start": "pnpm --filter @gitlyte/core start",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "lint:fix": "pnpm -r run lint:fix",
+    "format": "pnpm -r run format",
+    "format:fix": "pnpm -r run format:fix",
+    "check": "pnpm -r run check",
+    "check:fix": "pnpm -r run check:fix",
+    "ci:check": "pnpm --filter @gitlyte/core ci:check",
+    "dev:demo": "pnpm --filter @gitlyte/demo dev"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
     "@types/node": "^20.0.0",
-    "nock": "^14.0.5",
-    "smee-client": "^2.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "^2.0.0"
+    "typescript": "^5.8.3"
   },
   "pnpm": {
     "overrides": {
