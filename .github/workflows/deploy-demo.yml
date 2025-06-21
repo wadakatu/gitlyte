@@ -3,7 +3,7 @@ name: Deploy GitLyte Demo to GitHub Pages
 on:
   push:
     branches: [ main ]
-    paths: ['demo/**']
+    paths: ['demo/**', '.github/workflows/deploy-demo.yml']
   workflow_dispatch:
 
 permissions:
@@ -58,7 +58,7 @@ jobs:
           key: astro-build-demo-${{ runner.os }}-${{ hashFiles('demo/src/**/*', 'demo/astro.config.mjs', 'demo/package.json') }}
           restore-keys: |
             astro-build-demo-${{ runner.os }}-
-          
+
       - name: Build Astro demo site
         run: pnpm run build
         working-directory: demo
