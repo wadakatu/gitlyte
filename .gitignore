@@ -54,6 +54,9 @@ pids
 # Optional npm cache directory
 .npm
 
+# pnpm cache directory
+tools/
+
 # Temporary folders
 temp/
 tmp/
