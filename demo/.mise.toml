@@ -1,0 +1,18 @@
+[tools]
+node = "20.18.0"
+pnpm = "10.12.1"
+
+[env]
+PNPM_HOME = "{{config_root}}/tools/pnpm/bin"
+
+[tasks.dev]
+run = "pnpm run dev"
+description = "Start the Astro development server"
+
+[tasks.build]
+run = "pnpm run build"
+description = "Build the Astro site"
+
+[tasks.preview]
+run = "pnpm run preview"
+description = "Preview the built site"
