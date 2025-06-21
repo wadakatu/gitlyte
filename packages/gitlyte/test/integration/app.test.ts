@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import app from "../../index.js";
 
+interface MockProbot {
+  on: ReturnType<typeof vi.fn>;
+  load?: ReturnType<typeof vi.fn>;
+}
+
 // シンプルな統合テスト - アプリが正しく初期化されることを確認
 describe("GitLyte App Integration", () => {
   beforeEach(() => {
@@ -18,13 +23,13 @@ describe("GitLyte App Integration", () => {
     });
 
     it("should be able to load the app into a mock probot", () => {
-      const mockProbot = {
+      const mockProbot: MockProbot = {
         on: vi.fn(),
         load: vi.fn(),
       };
 
       // アプリ関数を呼び出して、Probotにイベントハンドラーが登録されることを確認
-      app(mockProbot as any);
+      app(mockProbot as Parameters<typeof app>[0]);
 
       expect(mockProbot.on).toHaveBeenCalledWith(
         "pull_request.closed",
@@ -44,7 +49,7 @@ describe("GitLyte App Integration", () => {
         }),
       };
 
-      app(mockProbot as any);
+      app(mockProbot as Parameters<typeof app>[0]);
 
       // PRハンドラーが登録されていることを確認
       expect(mockProbot.on).toHaveBeenCalledWith(
@@ -82,7 +87,7 @@ describe("GitLyte App Integration", () => {
         },
       ];
 
-      const shouldProcess = (pr: any) => {
+      const shouldProcess = (pr: { merged: boolean; merged_at: string | null; labels: Array<{ name: string }> }) => {
         if (!pr.merged || !pr.merged_at) return false;
         return pr.labels.some((l: { name: string }) =>
           /(enhancement|feat)/i.test(l.name)

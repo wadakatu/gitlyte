@@ -8,8 +8,16 @@ import {
 } from "../../services/ai-analyzer.js";
 import type { RepoData } from "../../types.js";
 
+interface MockOpenAI {
+  chat: {
+    completions: {
+      create: ReturnType<typeof vi.fn>;
+    };
+  };
+}
+
 // OpenAI mockを作成
-const createMockOpenAI = () => ({
+const createMockOpenAI = (): MockOpenAI => ({
   chat: {
     completions: {
       create: vi.fn(),
@@ -18,11 +26,11 @@ const createMockOpenAI = () => ({
 });
 
 describe("AI Analyzer", () => {
-  let mockOpenAI: any;
+  let mockOpenAI: MockOpenAI;
 
   beforeEach(() => {
     mockOpenAI = createMockOpenAI();
-    setOpenAIClient(mockOpenAI as any);
+    setOpenAIClient(mockOpenAI as Parameters<typeof setOpenAIClient>[0]);
   });
 
   afterEach(() => {
@@ -122,7 +130,7 @@ describe("AI Analyzer", () => {
         choices: [
           {
             message: {
-              content: "```json\n" + JSON.stringify(mockAnalysis) + "\n```",
+              content: `\`\`\`json\n${JSON.stringify(mockAnalysis)}\n\`\`\``,
             },
           },
         ],

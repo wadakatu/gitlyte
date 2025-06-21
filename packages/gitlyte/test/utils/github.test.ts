@@ -78,7 +78,7 @@ describe("GitHub Utils", () => {
       ctx.octokit.issues.listForRepo.mockResolvedValue(mockIssues);
       ctx.octokit.repos.getReadme.mockResolvedValue(mockReadme);
 
-      const result = await collectRepoData(ctx as any);
+      const result = await collectRepoData(ctx as Parameters<typeof collectRepoData>[0]);
 
       expect(result).toEqual({
         repo: mockRepo.data,
@@ -109,7 +109,7 @@ describe("GitHub Utils", () => {
       ctx.octokit.issues.listForRepo.mockRejectedValue(new Error("API Error"));
       ctx.octokit.repos.getReadme.mockRejectedValue(new Error("API Error"));
 
-      const result = await collectRepoData(ctx as any);
+      const result = await collectRepoData(ctx as Parameters<typeof collectRepoData>[0]);
 
       expect(result).toEqual({
         repo: mockRepo.data,
@@ -154,7 +154,7 @@ describe("GitHub Utils", () => {
         data: { content: Buffer.from("readme").toString("base64") },
       });
 
-      const result = await collectRepoData(ctx as any);
+      const result = await collectRepoData(ctx as Parameters<typeof collectRepoData>[0]);
 
       expect(result.prs).toHaveLength(1);
       expect(result.prs[0].title).toBe("Merged PR");

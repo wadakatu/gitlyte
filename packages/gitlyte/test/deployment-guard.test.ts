@@ -5,8 +5,22 @@ import {
   safeGenerateWithDeploymentGuard,
 } from "../utils/deployment-guard.js";
 
+interface MockContext {
+  log: {
+    info: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
+  repo: ReturnType<typeof vi.fn>;
+  octokit: {
+    repos: {
+      listDeployments: ReturnType<typeof vi.fn>;
+      listDeploymentStatuses: ReturnType<typeof vi.fn>;
+    };
+  };
+}
+
 describe("Deployment Guard", () => {
-  let mockContext: any;
+  let mockContext: MockContext;
 
   beforeEach(() => {
     mockContext = {

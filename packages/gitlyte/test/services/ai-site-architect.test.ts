@@ -90,7 +90,7 @@ const mockOpenAI = {
       }),
     },
   },
-} as any;
+} as Parameters<typeof setOpenAIClient>[0];
 
 describe("AI Site Architect", () => {
   const mockRepoData: RepoData = {
@@ -199,7 +199,7 @@ describe("AI Site Architect", () => {
             }),
           },
         },
-      } as any;
+      } as Parameters<typeof setOpenAIClient>[0];
 
       setOpenAIClient(mockComponentSpecsOpenAI);
 
@@ -229,7 +229,7 @@ describe("AI Site Architect", () => {
             },
           },
         },
-      } as any;
+      } as Parameters<typeof setOpenAIClient>[0];
 
       setOpenAIClient(failingOpenAI);
 

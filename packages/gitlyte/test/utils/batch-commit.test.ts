@@ -1,8 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { batchCommitFiles } from "../../utils/batch-commit.js";
 
+interface MockContext {
+  repo: () => { owner: string; repo: string };
+  octokit: {
+    git: {
+      getRef: ReturnType<typeof vi.fn>;
+      getCommit: ReturnType<typeof vi.fn>;
+      createTree: ReturnType<typeof vi.fn>;
+      createCommit: ReturnType<typeof vi.fn>;
+      updateRef: ReturnType<typeof vi.fn>;
+    };
+  };
+  log: {
+    info: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+  };
+}
+
 // Context mockを作成
-const createMockContext = (overrides = {}) => {
+const createMockContext = (overrides = {}): MockContext => {
   const defaultContext = {
     repo: () => ({ owner: "test-owner", repo: "test-repo" }),
     octokit: {
@@ -62,7 +79,7 @@ describe("Batch Commit", () => {
         { path: "docs/index.html", content: "<h1>Test</h1>" },
       ];
 
-      await batchCommitFiles(ctx as any, files, "Test commit message");
+      await batchCommitFiles(ctx as Parameters<typeof batchCommitFiles>[0], files, "Test commit message");
 
       expect(ctx.octokit.git.getRef).toHaveBeenCalledWith({
         owner: "test-owner",
@@ -123,7 +140,7 @@ describe("Batch Commit", () => {
       const files = [{ path: "docs/test.txt", content: "test content" }];
 
       await expect(
-        batchCommitFiles(ctx as any, files, "Test commit")
+        batchCommitFiles(ctx as Parameters<typeof batchCommitFiles>[0], files, "Test commit")
       ).rejects.toThrow("API Error");
 
       expect(ctx.log.error).toHaveBeenCalledWith(
@@ -160,7 +177,7 @@ describe("Batch Commit", () => {
       ctx.octokit.git.createCommit.mockResolvedValue(mockNewCommit);
       ctx.octokit.git.updateRef.mockResolvedValue({});
 
-      await batchCommitFiles(ctx as any, [], "Empty commit");
+      await batchCommitFiles(ctx as Parameters<typeof batchCommitFiles>[0], [], "Empty commit");
 
       expect(ctx.octokit.git.createTree).toHaveBeenCalledWith({
         owner: "test-owner",
