@@ -29,9 +29,19 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
     const configResult = await loadGitLyteConfig(data);
     if (configResult.found) {
       ctx.log.info(`⚙️ Configuration loaded from ${configResult.source}`);
+      ctx.log.info(
+        `📋 Full config: ${JSON.stringify(configResult.config, null, 2)}`
+      );
       if (configResult.config.site?.layout) {
         ctx.log.info(`🎯 Layout override: ${configResult.config.site.layout}`);
       }
+    } else {
+      ctx.log.info(
+        "📋 No configuration file found, using AI-generated settings"
+      );
+      ctx.log.info(
+        `🔍 Checked files: .gitlyte.json (${data.configFile ? "found" : "not found"}), package.json (${data.packageJson ? "found" : "not found"})`
+      );
     }
 
     // Step 1: リポジトリ分析（設定値を考慮）
@@ -54,6 +64,9 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
     ctx.log.info(`📐 Final layout: ${designStrategy.layout}`);
 
     // Step 3: 高品質AI生成Astroサイト作成
+    ctx.log.info(
+      `🎯 Passing design strategy to generateAstroSite with layout: ${designStrategy.layout}`
+    );
     const generatedSite = await generateAstroSite(
       data,
       analysis,
@@ -65,7 +78,13 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
     );
 
     // Step 4: ファイル一括コミット（ワークフロー含む）
-    await batchCommitGeneratedFiles(ctx, data, generatedSite, designStrategy);
+    await batchCommitGeneratedFiles(
+      ctx,
+      data,
+      generatedSite,
+      designStrategy,
+      analysis
+    );
 
     ctx.log.info("🚀 Enhanced AI-generated Astro site deployed successfully");
   } catch (error) {
@@ -79,7 +98,8 @@ async function batchCommitGeneratedFiles(
   ctx: Context,
   data: RepoData,
   generatedSite: GeneratedAstroSite,
-  designStrategy: DesignStrategy
+  designStrategy: DesignStrategy,
+  analysis: import("./ai-analyzer.js").RepoAnalysis
 ) {
   const repoInfo = ctx.repo();
 
@@ -99,9 +119,8 @@ async function batchCommitGeneratedFiles(
   const globalStyles = generatedSite.globalStyles;
 
   // インデックスページにリポジトリデータとコンテンツ分析を埋め込み
-  // まずコンテンツ分析を実行
+  // まずコンテンツ分析を実行（設定を考慮した分析を再利用）
   const { analyzeRepositoryContent } = await import("./content-analyzer.js");
-  const analysis = await analyzeRepository(data);
   const contentAnalysis = await analyzeRepositoryContent(data, analysis);
 
   // JSON データを安全にエスケープして文字列リテラルに埋め込み
@@ -150,6 +169,15 @@ async function batchCommitGeneratedFiles(
 
   // .gitlyte.json の処理（新規生成 or 既存更新）
   const configResult = await loadGitLyteConfig(data);
+  ctx.log.info(
+    `🔍 Config load result: found=${configResult.found}, source=${configResult.source}`
+  );
+  if (configResult.found) {
+    ctx.log.info(
+      `📄 Existing config: ${JSON.stringify(configResult.config, null, 2)}`
+    );
+  }
+
   if (!configResult.found) {
     // 新規生成
     ctx.log.info("📝 Generating .gitlyte.json template...");
@@ -177,6 +205,14 @@ async function batchCommitGeneratedFiles(
     const mergedConfig = mergeConfigWithDefaults(
       configResult.config,
       defaultTemplate
+    );
+
+    ctx.log.info(
+      `🎯 Default template: ${JSON.stringify(defaultTemplate, null, 2)}`
+    );
+    ctx.log.info(`🔄 Merged config: ${JSON.stringify(mergedConfig, null, 2)}`);
+    ctx.log.info(
+      `🔍 Config changed: ${hasConfigChanged(configResult.config, mergedConfig)}`
     );
 
     if (hasConfigChanged(configResult.config, mergedConfig)) {
