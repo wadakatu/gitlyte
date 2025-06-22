@@ -14,24 +14,44 @@ import {
   generateConfigTemplate,
   generateConfigFileContent,
 } from "../utils/config-template.js";
-import { loadGitLyteConfig } from "../utils/config-loader.js";
+import {
+  loadGitLyteConfig,
+  mergeConfigWithDefaults,
+  hasConfigChanged,
+} from "../utils/config-loader.js";
 
 /** AI駆動でAstroサイトを生成 */
 export async function generateAIAstroSite(ctx: Context, data: RepoData) {
   try {
     ctx.log.info("🤖 Starting enhanced AI-powered site generation...");
 
-    // Step 1: リポジトリ分析
-    const analysis = await analyzeRepository(data);
+    // Step 0: 設定ファイル読み込み
+    const configResult = await loadGitLyteConfig(data);
+    if (configResult.found) {
+      ctx.log.info(`⚙️ Configuration loaded from ${configResult.source}`);
+      if (configResult.config.site?.layout) {
+        ctx.log.info(`🎯 Layout override: ${configResult.config.site.layout}`);
+      }
+    }
+
+    // Step 1: リポジトリ分析（設定値を考慮）
+    const analysis = await analyzeRepository(data, configResult.config);
     ctx.log.info(
       `📊 Analysis complete: ${analysis.projectType} project for ${analysis.audience}`
     );
+    if (analysis.layout) {
+      ctx.log.info(`📐 Layout determined: ${analysis.layout}`);
+    }
 
-    // Step 2: AIデザイン戦略生成
-    const designStrategy = await generateDesignStrategy(analysis);
+    // Step 2: AIデザイン戦略生成（設定値を考慮）
+    const designStrategy = await generateDesignStrategy(
+      analysis,
+      configResult.config
+    );
     ctx.log.info(
       `🎨 Design strategy generated: ${designStrategy.style} style with ${designStrategy.colorScheme.primary} primary color`
     );
+    ctx.log.info(`📐 Final layout: ${designStrategy.layout}`);
 
     // Step 3: 高品質AI生成Astroサイト作成
     const generatedSite = await generateAstroSite(
@@ -128,9 +148,10 @@ async function batchCommitGeneratedFiles(
     { path: ".github/workflows/deploy-astro.yml", content: workflowContent },
   ];
 
-  // .gitlyte.json が存在しない場合は雛形を生成
+  // .gitlyte.json の処理（新規生成 or 既存更新）
   const configResult = await loadGitLyteConfig(data);
   if (!configResult.found) {
+    // 新規生成
     ctx.log.info("📝 Generating .gitlyte.json template...");
     const configTemplate = generateConfigTemplate(
       data,
@@ -146,9 +167,33 @@ async function batchCommitGeneratedFiles(
       "✨ .gitlyte.json template generated with project-specific settings"
     );
   } else {
-    ctx.log.info(
-      "📋 .gitlyte.json already exists, skipping template generation"
+    // 既存設定の更新チェック
+    ctx.log.info("📋 .gitlyte.json exists, checking for updates...");
+    const defaultTemplate = generateConfigTemplate(
+      data,
+      analysis,
+      designStrategy
     );
+    const mergedConfig = mergeConfigWithDefaults(
+      configResult.config,
+      defaultTemplate
+    );
+
+    if (hasConfigChanged(configResult.config, mergedConfig)) {
+      ctx.log.info(
+        "🔄 Updating .gitlyte.json with new configuration options..."
+      );
+      const updatedContent = generateConfigFileContent(mergedConfig);
+      files.push({
+        path: ".gitlyte.json",
+        content: updatedContent,
+      });
+      ctx.log.info(
+        "✨ .gitlyte.json updated with new settings (layout, missing theme colors, etc.)"
+      );
+    } else {
+      ctx.log.info("✅ .gitlyte.json is up to date");
+    }
   }
 
   // Docsページがある場合は追加
@@ -164,14 +209,39 @@ async function batchCommitGeneratedFiles(
 
   // コミットメッセージを動的に生成
   const hasConfigTemplate = !configResult.found;
-  const commitMessage = `✨ Generate enhanced AI-powered Astro site${hasConfigTemplate ? " with configuration template" : ""}
+  let hasConfigUpdate = false;
+  let mergedConfig = configResult.config;
+
+  if (configResult.found) {
+    const defaultTemplate = generateConfigTemplate(
+      data,
+      analysis,
+      designStrategy
+    );
+    mergedConfig = mergeConfigWithDefaults(
+      configResult.config,
+      defaultTemplate
+    );
+    hasConfigUpdate = hasConfigChanged(configResult.config, mergedConfig);
+  }
+
+  let configMessage = "";
+  if (hasConfigTemplate) {
+    configMessage =
+      "\n- Generated .gitlyte.json template with project-specific settings";
+  } else if (hasConfigUpdate) {
+    configMessage =
+      "\n- Updated .gitlyte.json with new configuration options (layout, theme)";
+  }
+
+  const commitMessage = `✨ Generate enhanced AI-powered Astro site${hasConfigTemplate ? " with configuration template" : hasConfigUpdate ? " and updated configuration" : ""}
 
 🎨 Design Features:
 - Advanced Hero with gradient text, CTA buttons & animated stats
 - Modern Features showcasing project value & benefits
 - Professional typography system with ${designStrategy.typography.heading}
 - ${designStrategy.style} style with ${designStrategy.colorScheme.primary} primary color
-- Responsive design with glassmorphism & hover effects${hasConfigTemplate ? "\n- Generated .gitlyte.json template with project-specific settings" : ""}
+- Responsive design with glassmorphism & hover effects${configMessage}
 
 📊 Project: ${data.repo.name} (⭐${data.repo.stargazers_count} stars, 🍴${data.repo.forks_count} forks)
 🤖 Powered by next-generation AI creativity!`;
