@@ -14,6 +14,8 @@ export interface GitLyteConfig {
   };
   /** サイト設定 */
   site?: {
+    /** レイアウト設定 */
+    layout?: "minimal" | "grid" | "sidebar" | "hero-focused" | "content-heavy";
     /** テーマ設定 */
     theme?: {
       /** プライマリカラー */
