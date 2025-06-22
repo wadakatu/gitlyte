@@ -150,11 +150,15 @@ async function batchCommitGeneratedFiles(
 
   // .gitlyte.json の処理（新規生成 or 既存更新）
   const configResult = await loadGitLyteConfig(data);
-  ctx.log.info(`🔍 Config load result: found=${configResult.found}, source=${configResult.source}`);
+  ctx.log.info(
+    `🔍 Config load result: found=${configResult.found}, source=${configResult.source}`
+  );
   if (configResult.found) {
-    ctx.log.info(`📄 Existing config: ${JSON.stringify(configResult.config, null, 2)}`);
+    ctx.log.info(
+      `📄 Existing config: ${JSON.stringify(configResult.config, null, 2)}`
+    );
   }
-  
+
   if (!configResult.found) {
     // 新規生成
     ctx.log.info("📝 Generating .gitlyte.json template...");
@@ -183,10 +187,14 @@ async function batchCommitGeneratedFiles(
       configResult.config,
       defaultTemplate
     );
-    
-    ctx.log.info(`🎯 Default template: ${JSON.stringify(defaultTemplate, null, 2)}`);
+
+    ctx.log.info(
+      `🎯 Default template: ${JSON.stringify(defaultTemplate, null, 2)}`
+    );
     ctx.log.info(`🔄 Merged config: ${JSON.stringify(mergedConfig, null, 2)}`);
-    ctx.log.info(`🔍 Config changed: ${hasConfigChanged(configResult.config, mergedConfig)}`);
+    ctx.log.info(
+      `🔍 Config changed: ${hasConfigChanged(configResult.config, mergedConfig)}`
+    );
 
     if (hasConfigChanged(configResult.config, mergedConfig)) {
       ctx.log.info(

@@ -104,9 +104,11 @@ export async function collectRepoData(ctx: Context): Promise<RepoData> {
     ctx.repo().repo,
     ".gitlyte.json"
   );
-  
+
   if (configFile) {
-    ctx.log.info(`📋 Found .gitlyte.json file: ${configFile.substring(0, 100)}...`);
+    ctx.log.info(
+      `📋 Found .gitlyte.json file: ${configFile.substring(0, 100)}...`
+    );
   } else {
     ctx.log.info("📋 No .gitlyte.json file found");
   }
