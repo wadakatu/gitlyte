@@ -116,6 +116,18 @@ function validateConfig(config: GitLyteConfig): GitLyteConfig {
   if (config.site) {
     validatedConfig.site = {};
 
+    // レイアウト設定の検証
+    const validLayouts = [
+      "minimal",
+      "grid",
+      "sidebar",
+      "hero-focused",
+      "content-heavy",
+    ] as const;
+    if (config.site.layout && validLayouts.includes(config.site.layout)) {
+      validatedConfig.site.layout = config.site.layout;
+    }
+
     if (config.site.theme) {
       validatedConfig.site.theme = {};
 
@@ -146,6 +158,69 @@ function validateConfig(config: GitLyteConfig): GitLyteConfig {
   }
 
   return validatedConfig;
+}
+
+/**
+ * 既存の設定に新しい設定項目をマージ
+ * 既存の値は保持し、新しい項目のみ追加
+ */
+export function mergeConfigWithDefaults(
+  existingConfig: GitLyteConfig,
+  defaultConfig: GitLyteConfig
+): GitLyteConfig {
+  const merged: GitLyteConfig = { ...existingConfig };
+
+  // ロゴ設定のマージ
+  if (!merged.logo && defaultConfig.logo) {
+    merged.logo = defaultConfig.logo;
+  }
+
+  // ファビコン設定のマージ
+  if (!merged.favicon && defaultConfig.favicon) {
+    merged.favicon = defaultConfig.favicon;
+  }
+
+  // サイト設定のマージ
+  if (defaultConfig.site) {
+    if (!merged.site) {
+      merged.site = {};
+    }
+
+    // layout設定のマージ（既存の値がない場合のみ）
+    if (!merged.site.layout && defaultConfig.site.layout) {
+      merged.site.layout = defaultConfig.site.layout;
+    }
+
+    // テーマ設定のマージ
+    if (defaultConfig.site.theme) {
+      if (!merged.site.theme) {
+        merged.site.theme = {};
+      }
+
+      // 各カラーが存在しない場合のみ追加
+      if (!merged.site.theme.primary && defaultConfig.site.theme.primary) {
+        merged.site.theme.primary = defaultConfig.site.theme.primary;
+      }
+      if (!merged.site.theme.secondary && defaultConfig.site.theme.secondary) {
+        merged.site.theme.secondary = defaultConfig.site.theme.secondary;
+      }
+      if (!merged.site.theme.accent && defaultConfig.site.theme.accent) {
+        merged.site.theme.accent = defaultConfig.site.theme.accent;
+      }
+    }
+  }
+
+  return merged;
+}
+
+/**
+ * 設定ファイルが更新されたかどうかを判定
+ */
+export function hasConfigChanged(
+  original: GitLyteConfig,
+  updated: GitLyteConfig
+): boolean {
+  return JSON.stringify(original) !== JSON.stringify(updated);
 }
 
 /**
