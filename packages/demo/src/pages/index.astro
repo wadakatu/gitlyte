@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import HeroFocused from '../components/layouts/HeroFocused.astro';
+import Minimal from '../components/layouts/Minimal.astro';
 import DocsContent from '../components/DocsContent.astro';
 
 const sampleData = {
@@ -37,7 +38,7 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
           <div class="layout-selector">
             <select id="layout-selector" class="layout-select">
               <option value="hero-focused" selected>Hero Focused</option>
-              <option value="minimal" disabled>Minimal (Coming Soon)</option>
+              <option value="minimal">Minimal</option>
               <option value="grid" disabled>Grid (Coming Soon)</option>
               <option value="sidebar" disabled>Sidebar (Coming Soon)</option>
               <option value="content-heavy" disabled>Content Heavy (Coming Soon)</option>
@@ -52,12 +53,12 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
   <section id="demo-section" class="demo-info">
     <div class="container">
       <div class="info-content">
-        <h2>🌟 Hero Focused Layout</h2>
-        <p>
+        <h2 id="layout-title">🌟 Hero Focused Layout</h2>
+        <p id="layout-description">
           Hero Focusedレイアウトは、<strong>大きなヒーローセクション</strong>で訪問者の注意を引きつけ、
           プロジェクトの価値を即座に伝えるデザインです。
         </p>
-        <div class="layout-features">
+        <div class="layout-features" id="layout-features">
           <div class="feature">
             <span class="feature-icon">🎯</span>
             <span>強力なファーストインプレッション</span>
@@ -77,11 +78,20 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
 
   <!-- 実際のレイアウトデモ -->
   <main id="demo-content" class="demo-content">
-    <HeroFocused 
-      title={sampleData.title}
-      description={sampleData.description}
-      stats={sampleData.stats}
-    />
+    <div id="hero-focused-layout">
+      <HeroFocused 
+        title={sampleData.title}
+        description={sampleData.description}
+        stats={sampleData.stats}
+      />
+    </div>
+    <div id="minimal-layout" style="display: none;">
+      <Minimal 
+        title={sampleData.title}
+        description={sampleData.description}
+        stats={sampleData.stats}
+      />
+    </div>
   </main>
 
   <!-- ドキュメントコンテンツ（初期状態では非表示） -->
@@ -341,16 +351,80 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
     demoBtn.addEventListener('click', showDemo);
     docsBtn.addEventListener('click', showDocs);
     
-    // レイアウト切り替え機能（将来実装予定）
+    // レイアウト切り替え機能
     layoutSelector.addEventListener('change', (e) => {
       const target = e.target as HTMLSelectElement;
       const selectedLayout = target.value;
       
-      // 今後、他のレイアウトページへのナビゲーション機能を追加
-      if (selectedLayout !== 'hero-focused') {
-        alert(`${selectedLayout} レイアウトは準備中です！`);
-        target.value = 'hero-focused';
-      }
+      switchLayout(selectedLayout);
     });
+    
+    // レイアウト切り替え関数
+    function switchLayout(layoutType: string) {
+      const heroFocusedLayout = document.getElementById('hero-focused-layout') as HTMLElement;
+      const minimalLayout = document.getElementById('minimal-layout') as HTMLElement;
+      const layoutTitle = document.getElementById('layout-title') as HTMLElement;
+      const layoutDescription = document.getElementById('layout-description') as HTMLElement;
+      const layoutFeatures = document.getElementById('layout-features') as HTMLElement;
+      
+      // レイアウト説明データ
+      const layoutInfo = {
+        'hero-focused': {
+          title: '🌟 Hero Focused Layout',
+          description: 'Hero Focusedレイアウトは、<strong>大きなヒーローセクション</strong>で訪問者の注意を引きつけ、プロジェクトの価値を即座に伝えるデザインです。',
+          features: [
+            { icon: '🎯', text: '強力なファーストインプレッション' },
+            { icon: '📊', text: '統計情報の視覚的表示' },
+            { icon: '🚀', text: '明確なCTAボタン' }
+          ]
+        },
+        'minimal': {
+          title: '✨ Minimal Layout',
+          description: 'Minimalレイアウトは、<strong>クリーンなタイポグラフィ</strong>と余白を活用し、コンテンツの読みやすさを最優先にしたデザインです。',
+          features: [
+            { icon: '📝', text: 'タイポグラフィ中心の設計' },
+            { icon: '🎨', text: 'ミニマルなカラーパレット' },
+            { icon: '📱', text: 'アクセシビリティ重視' }
+          ]
+        }
+      };
+      
+      if (layoutType === 'minimal') {
+        // Minimal レイアウトを表示
+        heroFocusedLayout.style.display = 'none';
+        minimalLayout.style.display = 'block';
+        
+        // 説明を更新
+        const info = layoutInfo.minimal;
+        layoutTitle.innerHTML = info.title;
+        layoutDescription.innerHTML = info.description;
+        layoutFeatures.innerHTML = info.features.map(feature => 
+          `<div class="feature">
+            <span class="feature-icon">${feature.icon}</span>
+            <span>${feature.text}</span>
+          </div>`
+        ).join('');
+        
+      } else if (layoutType === 'hero-focused') {
+        // Hero Focused レイアウトを表示
+        heroFocusedLayout.style.display = 'block';
+        minimalLayout.style.display = 'none';
+        
+        // 説明を更新
+        const info = layoutInfo['hero-focused'];
+        layoutTitle.innerHTML = info.title;
+        layoutDescription.innerHTML = info.description;
+        layoutFeatures.innerHTML = info.features.map(feature => 
+          `<div class="feature">
+            <span class="feature-icon">${feature.icon}</span>
+            <span>${feature.text}</span>
+          </div>`
+        ).join('');
+        
+      } else {
+        alert(`${layoutType} レイアウトは準備中です！`);
+        layoutSelector.value = 'hero-focused';
+      }
+    }
   });
 </script>
