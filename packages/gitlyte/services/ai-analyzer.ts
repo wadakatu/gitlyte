@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { RepoData } from "../types.js";
+import type { GitLyteConfig } from "../types/config.js";
 
 // OpenAI クライアント初期化
 let openai: OpenAI | null = null;
@@ -35,6 +36,7 @@ export interface RepoAnalysis {
   purpose: string;
   tone: "professional" | "friendly" | "creative" | "technical" | "playful";
   complexity: "simple" | "moderate" | "complex";
+  layout?: "minimal" | "grid" | "sidebar" | "hero-focused" | "content-heavy";
 }
 
 export interface DesignStrategy {
@@ -71,7 +73,8 @@ export interface DesignStrategy {
 
 /** Step 1: リポジトリを分析してプロジェクト特性を判定 */
 export async function analyzeRepository(
-  repoData: RepoData
+  repoData: RepoData,
+  config?: GitLyteConfig
 ): Promise<RepoAnalysis> {
   const prompt = `
 あなたはGitHubリポジトリの専門分析者です。以下のリポジトリ情報を分析して、プロジェクトの特性を判定してください。
@@ -126,12 +129,20 @@ export async function analyzeRepository(
       .replace(/:\s*""([^"]*)"/g, ': "$1"') // 先頭の二重引用符修正: ""value" -> "value"
       .trim();
 
-    return JSON.parse(cleanContent) as RepoAnalysis;
+    const result = JSON.parse(cleanContent) as RepoAnalysis;
+
+    // gitlyte.jsonでレイアウトが指定されている場合は、それを優先
+    if (config?.site?.layout) {
+      console.log(`Using configured layout: ${config.site.layout}`);
+      result.layout = config.site.layout;
+    }
+
+    return result;
   } catch (error) {
     console.error("Repository analysis failed:", error);
     console.log("Cleaned JSON content:", cleanContent);
     // フォールバック: 基本的な分析
-    return {
+    const fallbackResult: RepoAnalysis = {
       projectType: "application",
       techStack: ["JavaScript"],
       primaryLanguage: "JavaScript",
@@ -141,12 +152,21 @@ export async function analyzeRepository(
       tone: "professional",
       complexity: "moderate",
     };
+
+    // フォールバック時も設定値を優先
+    if (config?.site?.layout) {
+      console.log(`Using configured layout (fallback): ${config.site.layout}`);
+      fallbackResult.layout = config.site.layout;
+    }
+
+    return fallbackResult;
   }
 }
 
 /** Step 2: 分析結果からデザイン戦略を決定 */
 export async function generateDesignStrategy(
-  analysis: RepoAnalysis
+  analysis: RepoAnalysis,
+  config?: GitLyteConfig
 ): Promise<DesignStrategy> {
   const prompt = `
 あなたは世界最高峰のWebデザイナー兼UXスペシャリストです。2025年のデザイントレンドを踏まえ、このプロジェクトに最適で視覚的に魅力的なデザイン戦略を提案してください。
@@ -254,7 +274,17 @@ export async function generateDesignStrategy(
 
     console.log("Cleaned JSON content:", cleanContent);
 
-    return JSON.parse(cleanContent) as DesignStrategy;
+    const result = JSON.parse(cleanContent) as DesignStrategy;
+
+    // gitlyte.jsonでレイアウトが指定されている場合は、それを優先
+    if (config?.site?.layout) {
+      console.log(
+        `Overriding design strategy layout with configured: ${config.site.layout}`
+      );
+      result.layout = config.site.layout;
+    }
+
+    return result;
   } catch (error) {
     console.error("Design strategy generation failed:", error);
     if (cleanContent) {
@@ -313,6 +343,16 @@ export async function generateDesignStrategy(
       fallbackDesigns[analysis.projectType as keyof typeof fallbackDesigns] ||
       fallbackDesigns.default;
 
+    // フォールバック時のレイアウト決定：設定値 > RepoAnalysisのlayout > デフォルト
+    const fallbackLayout =
+      config?.site?.layout || analysis.layout || "hero-focused";
+
+    if (config?.site?.layout) {
+      console.log(`Using configured layout (fallback): ${config.site.layout}`);
+    } else if (analysis.layout) {
+      console.log(`Using analysis layout (fallback): ${analysis.layout}`);
+    }
+
     return {
       colorScheme: selectedDesign.colorScheme,
       typography: {
@@ -320,7 +360,7 @@ export async function generateDesignStrategy(
         body: "system-ui, -apple-system, sans-serif",
         code: "JetBrains Mono, Fira Code, monospace",
       },
-      layout: "hero-focused",
+      layout: fallbackLayout,
       style: selectedDesign.style,
       animations: true,
       darkMode: false,
