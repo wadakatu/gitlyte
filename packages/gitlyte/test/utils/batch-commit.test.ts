@@ -79,7 +79,11 @@ describe("Batch Commit", () => {
         { path: "docs/index.html", content: "<h1>Test</h1>" },
       ];
 
-      await batchCommitFiles(ctx as Parameters<typeof batchCommitFiles>[0], files, "Test commit message");
+      await batchCommitFiles(
+        ctx as Parameters<typeof batchCommitFiles>[0],
+        files,
+        "Test commit message"
+      );
 
       expect(ctx.octokit.git.getRef).toHaveBeenCalledWith({
         owner: "test-owner",
@@ -140,7 +144,11 @@ describe("Batch Commit", () => {
       const files = [{ path: "docs/test.txt", content: "test content" }];
 
       await expect(
-        batchCommitFiles(ctx as Parameters<typeof batchCommitFiles>[0], files, "Test commit")
+        batchCommitFiles(
+          ctx as Parameters<typeof batchCommitFiles>[0],
+          files,
+          "Test commit"
+        )
       ).rejects.toThrow("API Error");
 
       expect(ctx.log.error).toHaveBeenCalledWith(
@@ -177,7 +185,11 @@ describe("Batch Commit", () => {
       ctx.octokit.git.createCommit.mockResolvedValue(mockNewCommit);
       ctx.octokit.git.updateRef.mockResolvedValue({});
 
-      await batchCommitFiles(ctx as Parameters<typeof batchCommitFiles>[0], [], "Empty commit");
+      await batchCommitFiles(
+        ctx as Parameters<typeof batchCommitFiles>[0],
+        [],
+        "Empty commit"
+      );
 
       expect(ctx.octokit.git.createTree).toHaveBeenCalledWith({
         owner: "test-owner",

@@ -87,7 +87,11 @@ describe("GitLyte App Integration", () => {
         },
       ];
 
-      const shouldProcess = (pr: { merged: boolean; merged_at: string | null; labels: Array<{ name: string }> }) => {
+      const shouldProcess = (pr: {
+        merged: boolean;
+        merged_at: string | null;
+        labels: Array<{ name: string }>;
+      }) => {
         if (!pr.merged || !pr.merged_at) return false;
         return pr.labels.some((l: { name: string }) =>
           /(enhancement|feat)/i.test(l.name)
