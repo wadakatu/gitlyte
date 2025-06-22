@@ -41,6 +41,7 @@ export function generateConfigTemplate(
       path: recommendedLogoPaths.favicon,
     },
     site: {
+      layout: designStrategy.layout,
       theme: {
         primary: adjustedColors.primary,
         secondary: adjustedColors.secondary,
@@ -215,6 +216,7 @@ ${JSON.stringify(config, null, 2)}
 - **logo.path**: ロゴ画像のパス（相対パスまたは絶対URL）
 - **logo.alt**: ロゴの代替テキスト
 - **favicon.path**: ファビコンのパス
+- **site.layout**: サイトレイアウト（"minimal", "grid", "sidebar", "hero-focused", "content-heavy"）
 - **site.theme**: サイトのテーマカラー
   - **primary**: プライマリカラー（メインの色）
   - **secondary**: セカンダリカラー（補助の色）
