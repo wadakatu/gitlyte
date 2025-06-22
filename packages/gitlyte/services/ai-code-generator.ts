@@ -206,6 +206,1414 @@ const { title, description } = Astro.props;
 }
 
 async function generateHeroComponent(
+  context: string,
+  repoData: RepoData,
+  design: EnhancedDesignStrategy,
+  logoResult?: { hasLogo: boolean; logoUrl?: string }
+): Promise<string> {
+  // レイアウト固有のHeroコンポーネントを生成
+  return generateLayoutSpecificHero(
+    design.layout,
+    context,
+    repoData,
+    design,
+    logoResult
+  );
+}
+
+async function generateLayoutSpecificHero(
+  layout: string,
+  context: string,
+  repoData: RepoData,
+  design: EnhancedDesignStrategy,
+  logoResult?: { hasLogo: boolean; logoUrl?: string }
+): Promise<string> {
+  switch (layout) {
+    case "minimal":
+      return generateMinimalHero(context, repoData, design, logoResult);
+    case "grid":
+      return generateGridHero(context, repoData, design, logoResult);
+    case "sidebar":
+      return generateSidebarHero(context, repoData, design, logoResult);
+    case "content-heavy":
+      return generateContentHeavyHero(context, repoData, design, logoResult);
+    default:
+      return generateHeroFocusedHero(context, repoData, design, logoResult);
+  }
+}
+
+async function generateMinimalHero(
+  _context: string,
+  _repoData: RepoData,
+  design: EnhancedDesignStrategy,
+  _logoResult?: { hasLogo: boolean; logoUrl?: string }
+): Promise<string> {
+  return `---
+export interface Props {
+  title: string;
+  description?: string;
+  stats: {
+    stars: number;
+    forks: number;
+    issues: number;
+  };
+  hasReadme?: boolean;
+  repoUrl?: string;
+  hasLogo?: boolean;
+  logoUrl?: string;
+}
+
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+---
+
+<!-- Minimal Layout - Clean and Simple -->
+<header class="minimal-header">
+  <div class="container">
+    <nav class="minimal-nav">
+      {hasLogo && logoUrl ? (
+        <a href="./" class="brand-link">
+          <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
+        </a>
+      ) : (
+        <a href="./" class="brand-link">
+          <h1>{title}</h1>
+        </a>
+      )}
+      <div class="nav-links">
+        <a href="./" class="nav-link">Home</a>
+        {hasReadme && <a href="./docs" class="nav-link">Docs</a>}
+        <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<section class="minimal-hero">
+  <div class="container">
+    <div class="hero-content">
+      <h1 class="hero-title">{title}</h1>
+      <p class="hero-description">{description || 'A modern solution for development'}</p>
+      
+      <div class="hero-actions">
+        {hasReadme && <a href="./docs" class="btn-primary">Documentation</a>}
+        <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+      
+      <div class="hero-stats">
+        <span class="stat">⭐ {stats.stars}</span>
+        <span class="stat">🍴 {stats.forks}</span>
+        <span class="stat">📊 {stats.issues} issues</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .minimal-header {
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .minimal-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .brand-link {
+    text-decoration: none;
+    color: var(--primary);
+  }
+
+  .brand-link h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-family: ${design.typography.heading};
+    font-weight: 600;
+  }
+
+  .brand-logo {
+    height: 2rem;
+    width: auto;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: #6b7280;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+
+  .nav-link:hover {
+    color: var(--primary);
+  }
+
+  .minimal-hero {
+    padding: 4rem 0;
+    text-align: center;
+    background: #fafafa;
+  }
+
+  .hero-content {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+    font-family: ${design.typography.heading};
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  .hero-description {
+    font-size: 1.25rem;
+    color: #6b7280;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    background: var(--secondary);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--primary);
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--primary);
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  @media (max-width: 768px) {
+    .minimal-nav {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .nav-links {
+      gap: 1rem;
+    }
+
+    .hero-title {
+      font-size: 2rem;
+    }
+
+    .hero-description {
+      font-size: 1.1rem;
+    }
+
+    .hero-actions {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hero-stats {
+      gap: 1rem;
+    }
+  }
+</style>`;
+}
+
+async function generateGridHero(
+  _context: string,
+  _repoData: RepoData,
+  design: EnhancedDesignStrategy,
+  _logoResult?: { hasLogo: boolean; logoUrl?: string }
+): Promise<string> {
+  return `---
+export interface Props {
+  title: string;
+  description?: string;
+  stats: {
+    stars: number;
+    forks: number;
+    issues: number;
+  };
+  hasReadme?: boolean;
+  repoUrl?: string;
+  hasLogo?: boolean;
+  logoUrl?: string;
+}
+
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+---
+
+<!-- Grid Layout - Card-based Design -->
+<header class="grid-header">
+  <div class="container">
+    <nav class="grid-nav">
+      {hasLogo && logoUrl ? (
+        <a href="./" class="brand-link">
+          <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
+        </a>
+      ) : (
+        <a href="./" class="brand-link">
+          <h1>{title}</h1>
+        </a>
+      )}
+      <div class="nav-links">
+        <a href="./" class="nav-link">🏠 Home</a>
+        {hasReadme && <a href="./docs" class="nav-link">📖 Docs</a>}
+        <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<section class="grid-hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-main">
+        <h1 class="hero-title">{title}</h1>
+        <p class="hero-description">{description || 'A powerful solution built for modern development'}</p>
+        <div class="hero-actions">
+          {hasReadme && <a href="./docs" class="btn-primary">📚 Get Started</a>}
+          <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">⭐ Star on GitHub</a>
+        </div>
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-content">
+            <div class="stat-number">{stats.stars}</div>
+            <div class="stat-label">Stars</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🍴</div>
+          <div class="stat-content">
+            <div class="stat-number">{stats.forks}</div>
+            <div class="stat-label">Forks</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-content">
+            <div class="stat-number">{stats.issues}</div>
+            <div class="stat-label">Issues</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .grid-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 1rem 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .grid-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .brand-link {
+    text-decoration: none;
+    color: white;
+  }
+
+  .brand-link h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-family: ${design.typography.heading};
+    font-weight: 600;
+  }
+
+  .brand-logo {
+    height: 2rem;
+    width: auto;
+    filter: brightness(0) invert(1);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .grid-hero {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 4rem 0;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 3rem;
+    align-items: center;
+  }
+
+  .hero-main {
+    max-width: 600px;
+  }
+
+  .hero-title {
+    font-size: 3rem;
+    font-family: ${design.typography.heading};
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .hero-description {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    opacity: 0.9;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: white;
+    color: var(--primary);
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+  }
+
+  .stats-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .stat-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px);
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
+
+  @media (max-width: 1024px) {
+    .hero-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      text-align: center;
+    }
+    
+    .stats-grid {
+      grid-template-columns: repeat(3, 1fr);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .grid-nav {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .nav-links {
+      gap: 1rem;
+    }
+
+    .hero-title {
+      font-size: 2.5rem;
+    }
+
+    .hero-description {
+      font-size: 1.1rem;
+    }
+
+    .hero-actions {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>`;
+}
+
+async function generateSidebarHero(
+  _context: string,
+  _repoData: RepoData,
+  design: EnhancedDesignStrategy,
+  _logoResult?: { hasLogo: boolean; logoUrl?: string }
+): Promise<string> {
+  return `---
+export interface Props {
+  title: string;
+  description?: string;
+  stats: {
+    stars: number;
+    forks: number;
+    issues: number;
+  };
+  hasReadme?: boolean;
+  repoUrl?: string;
+  hasLogo?: boolean;
+  logoUrl?: string;
+}
+
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+---
+
+<!-- Sidebar Layout -->
+<div class="layout-container">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      {hasLogo && logoUrl ? (
+        <img src={logoUrl} alt={title + " logo"} class="sidebar-logo" />
+      ) : (
+        <h1 class="sidebar-title">{title}</h1>
+      )}
+    </div>
+    
+    <nav class="sidebar-nav">
+      <a href="./" class="nav-item active">🏠 Home</a>
+      {hasReadme && <a href="./docs" class="nav-item">📖 Documentation</a>}
+      <a href={repoUrl} class="nav-item" target="_blank" rel="noopener">🔗 GitHub</a>
+    </nav>
+    
+    <div class="sidebar-stats">
+      <h3>Project Stats</h3>
+      <div class="stat-item">
+        <span class="stat-icon">⭐</span>
+        <div>
+          <div class="stat-value">{stats.stars}</div>
+          <div class="stat-label">Stars</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">🍴</span>
+        <div>
+          <div class="stat-value">{stats.forks}</div>
+          <div class="stat-label">Forks</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">📊</span>
+        <div>
+          <div class="stat-value">{stats.issues}</div>
+          <div class="stat-label">Issues</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  
+  <main class="main-content">
+    <section class="hero-section">
+      <div class="hero-content">
+        <div class="hero-badge">✨ Featured Project</div>
+        <h1 class="hero-title">{title}</h1>
+        <p class="hero-description">{description || 'An innovative solution for modern development challenges'}</p>
+        
+        <div class="action-buttons">
+          {hasReadme && <a href="./docs" class="btn-primary">📚 Get Started</a>}
+          <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">⭐ Star Project</a>
+        </div>
+        
+        <div class="feature-highlights">
+          <div class="highlight">🚀 Easy to Use</div>
+          <div class="highlight">⚡ High Performance</div>
+          <div class="highlight">🛡️ Secure</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<style>
+  .layout-container {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 280px;
+    background: linear-gradient(180deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 2rem 1.5rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .sidebar-header {
+    margin-bottom: 2rem;
+    text-align: center;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .sidebar-logo {
+    height: 3rem;
+    width: auto;
+    filter: brightness(0) invert(1);
+  }
+
+  .sidebar-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-family: ${design.typography.heading};
+    font-weight: 700;
+  }
+
+  .sidebar-nav {
+    margin-bottom: 2rem;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+    font-weight: 500;
+  }
+
+  .nav-item:hover,
+  .nav-item.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .sidebar-stats {
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .sidebar-stats h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+  }
+
+  .stat-icon {
+    font-size: 1.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+
+  .main-content {
+    flex: 1;
+    background: linear-gradient(135deg, #f8fafc, #ffffff);
+  }
+
+  .hero-section {
+    padding: 4rem 3rem;
+    max-width: 800px;
+  }
+
+  .hero-content {
+    max-width: 600px;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-title {
+    font-size: 3rem;
+    font-family: ${design.typography.heading};
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .hero-description {
+    font-size: 1.25rem;
+    color: #4a5568;
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    padding: 0.875rem 2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-primary:hover {
+    background: var(--secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--primary);
+    padding: 0.875rem 2rem;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .feature-highlights {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .highlight {
+    background: rgba(var(--primary), 0.1);
+    color: var(--primary);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid rgba(var(--primary), 0.2);
+  }
+
+  @media (max-width: 1024px) {
+    .layout-container {
+      flex-direction: column;
+    }
+
+    .sidebar {
+      width: 100%;
+      height: auto;
+      position: static;
+      padding: 1.5rem;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .nav-item {
+      white-space: nowrap;
+      margin-bottom: 0;
+    }
+
+    .sidebar-stats {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .sidebar-stats h3 {
+      display: none;
+    }
+
+    .hero-section {
+      padding: 2rem 1.5rem;
+    }
+
+    .hero-title {
+      font-size: 2.5rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2rem;
+    }
+
+    .hero-description {
+      font-size: 1.1rem;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .feature-highlights {
+      flex-direction: column;
+    }
+
+    .sidebar-stats {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  }
+</style>`;
+}
+
+async function generateContentHeavyHero(
+  _context: string,
+  _repoData: RepoData,
+  design: EnhancedDesignStrategy,
+  _logoResult?: { hasLogo: boolean; logoUrl?: string }
+): Promise<string> {
+  return `---
+export interface Props {
+  title: string;
+  description?: string;
+  stats: {
+    stars: number;
+    forks: number;
+    issues: number;
+  };
+  hasReadme?: boolean;
+  repoUrl?: string;
+  hasLogo?: boolean;
+  logoUrl?: string;
+}
+
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+---
+
+<!-- Content Heavy Layout -->
+<header class="content-header">
+  <div class="container">
+    <nav class="content-nav">
+      {hasLogo && logoUrl ? (
+        <a href="./" class="brand-link">
+          <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
+        </a>
+      ) : (
+        <a href="./" class="brand-link">
+          <h1>{title}</h1>
+        </a>
+      )}
+      <div class="nav-links">
+        <a href="./" class="nav-link">🏠 Home</a>
+        {hasReadme && <a href="./docs" class="nav-link">📖 Docs</a>}
+        <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<section class="content-hero">
+  <div class="container">
+    <div class="hero-layout">
+      <div class="hero-main">
+        <div class="breadcrumb">
+          <span class="breadcrumb-item">📦 Project</span>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-item current">{title}</span>
+        </div>
+        
+        <h1 class="hero-title">{title}</h1>
+        <p class="hero-description">{description || 'A comprehensive solution designed for complex development workflows'}</p>
+        
+        <div class="content-grid">
+          <div class="info-card">
+            <h3>📊 Project Overview</h3>
+            <p>This project provides a robust foundation for building scalable applications with modern development practices.</p>
+            <div class="quick-stats">
+              <span class="quick-stat">⭐ {stats.stars} stars</span>
+              <span class="quick-stat">🍴 {stats.forks} forks</span>
+            </div>
+          </div>
+          
+          <div class="info-card">
+            <h3>🚀 Getting Started</h3>
+            <p>Follow our comprehensive guide to get up and running quickly with best practices and examples.</p>
+            <div class="action-links">
+              {hasReadme && <a href="./docs" class="link-primary">📖 Documentation</a>}
+              <a href={repoUrl} class="link-secondary" target="_blank" rel="noopener">🔗 Repository</a>
+            </div>
+          </div>
+          
+          <div class="info-card">
+            <h3>🛠️ Development</h3>
+            <p>Active development with {stats.issues} open issues and regular updates from the community.</p>
+            <div class="dev-info">
+              <span class="dev-stat">📊 {stats.issues} issues</span>
+              <span class="dev-stat">🔄 Active development</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="main-actions">
+          {hasReadme && <a href="./docs" class="btn-primary">📚 Read Documentation</a>}
+          <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">👥 Contribute</a>
+        </div>
+      </div>
+      
+      <aside class="hero-sidebar">
+        <div class="sidebar-card">
+          <h4>📈 Project Stats</h4>
+          <div class="stats-list">
+            <div class="stat-row">
+              <span class="stat-icon">⭐</span>
+              <div class="stat-content">
+                <div class="stat-value">{stats.stars}</div>
+                <div class="stat-label">GitHub Stars</div>
+              </div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-icon">🍴</span>
+              <div class="stat-content">
+                <div class="stat-value">{stats.forks}</div>
+                <div class="stat-label">Forks</div>
+              </div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-icon">📊</span>
+              <div class="stat-content">
+                <div class="stat-value">{stats.issues}</div>
+                <div class="stat-label">Open Issues</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="sidebar-card">
+          <h4>🔗 Quick Links</h4>
+          <div class="links-list">
+            <a href={repoUrl} class="sidebar-link" target="_blank" rel="noopener">
+              <span class="link-icon">📁</span>
+              <span>Source Code</span>
+            </a>
+            {hasReadme && (
+              <a href="./docs" class="sidebar-link">
+                <span class="link-icon">📖</span>
+                <span>Documentation</span>
+              </a>
+            )}
+            <a href={repoUrl + '/issues'} class="sidebar-link" target="_blank" rel="noopener">
+              <span class="link-icon">📝</span>
+              <span>Issues</span>
+            </a>
+            <a href={repoUrl + '/pulls'} class="sidebar-link" target="_blank" rel="noopener">
+              <span class="link-icon">🔄</span>
+              <span>Pull Requests</span>
+            </a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<style>
+  .content-header {
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .content-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .brand-link {
+    text-decoration: none;
+    color: var(--primary);
+  }
+
+  .brand-link h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-family: ${design.typography.heading};
+    font-weight: 700;
+  }
+
+  .brand-logo {
+    height: 2rem;
+    width: auto;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: #6b7280;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .nav-link:hover {
+    background: var(--primary)15;
+    color: var(--primary);
+  }
+
+  .content-hero {
+    background: #f9fafb;
+    padding: 3rem 0;
+  }
+
+  .hero-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+
+  .breadcrumb-item.current {
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .breadcrumb-separator {
+    color: #d1d5db;
+  }
+
+  .hero-title {
+    font-size: 3rem;
+    font-family: ${design.typography.heading};
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .hero-description {
+    font-size: 1.25rem;
+    color: #4b5563;
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+  }
+
+  .content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .info-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .info-card h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    color: #111827;
+    font-weight: 600;
+  }
+
+  .info-card p {
+    margin: 0 0 1rem 0;
+    color: #6b7280;
+    line-height: 1.5;
+    font-size: 0.9rem;
+  }
+
+  .quick-stats {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .quick-stat {
+    font-size: 0.8rem;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .action-links {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .link-primary,
+  .link-secondary {
+    font-size: 0.8rem;
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .link-primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .link-secondary {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .dev-info {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .dev-stat {
+    font-size: 0.8rem;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .main-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    background: var(--secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--primary);
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .hero-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .sidebar-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .sidebar-card h4 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: #111827;
+    font-weight: 600;
+  }
+
+  .stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .stat-icon {
+    font-size: 1.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+
+  .links-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    color: #6b7280;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+  }
+
+  .sidebar-link:hover {
+    background: #f3f4f6;
+    color: var(--primary);
+  }
+
+  .link-icon {
+    font-size: 1rem;
+  }
+
+  @media (max-width: 1024px) {
+    .hero-layout {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .hero-sidebar {
+      order: -1;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .content-nav {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .nav-links {
+      gap: 1rem;
+    }
+
+    .hero-title {
+      font-size: 2.5rem;
+    }
+
+    .hero-description {
+      font-size: 1.1rem;
+    }
+
+    .content-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .main-actions {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>`;
+}
+
+async function generateHeroFocusedHero(
   _context: string,
   _repoData: RepoData,
   design: EnhancedDesignStrategy,
