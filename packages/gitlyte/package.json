@@ -1,0 +1,43 @@
+{
+  "name": "@gitlyte/core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Instantly turn your GitHub repo into a live website — no code needed.",
+  "author": "wadakatu",
+  "license": "ISC",
+  "homepage": "https://github.com//",
+  "keywords": [
+    "probot",
+    "github",
+    "probot-app"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "probot run ./lib/index.js",
+    "test": "vitest",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --fix .",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
+    "check": "biome check .",
+    "check:fix": "biome check --fix .",
+    "ci:check": "pnpm run build && pnpm run format && pnpm run lint && pnpm exec vitest run"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "openai": "^5.5.1",
+    "probot": "^13.4.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@types/node": "^20.0.0",
+    "nock": "^14.0.5",
+    "smee-client": "^2.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">= 18"
+  },
+  "type": "module"
+}

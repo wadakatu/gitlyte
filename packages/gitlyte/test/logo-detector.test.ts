@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { detectRepoLogo } from "../src/utils/logo-detector.js";
-import type { RepoData } from "../src/types.js";
+import { detectRepoLogo } from "../utils/logo-detector.js";
+import type { RepoData } from "../types.js";
 
 describe("Logo Detector", () => {
   const mockRepoData: RepoData = {
     repo: {
       name: "test-repo",
-      full_name: "user/test-repo", 
+      full_name: "user/test-repo",
       description: "A test repository",
       html_url: "https://github.com/user/test-repo",
       stargazers_count: 100,
@@ -18,11 +18,11 @@ describe("Logo Detector", () => {
       pushed_at: "2023-12-01T00:00:00Z",
       size: 1000,
       default_branch: "main",
-      license: { key: "mit", name: "MIT License" }
+      license: { key: "mit", name: "MIT License" },
     },
     prs: [],
     issues: [],
-    readme: ""
+    readme: "",
   };
 
   describe("detectRepoLogo", () => {
@@ -30,14 +30,16 @@ describe("Logo Detector", () => {
       const repoDataWithConfig = {
         ...mockRepoData,
         configFile: JSON.stringify({
-          logo: { path: "./assets/logo.png", alt: "Project Logo" }
-        })
+          logo: { path: "./assets/logo.png", alt: "Project Logo" },
+        }),
       };
 
       const result = await detectRepoLogo(repoDataWithConfig);
 
       expect(result.hasLogo).toBe(true);
-      expect(result.logoUrl).toBe("https://github.com/user/test-repo/raw/main/assets/logo.png");
+      expect(result.logoUrl).toBe(
+        "https://github.com/user/test-repo/raw/main/assets/logo.png"
+      );
       expect(result.logoPath).toBe("./assets/logo.png");
       expect(result.source).toBe("config");
     });
@@ -48,15 +50,17 @@ describe("Logo Detector", () => {
         packageJson: JSON.stringify({
           name: "test-package",
           gitlyte: {
-            logo: { path: "./logo.svg" }
-          }
-        })
+            logo: { path: "./logo.svg" },
+          },
+        }),
       };
 
       const result = await detectRepoLogo(repoDataWithPackageJson);
 
       expect(result.hasLogo).toBe(true);
-      expect(result.logoUrl).toBe("https://github.com/user/test-repo/raw/main/logo.svg");
+      expect(result.logoUrl).toBe(
+        "https://github.com/user/test-repo/raw/main/logo.svg"
+      );
       expect(result.source).toBe("config");
     });
 
@@ -64,17 +68,19 @@ describe("Logo Detector", () => {
       const repoDataWithBoth = {
         ...mockRepoData,
         configFile: JSON.stringify({
-          logo: { path: "./gitlyte-logo.png" }
+          logo: { path: "./gitlyte-logo.png" },
         }),
         packageJson: JSON.stringify({
-          gitlyte: { logo: { path: "./package-logo.png" } }
-        })
+          gitlyte: { logo: { path: "./package-logo.png" } },
+        }),
       };
 
       const result = await detectRepoLogo(repoDataWithBoth);
 
       expect(result.hasLogo).toBe(true);
-      expect(result.logoUrl).toBe("https://github.com/user/test-repo/raw/main/gitlyte-logo.png");
+      expect(result.logoUrl).toBe(
+        "https://github.com/user/test-repo/raw/main/gitlyte-logo.png"
+      );
       expect(result.source).toBe("config");
     });
 
@@ -89,8 +95,8 @@ describe("Logo Detector", () => {
       const repoDataWithAbsoluteUrl = {
         ...mockRepoData,
         configFile: JSON.stringify({
-          logo: { path: "https://example.com/logo.png" }
-        })
+          logo: { path: "https://example.com/logo.png" },
+        }),
       };
 
       const result = await detectRepoLogo(repoDataWithAbsoluteUrl);
@@ -105,15 +111,19 @@ describe("Logo Detector", () => {
         ...mockRepoData,
         configFile: JSON.stringify({
           logo: { path: "./logo.png" },
-          favicon: { path: "./favicon.ico" }
-        })
+          favicon: { path: "./favicon.ico" },
+        }),
       };
 
       const result = await detectRepoLogo(repoDataWithFavicon);
 
       expect(result.hasLogo).toBe(true);
-      expect(result.logoUrl).toBe("https://github.com/user/test-repo/raw/main/logo.png");
-      expect(result.faviconUrl).toBe("https://github.com/user/test-repo/raw/main/favicon.ico");
+      expect(result.logoUrl).toBe(
+        "https://github.com/user/test-repo/raw/main/logo.png"
+      );
+      expect(result.faviconUrl).toBe(
+        "https://github.com/user/test-repo/raw/main/favicon.ico"
+      );
       expect(result.source).toBe("config");
     });
   });

@@ -2,13 +2,13 @@
   "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
   "files": {
     "includes": [
-      "**/src/**/*.ts",
-      "**/src/**/*.js",
-      "**/test/**/*.ts",
-      "**/test/**/*.js",
+      "packages/**/*.ts",
+      "packages/**/*.js",
+      "packages/**/*.astro",
       "!**/lib/**",
       "!**/node_modules/**",
-      "!**/docs/**"
+      "!**/docs/**",
+      "!**/dist/**"
     ]
   },
   "formatter": {
@@ -37,10 +37,11 @@
         "noUnusedTemplateLiteral": "error",
         "useNumberNamespace": "error",
         "noInferrableTypes": "error",
-        "noUselessElse": "error"
+        "noUselessElse": "error",
+        "noNonNullAssertion": "off"
       },
       "suspicious": {
-        "noExplicitAny": "warn"
+        "noExplicitAny": "error"
       }
     }
   },

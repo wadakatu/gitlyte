@@ -16,13 +16,25 @@ A GitHub App built with [Probot](https://github.com/probot/probot) that automati
 ## 🚀 Setup
 
 ### Prerequisites
+- Node.js 20.18.0+ (managed via mise)
+- pnpm 10.12.1+ (managed via mise)
 - OpenAI API key for AI-powered design generation
+
+### Environment Setup
+
+```sh
+# Trust mise configuration
+mise trust
+
+# Install specified Node.js and pnpm versions
+mise install
+```
 
 ### Installation
 
 ```sh
 # Install dependencies
-npm install
+pnpm install
 
 # Copy environment template
 cp .env.example .env
@@ -31,7 +43,7 @@ cp .env.example .env
 OPENAI_API_KEY=your_openai_api_key_here
 
 # Run the bot
-npm start
+pnpm start
 ```
 
 ### GitHub App Configuration
@@ -104,18 +116,55 @@ GitHub Events → AI Analysis → Custom Site Generation → GitHub Pages Deploy
 ## 📁 Project Structure
 
 ```
-src/
-├── handlers/          # Event handlers (PR, Issues)
-├── services/          # Core services
-│   ├── ai-analyzer.ts     # Repository analysis AI
-│   ├── ai-code-generator.ts # Astro code generation
-│   └── astro-generator.ts  # Site generation orchestration
-├── utils/             # Utilities (GitHub API, batch commits)
-└── types.ts           # TypeScript definitions
+packages/
+├── gitlyte/           # Main GitHub App
+│   ├── handlers/          # Event handlers (PR, Issues)
+│   ├── services/          # Core services
+│   │   ├── ai-analyzer.ts     # Repository analysis AI
+│   │   ├── ai-code-generator.ts # Astro code generation
+│   │   └── astro-generator.ts  # Site generation orchestration
+│   ├── utils/             # Utilities (GitHub API, batch commits)
+│   ├── test/              # Test suites
+│   └── types.ts           # TypeScript definitions
+└── demo/              # Astro demo application
+    ├── src/
+    │   ├── components/        # Demo Astro components
+    │   ├── layouts/           # Layout templates
+    │   └── pages/             # Demo pages
+    └── astro.config.mjs
 
-templates/
-└── astro-basic/       # Base Astro template structure
 ```
+
+## 🛠 Development
+
+### Workspace Commands
+
+```sh
+# Build all packages
+pnpm run build
+
+# Run main GitLyte app
+pnpm start
+
+# Start demo development server
+pnpm run dev:demo
+
+# Run all tests
+pnpm test
+
+# Lint and format all packages
+pnpm run lint:fix
+pnpm run format:fix
+
+# Run CI checks
+pnpm run ci:check
+```
+
+### Package Structure
+
+This project uses pnpm workspaces:
+- `@gitlyte/core` - Main GitHub App package
+- `@gitlyte/demo` - Demo Astro application
 
 ## 🤝 Contributing
 

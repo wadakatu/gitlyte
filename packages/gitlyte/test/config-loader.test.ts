@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { loadGitLyteConfig, resolveLogoUrl, resolveFaviconUrl } from "../src/utils/config-loader.js";
-import type { RepoData } from "../src/types.js";
+import {
+  loadGitLyteConfig,
+  resolveLogoUrl,
+  resolveFaviconUrl,
+} from "../utils/config-loader.js";
+import type { RepoData } from "../types.js";
 
 describe("Config Loader", () => {
   const mockRepoData: RepoData = {
@@ -18,11 +22,11 @@ describe("Config Loader", () => {
       pushed_at: "2023-12-01T00:00:00Z",
       size: 1000,
       default_branch: "main",
-      license: { key: "mit", name: "MIT License" }
+      license: { key: "mit", name: "MIT License" },
     },
     readme: "",
     prs: [],
-    issues: []
+    issues: [],
   };
 
   describe("loadGitLyteConfig", () => {
@@ -32,18 +36,18 @@ describe("Config Loader", () => {
         configFile: JSON.stringify({
           logo: {
             path: "./assets/logo.svg",
-            alt: "Project Logo"
+            alt: "Project Logo",
           },
           favicon: {
-            path: "./assets/favicon.ico"
+            path: "./assets/favicon.ico",
           },
           site: {
             theme: {
               primary: "#3b82f6",
-              secondary: "#8b5cf6"
-            }
-          }
-        })
+              secondary: "#8b5cf6",
+            },
+          },
+        }),
       };
 
       const result = await loadGitLyteConfig(repoDataWithConfig);
@@ -64,10 +68,10 @@ describe("Config Loader", () => {
           version: "1.0.0",
           gitlyte: {
             logo: {
-              path: "./logo.png"
-            }
-          }
-        })
+              path: "./logo.png",
+            },
+          },
+        }),
       };
 
       const result = await loadGitLyteConfig(repoDataWithPackageJson);
@@ -81,11 +85,11 @@ describe("Config Loader", () => {
       const repoDataWithBoth = {
         ...mockRepoData,
         configFile: JSON.stringify({
-          logo: { path: "./gitlyte-logo.svg" }
+          logo: { path: "./gitlyte-logo.svg" },
         }),
         packageJson: JSON.stringify({
-          gitlyte: { logo: { path: "./package-logo.png" } }
-        })
+          gitlyte: { logo: { path: "./package-logo.png" } },
+        }),
       };
 
       const result = await loadGitLyteConfig(repoDataWithBoth);
@@ -105,7 +109,7 @@ describe("Config Loader", () => {
     it("should handle invalid JSON gracefully", async () => {
       const repoDataWithInvalidJson = {
         ...mockRepoData,
-        configFile: "{ invalid json }"
+        configFile: "{ invalid json }",
       };
 
       const result = await loadGitLyteConfig(repoDataWithInvalidJson);
@@ -119,15 +123,15 @@ describe("Config Loader", () => {
         configFile: JSON.stringify({
           logo: {
             path: "", // empty path should be filtered out
-            alt: "Logo"
+            alt: "Logo",
           },
           site: {
             theme: {
               primary: "invalid-color", // invalid color should be filtered out
-              secondary: "#8b5cf6" // valid color should remain
-            }
-          }
-        })
+              secondary: "#8b5cf6", // valid color should remain
+            },
+          },
+        }),
       };
 
       const result = await loadGitLyteConfig(repoDataWithInvalidConfig);
@@ -142,7 +146,7 @@ describe("Config Loader", () => {
   describe("resolveLogoUrl", () => {
     it("should return absolute URLs as-is", () => {
       const config = {
-        logo: { path: "https://example.com/logo.png" }
+        logo: { path: "https://example.com/logo.png" },
       };
 
       const result = resolveLogoUrl(config, mockRepoData);
@@ -152,22 +156,26 @@ describe("Config Loader", () => {
 
     it("should convert relative paths to GitHub raw URLs", () => {
       const config = {
-        logo: { path: "./assets/logo.svg" }
+        logo: { path: "./assets/logo.svg" },
       };
 
       const result = resolveLogoUrl(config, mockRepoData);
 
-      expect(result).toBe("https://github.com/user/test-repo/raw/main/assets/logo.svg");
+      expect(result).toBe(
+        "https://github.com/user/test-repo/raw/main/assets/logo.svg"
+      );
     });
 
     it("should handle paths without leading ./", () => {
       const config = {
-        logo: { path: "logo.png" }
+        logo: { path: "logo.png" },
       };
 
       const result = resolveLogoUrl(config, mockRepoData);
 
-      expect(result).toBe("https://github.com/user/test-repo/raw/main/logo.png");
+      expect(result).toBe(
+        "https://github.com/user/test-repo/raw/main/logo.png"
+      );
     });
 
     it("should return undefined when no logo path", () => {
@@ -182,12 +190,14 @@ describe("Config Loader", () => {
   describe("resolveFaviconUrl", () => {
     it("should resolve favicon URL correctly", () => {
       const config = {
-        favicon: { path: "./favicon.ico" }
+        favicon: { path: "./favicon.ico" },
       };
 
       const result = resolveFaviconUrl(config, mockRepoData);
 
-      expect(result).toBe("https://github.com/user/test-repo/raw/main/favicon.ico");
+      expect(result).toBe(
+        "https://github.com/user/test-repo/raw/main/favicon.ico"
+      );
     });
 
     it("should return undefined when no favicon path", () => {

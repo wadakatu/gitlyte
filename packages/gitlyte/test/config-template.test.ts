@@ -5,9 +5,9 @@ import {
   generateConfigDocumentation,
   getRecommendedLogoFormat,
   adjustColorsForAudience,
-} from "../src/utils/config-template.js";
-import type { RepoData } from "../src/types.js";
-import type { RepoAnalysis, DesignStrategy } from "../src/services/ai-analyzer.js";
+} from "../utils/config-template.js";
+import type { RepoData } from "../types.js";
+import type { RepoAnalysis, DesignStrategy } from "../services/ai-analyzer.js";
 
 describe("Config Template Generator", () => {
   const mockRepoData: RepoData = {
@@ -25,11 +25,11 @@ describe("Config Template Generator", () => {
       pushed_at: "2023-12-01T00:00:00Z",
       size: 1000,
       default_branch: "main",
-      license: { key: "mit", name: "MIT License" }
+      license: { key: "mit", name: "MIT License" },
     },
     prs: [],
     issues: [],
-    readme: "# Test Project"
+    readme: "# Test Project",
   };
 
   const mockAnalysis: RepoAnalysis = {
@@ -40,7 +40,7 @@ describe("Config Template Generator", () => {
     audience: "developer",
     purpose: "A testing library for developers",
     tone: "professional",
-    complexity: "moderate"
+    complexity: "moderate",
   };
 
   const mockDesignStrategy: DesignStrategy = {
@@ -48,12 +48,12 @@ describe("Config Template Generator", () => {
       primary: "#667eea",
       secondary: "#764ba2",
       accent: "#f093fb",
-      background: "#ffffff"
+      background: "#ffffff",
     },
     typography: {
       heading: "Inter, sans-serif",
       body: "system-ui, sans-serif",
-      code: "JetBrains Mono, monospace"
+      code: "JetBrains Mono, monospace",
     },
     layout: "hero-focused",
     style: "modern",
@@ -63,13 +63,17 @@ describe("Config Template Generator", () => {
       blur: true,
       shadows: "subtle",
       borders: "rounded",
-      spacing: "normal"
-    }
+      spacing: "normal",
+    },
   };
 
   describe("generateConfigTemplate", () => {
     it("should generate config template for library project", () => {
-      const result = generateConfigTemplate(mockRepoData, mockAnalysis, mockDesignStrategy);
+      const result = generateConfigTemplate(
+        mockRepoData,
+        mockAnalysis,
+        mockDesignStrategy
+      );
 
       expect(result.logo?.path).toBe("./assets/logo.svg");
       expect(result.logo?.alt).toBe("test-project Logo");
@@ -83,10 +87,14 @@ describe("Config Template Generator", () => {
       const gameAnalysis = {
         ...mockAnalysis,
         projectType: "game" as const,
-        techStack: ["Unity", "C#"]
+        techStack: ["Unity", "C#"],
       };
 
-      const result = generateConfigTemplate(mockRepoData, gameAnalysis, mockDesignStrategy);
+      const result = generateConfigTemplate(
+        mockRepoData,
+        gameAnalysis,
+        mockDesignStrategy
+      );
 
       expect(result.logo?.path).toBe("./assets/logo.png");
     });
@@ -95,34 +103,50 @@ describe("Config Template Generator", () => {
       const businessAnalysis = {
         ...mockAnalysis,
         audience: "business" as const,
-        tone: "professional" as const
+        tone: "professional" as const,
       };
 
-      const result = generateConfigTemplate(mockRepoData, businessAnalysis, mockDesignStrategy);
+      const result = generateConfigTemplate(
+        mockRepoData,
+        businessAnalysis,
+        mockDesignStrategy
+      );
 
       // プロフェッショナル向けに調整された色になっているか確認
-      expect(result.site?.theme?.primary).not.toBe(mockDesignStrategy.colorScheme.primary);
+      expect(result.site?.theme?.primary).not.toBe(
+        mockDesignStrategy.colorScheme.primary
+      );
     });
 
     it("should adjust colors for academic audience", () => {
       const academicAnalysis = {
         ...mockAnalysis,
-        audience: "academic" as const
+        audience: "academic" as const,
       };
 
-      const result = generateConfigTemplate(mockRepoData, academicAnalysis, mockDesignStrategy);
+      const result = generateConfigTemplate(
+        mockRepoData,
+        academicAnalysis,
+        mockDesignStrategy
+      );
 
       // アカデミック向けに調整された色になっているか確認
-      expect(result.site?.theme?.primary).not.toBe(mockDesignStrategy.colorScheme.primary);
+      expect(result.site?.theme?.primary).not.toBe(
+        mockDesignStrategy.colorScheme.primary
+      );
     });
 
     it("should use different paths for different project types", () => {
       const applicationAnalysis = {
         ...mockAnalysis,
-        projectType: "application" as const
+        projectType: "application" as const,
       };
 
-      const result = generateConfigTemplate(mockRepoData, applicationAnalysis, mockDesignStrategy);
+      const result = generateConfigTemplate(
+        mockRepoData,
+        applicationAnalysis,
+        mockDesignStrategy
+      );
 
       expect(result.logo?.path).toBe("./public/logo.svg");
       expect(result.favicon?.path).toBe("./public/favicon.ico");
@@ -150,37 +174,53 @@ describe("Config Template Generator", () => {
     const originalColors = {
       primary: "#667eea",
       secondary: "#764ba2",
-      accent: "#f093fb"
+      accent: "#f093fb",
     };
 
     it("should adjust colors for business + professional", () => {
-      const result = adjustColorsForAudience(originalColors, "business", "professional");
-      
+      const result = adjustColorsForAudience(
+        originalColors,
+        "business",
+        "professional"
+      );
+
       expect(result.primary).not.toBe(originalColors.primary);
       expect(result.primary).toBe("#4f46e5"); // より保守的な色
     });
 
     it("should adjust colors for academic audience", () => {
-      const result = adjustColorsForAudience(originalColors, "academic", "professional");
-      
+      const result = adjustColorsForAudience(
+        originalColors,
+        "academic",
+        "professional"
+      );
+
       expect(result.primary).not.toBe(originalColors.primary);
       expect(result.primary).toBe("#1e40af"); // より信頼性重視の色
     });
 
     it("should keep original colors for developer audience", () => {
-      const result = adjustColorsForAudience(originalColors, "developer", "friendly");
-      
+      const result = adjustColorsForAudience(
+        originalColors,
+        "developer",
+        "friendly"
+      );
+
       expect(result).toEqual(originalColors);
     });
   });
 
   describe("generateConfigFileContent", () => {
     it("should generate valid JSON content", () => {
-      const config = generateConfigTemplate(mockRepoData, mockAnalysis, mockDesignStrategy);
+      const config = generateConfigTemplate(
+        mockRepoData,
+        mockAnalysis,
+        mockDesignStrategy
+      );
       const result = generateConfigFileContent(config);
 
       expect(() => JSON.parse(result)).not.toThrow();
-      
+
       const parsed = JSON.parse(result);
       expect(parsed.logo).toBeDefined();
       expect(parsed.favicon).toBeDefined();
@@ -188,18 +228,29 @@ describe("Config Template Generator", () => {
     });
 
     it("should format JSON with proper indentation", () => {
-      const config = generateConfigTemplate(mockRepoData, mockAnalysis, mockDesignStrategy);
+      const config = generateConfigTemplate(
+        mockRepoData,
+        mockAnalysis,
+        mockDesignStrategy
+      );
       const result = generateConfigFileContent(config);
 
       expect(result).toContain("  "); // インデントが含まれている
-      expect(result.split('\n').length).toBeGreaterThan(1); // 複数行になっている
+      expect(result.split("\n").length).toBeGreaterThan(1); // 複数行になっている
     });
   });
 
   describe("generateConfigDocumentation", () => {
     it("should generate documentation with config example", () => {
-      const config = generateConfigTemplate(mockRepoData, mockAnalysis, mockDesignStrategy);
-      const result = generateConfigDocumentation(config, mockRepoData.repo.name);
+      const config = generateConfigTemplate(
+        mockRepoData,
+        mockAnalysis,
+        mockDesignStrategy
+      );
+      const result = generateConfigDocumentation(
+        config,
+        mockRepoData.repo.name
+      );
 
       expect(result).toContain("GitLyte Configuration");
       expect(result).toContain(".gitlyte.json");
@@ -209,8 +260,15 @@ describe("Config Template Generator", () => {
     });
 
     it("should include configuration explanations", () => {
-      const config = generateConfigTemplate(mockRepoData, mockAnalysis, mockDesignStrategy);
-      const result = generateConfigDocumentation(config, mockRepoData.repo.name);
+      const config = generateConfigTemplate(
+        mockRepoData,
+        mockAnalysis,
+        mockDesignStrategy
+      );
+      const result = generateConfigDocumentation(
+        config,
+        mockRepoData.repo.name
+      );
 
       expect(result).toContain("設定項目");
       expect(result).toContain("primary");
@@ -221,16 +279,27 @@ describe("Config Template Generator", () => {
 
   describe("integration test", () => {
     it("should generate complete config for different project types", () => {
-      const projectTypes = ["library", "application", "tool", "website", "game", "documentation"] as const;
-      
+      const projectTypes = [
+        "library",
+        "application",
+        "tool",
+        "website",
+        "game",
+        "documentation",
+      ] as const;
+
       for (const projectType of projectTypes) {
         const analysis = { ...mockAnalysis, projectType };
-        const config = generateConfigTemplate(mockRepoData, analysis, mockDesignStrategy);
-        
+        const config = generateConfigTemplate(
+          mockRepoData,
+          analysis,
+          mockDesignStrategy
+        );
+
         expect(config.logo?.path).toBeDefined();
         expect(config.favicon?.path).toBeDefined();
         expect(config.site?.theme?.primary).toBeDefined();
-        
+
         // JSON として有効か確認
         const jsonContent = generateConfigFileContent(config);
         expect(() => JSON.parse(jsonContent)).not.toThrow();

@@ -5,11 +5,19 @@ import {
   setOpenAIClient,
   type RepoAnalysis,
   type DesignStrategy,
-} from "../../src/services/ai-analyzer.js";
-import type { RepoData } from "../../src/types.js";
+} from "../../services/ai-analyzer.js";
+import type { RepoData } from "../../types.js";
+
+interface MockOpenAI {
+  chat: {
+    completions: {
+      create: ReturnType<typeof vi.fn>;
+    };
+  };
+}
 
 // OpenAI mockを作成
-const createMockOpenAI = () => ({
+const createMockOpenAI = (): MockOpenAI => ({
   chat: {
     completions: {
       create: vi.fn(),
@@ -18,11 +26,13 @@ const createMockOpenAI = () => ({
 });
 
 describe("AI Analyzer", () => {
-  let mockOpenAI: any;
+  let mockOpenAI: MockOpenAI;
 
   beforeEach(() => {
     mockOpenAI = createMockOpenAI();
-    setOpenAIClient(mockOpenAI as any);
+    setOpenAIClient(
+      mockOpenAI as unknown as Parameters<typeof setOpenAIClient>[0]
+    );
   });
 
   afterEach(() => {
@@ -34,9 +44,19 @@ describe("AI Analyzer", () => {
     const mockRepoData: RepoData = {
       repo: {
         name: "test-repo",
+        full_name: "test/test-repo",
         description: "A test repository",
+        html_url: "https://github.com/test/test-repo",
         stargazers_count: 10,
         forks_count: 5,
+        language: "TypeScript",
+        topics: ["test"],
+        created_at: "2023-01-01T00:00:00Z",
+        updated_at: "2023-12-01T00:00:00Z",
+        pushed_at: "2023-12-01T00:00:00Z",
+        size: 1000,
+        default_branch: "main",
+        license: { key: "mit", name: "MIT License" },
       },
       readme: "# Test Repo\nThis is a test repository for testing.",
       prs: [
@@ -82,13 +102,18 @@ describe("AI Analyzer", () => {
       const result = await analyzeRepository(mockRepoData);
 
       expect(result).toEqual(mockAnalysis);
-      expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: expect.stringContaining("test-repo") }],
-        temperature: 0.3,
-      }, {
-        timeout: 60000,
-      });
+      expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith(
+        {
+          model: "gpt-4o",
+          messages: [
+            { role: "user", content: expect.stringContaining("test-repo") },
+          ],
+          temperature: 0.3,
+        },
+        {
+          timeout: 60000,
+        }
+      );
     });
 
     it("should handle JSON with code blocks", async () => {
@@ -107,7 +132,7 @@ describe("AI Analyzer", () => {
         choices: [
           {
             message: {
-              content: "```json\n" + JSON.stringify(mockAnalysis) + "\n```",
+              content: `\`\`\`json\n${JSON.stringify(mockAnalysis)}\n\`\`\``,
             },
           },
         ],
@@ -183,6 +208,12 @@ describe("AI Analyzer", () => {
         style: "modern",
         animations: true,
         darkMode: false,
+        effects: {
+          blur: true,
+          shadows: "subtle",
+          borders: "rounded",
+          spacing: "normal",
+        },
       };
 
       mockOpenAI.chat.completions.create.mockResolvedValue({
@@ -198,16 +229,19 @@ describe("AI Analyzer", () => {
       const result = await generateDesignStrategy(mockAnalysis);
 
       expect(result).toEqual(mockDesign);
-      expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith({
-        model: "gpt-4o",
-        messages: [
-          { role: "user", content: expect.stringContaining("application") },
-        ],
-        temperature: 0.7,
-        max_tokens: 800,
-      }, {
-        timeout: 60000,
-      });
+      expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith(
+        {
+          model: "gpt-4o",
+          messages: [
+            { role: "user", content: expect.stringContaining("application") },
+          ],
+          temperature: 0.7,
+          max_tokens: 800,
+        },
+        {
+          timeout: 60000,
+        }
+      );
     });
 
     it("should return fallback design on error", async () => {
@@ -220,7 +254,7 @@ describe("AI Analyzer", () => {
       expect(result).toEqual({
         colorScheme: {
           primary: "#7c3aed",
-          secondary: "#5b21b6", 
+          secondary: "#5b21b6",
           accent: "#a855f7",
           background: "#fafafa",
         },

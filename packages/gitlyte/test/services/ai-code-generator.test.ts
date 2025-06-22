@@ -1,15 +1,28 @@
 import { describe, it, expect } from "vitest";
-import { generateAstroSite } from "../../src/services/ai-code-generator.js";
-import type { RepoData } from "../../src/types.js";
-import type { RepoAnalysis, DesignStrategy } from "../../src/services/ai-analyzer.js";
+import { generateAstroSite } from "../../services/ai-code-generator.js";
+import type { RepoData } from "../../types.js";
+import type {
+  RepoAnalysis,
+  DesignStrategy,
+} from "../../services/ai-analyzer.js";
 
 describe("AI Code Generator", () => {
   const mockRepoData: RepoData = {
     repo: {
       name: "test-repo",
+      full_name: "test/test-repo",
       description: "A test repository",
+      html_url: "https://github.com/test/test-repo",
       stargazers_count: 15,
       forks_count: 3,
+      language: "TypeScript",
+      topics: ["test"],
+      created_at: "2023-01-01T00:00:00Z",
+      updated_at: "2023-12-01T00:00:00Z",
+      pushed_at: "2023-12-01T00:00:00Z",
+      size: 1000,
+      default_branch: "main",
+      license: { key: "mit", name: "MIT License" },
     },
     readme: "# Test Repo\nThis is a test repository.",
     prs: [
@@ -57,11 +70,21 @@ describe("AI Code Generator", () => {
     style: "modern",
     animations: true,
     darkMode: false,
+    effects: {
+      blur: true,
+      shadows: "subtle",
+      borders: "rounded",
+      spacing: "normal",
+    },
   };
 
   describe("generateAstroSite", () => {
     it("should generate complete Astro site", async () => {
-      const result = await generateAstroSite(mockRepoData, mockAnalysis, mockDesign);
+      const result = await generateAstroSite(
+        mockRepoData,
+        mockAnalysis,
+        mockDesign
+      );
 
       // 必要なファイルが全て生成されることを確認
       expect(result).toHaveProperty("packageJson");
@@ -112,21 +135,35 @@ describe("AI Code Generator", () => {
         repo: { ...mockRepoData.repo, description: null },
       };
 
-      const result = await generateAstroSite(repoDataNoDesc, mockAnalysis, mockDesign);
+      const result = await generateAstroSite(
+        repoDataNoDesc,
+        mockAnalysis,
+        mockDesign
+      );
 
       expect(result.packageJson).toBeDefined();
-      expect(result.heroComponent).toContain("An innovative solution for modern development");
+      expect(result.heroComponent).toContain(
+        "An innovative solution for modern development"
+      );
     });
 
     it("should generate responsive CSS", async () => {
-      const result = await generateAstroSite(mockRepoData, mockAnalysis, mockDesign);
+      const result = await generateAstroSite(
+        mockRepoData,
+        mockAnalysis,
+        mockDesign
+      );
 
       expect(result.globalStyles).toContain("@media");
       expect(result.heroComponent).toContain("@media");
     });
 
     it("should include proper CSS custom properties", async () => {
-      const result = await generateAstroSite(mockRepoData, mockAnalysis, mockDesign);
+      const result = await generateAstroSite(
+        mockRepoData,
+        mockAnalysis,
+        mockDesign
+      );
 
       expect(result.layout).toContain("--primary:");
       expect(result.layout).toContain("--secondary:");
