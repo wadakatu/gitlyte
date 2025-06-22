@@ -2010,47 +2010,10 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
 
 async function generateMinimalFeaturesComponent(
   _design: EnhancedDesignStrategy,
-  _contentAnalysis: ContentAnalysis
+  contentAnalysis: ContentAnalysis
 ): Promise<string> {
-  // Use demo minimal layout hardcoded features
-  const demoFeatures = [
-    {
-      title: "AI Analysis",
-      description:
-        "Automatically analyzes your repository structure, language, and project characteristics to generate optimized showcase sites.",
-      icon: "🤖",
-    },
-    {
-      title: "Astro-Powered",
-      description:
-        "Built with Astro for fast, SEO-friendly static sites with minimal JavaScript. Perfect for project documentation.",
-      icon: "🚀",
-    },
-    {
-      title: "Custom Design",
-      description:
-        "Each generated site features unique design tailored to your project's personality and target audience.",
-      icon: "🎨",
-    },
-    {
-      title: "GitHub Integration",
-      description:
-        "Seamlessly integrates with GitHub APIs to fetch repository data, issues, and pull requests automatically.",
-      icon: "📊",
-    },
-    {
-      title: "Multiple Layouts",
-      description:
-        "Choose from various layout patterns including minimal, hero-focused, grid, and content-heavy designs.",
-      icon: "📐",
-    },
-    {
-      title: "Responsive Design",
-      description:
-        "All generated sites are fully responsive and optimized for mobile, tablet, and desktop viewing.",
-      icon: "📱",
-    },
-  ];
+  // whyChooseCardsを取得（フォールバックも含む）
+  const whyChooseCards = contentAnalysis.features.whyChoose || [];
 
   return `---
 export interface Props {
@@ -2063,8 +2026,11 @@ export interface Props {
 
 const { prs } = Astro.props;
 
-// Demo features for minimal layout
-const features = ${JSON.stringify(demoFeatures)};
+// 動的Why Choose Cardsの取得
+const whyChooseCards = ${JSON.stringify(whyChooseCards)};
+
+// 優先度でソートし、最大6枚まで表示
+const sortedWhyChooseCards = whyChooseCards.sort((a, b) => b.priority - a.priority).slice(0, 6);
 ---
 
 <!-- Features Section -->
@@ -2074,11 +2040,12 @@ const features = ${JSON.stringify(demoFeatures)};
       <h2>Key Features</h2>
       
       <div class="features-grid">
-        {features.map((feature) => (
-          <div class="feature-card">
+        {sortedWhyChooseCards.map((feature, index) => (
+          <div class="feature-card" style={\`animation-delay: \${index * 0.1}s\`}>
             <div class="feature-icon">{feature.icon}</div>
             <h3 class="feature-title">{feature.title}</h3>
             <p class="feature-description">{feature.description}</p>
+            <div class="feature-highlight">{feature.highlight}</div>
           </div>
         ))}
       </div>
@@ -2148,6 +2115,17 @@ const features = ${JSON.stringify(demoFeatures)};
     font-size: 0.875rem;
     line-height: 1.6;
     color: #666666;
+    margin-bottom: 1rem;
+  }
+
+  .feature-highlight {
+    background: #1a1a1a;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-block;
   }
 
   /* Responsive Design */
@@ -2650,6 +2628,20 @@ const stats = {
   forks: repo.forks_count || 0,
   issues: issues.length || 0
 };
+
+// Content analysis data
+const contentAnalysisJson = '{{CONTENT_ANALYSIS}}';
+const contentAnalysis = JSON.parse(contentAnalysisJson);
+const uniqueValue = contentAnalysis?.appeal?.uniqueValue || 'Delivers exceptional value through innovative features and robust architecture.';
+const dynamicCards = contentAnalysis?.appeal?.dynamicCards || [
+  { title: "Quick Start", icon: "🚀", description: "Easy to use and integrate with comprehensive documentation", priority: 10 },
+  { title: "High Performance", icon: "⚡", description: "Optimized for speed and efficiency", priority: 9 },
+  { title: "Enterprise Ready", icon: "🛡️", description: "Enterprise-grade security and reliability", priority: 8 },
+  { title: "Community Driven", icon: "🌟", description: "Active community support with regular updates", priority: 7 }
+];
+
+// 優先度でソートし、最大6枚まで表示
+const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0, 6);
 ---
 
 <Layout title={repo.name + ' - Project Dashboard'} description={repo.description}>
@@ -2674,16 +2666,17 @@ const stats = {
           {repo.description || 'This project provides a robust foundation for building scalable applications with modern development practices.'}
         </p>
         
-        <div class="layout-characteristics">
-          <h3>Design Characteristics</h3>
-          <ul>
-            <li>Clean, typography-focused design</li>
-            <li>Minimal color palette (blacks, grays, whites)</li>
-            <li>Subtle borders and spacing</li>
-            <li>Inter + JetBrains Mono font combination</li>
-            <li>Responsive grid layouts</li>
-            <li>Accessibility-first approach</li>
-          </ul>
+        <div class="unique-value">
+          <strong>💡 Unique Value:</strong> {uniqueValue}
+        </div>
+        
+        <div class="features-grid">
+          {sortedCards.map((card) => (
+            <div class="feature-highlight">
+              <h4>{card.icon} {card.title}</h4>
+              <p>{card.description}</p>
+            </div>
+          ))}
         </div>
 
         {readme && (
@@ -2736,37 +2729,53 @@ const stats = {
     color: #666666;
   }
 
-  .layout-characteristics {
-    margin-bottom: 2rem;
+  .unique-value {
+    margin-bottom: 3rem;
+    padding: 1rem;
+    background: #f5f5f5;
+    border-radius: 4px;
+    border-left: 3px solid #1a1a1a;
+    font-size: 1rem;
+    line-height: 1.5;
   }
 
-  .layout-characteristics h3 {
-    margin-bottom: 1rem;
-    font-size: 1.125rem;
-    font-weight: 500;
+  .features-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    justify-content: center;
+  }
+
+  .feature-highlight {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 4px;
+    border: 1px solid #e5e5e5;
+    transition: all 0.3s ease;
+    flex: 1 1 calc(50% - 0.75rem);
+    min-width: 280px;
+    max-width: 350px;
+  }
+
+  .feature-highlight:hover {
+    border-color: #999999;
+  }
+
+  .feature-highlight h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
     color: #1a1a1a;
   }
 
-  .layout-characteristics ul {
-    list-style: none;
-    padding-left: 0;
-  }
-
-  .layout-characteristics li {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #e5e5e5;
+  .feature-highlight p {
+    font-size: 0.9rem;
+    line-height: 1.5;
     color: #666666;
-    font-size: 0.875rem;
-  }
-
-  .layout-characteristics li:last-child {
-    border-bottom: none;
-  }
-
-  .layout-characteristics li::before {
-    content: "—";
-    margin-right: 0.5rem;
-    color: #999999;
+    margin: 0;
   }
 
   .code-example {
