@@ -44,7 +44,9 @@ describe("Deployment Guard", () => {
         data: [],
       });
 
-      const result = await checkDeploymentStatus(mockContext);
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
       expect(result).toBe(false);
     });
 
@@ -56,7 +58,9 @@ describe("Deployment Guard", () => {
         data: [{ state: "in_progress" }],
       });
 
-      const result = await checkDeploymentStatus(mockContext);
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
       expect(result).toBe(true);
     });
 
@@ -68,7 +72,9 @@ describe("Deployment Guard", () => {
         data: [{ state: "success" }],
       });
 
-      const result = await checkDeploymentStatus(mockContext);
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
       expect(result).toBe(false);
     });
 
@@ -80,7 +86,9 @@ describe("Deployment Guard", () => {
         data: [{ state: "pending" }],
       });
 
-      const result = await checkDeploymentStatus(mockContext);
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
       expect(result).toBe(true);
     });
 
@@ -89,7 +97,9 @@ describe("Deployment Guard", () => {
         new Error("API Error")
       );
 
-      const result = await checkDeploymentStatus(mockContext);
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
       expect(result).toBe(false);
       expect(mockContext.log.warn).toHaveBeenCalled();
     });
@@ -102,7 +112,12 @@ describe("Deployment Guard", () => {
       });
 
       const start = Date.now();
-      await waitForDeploymentCompletion(mockContext, 1000);
+      await waitForDeploymentCompletion(
+        mockContext as unknown as Parameters<
+          typeof waitForDeploymentCompletion
+        >[0],
+        1000
+      );
       const elapsed = Date.now() - start;
 
       expect(elapsed).toBeLessThan(1000);
@@ -127,7 +142,12 @@ describe("Deployment Guard", () => {
         data: [{ state: "in_progress" }],
       });
 
-      await waitForDeploymentCompletion(mockContext, 2000);
+      await waitForDeploymentCompletion(
+        mockContext as unknown as Parameters<
+          typeof waitForDeploymentCompletion
+        >[0],
+        2000
+      );
 
       expect(mockContext.log.info).toHaveBeenCalledWith(
         "✅ Previous deployment completed, proceeding"
@@ -143,7 +163,12 @@ describe("Deployment Guard", () => {
         data: [{ state: "in_progress" }],
       });
 
-      await waitForDeploymentCompletion(mockContext, 50); // Very short timeout
+      await waitForDeploymentCompletion(
+        mockContext as unknown as Parameters<
+          typeof waitForDeploymentCompletion
+        >[0],
+        50
+      ); // Very short timeout
 
       expect(mockContext.log.warn).toHaveBeenCalledWith(
         "⚠️ Timeout waiting for deployment completion, proceeding anyway"
@@ -160,7 +185,9 @@ describe("Deployment Guard", () => {
       const mockGenerateFn = vi.fn().mockResolvedValue("result");
 
       const result = await safeGenerateWithDeploymentGuard(
-        mockContext,
+        mockContext as unknown as Parameters<
+          typeof safeGenerateWithDeploymentGuard
+        >[0],
         mockGenerateFn
       );
 
@@ -187,7 +214,9 @@ describe("Deployment Guard", () => {
       const mockGenerateFn = vi.fn().mockResolvedValue("result");
 
       const result = await safeGenerateWithDeploymentGuard(
-        mockContext,
+        mockContext as unknown as Parameters<
+          typeof safeGenerateWithDeploymentGuard
+        >[0],
         mockGenerateFn
       );
 
@@ -206,7 +235,12 @@ describe("Deployment Guard", () => {
         .mockRejectedValue(new Error("Generation failed"));
 
       await expect(
-        safeGenerateWithDeploymentGuard(mockContext, mockGenerateFn)
+        safeGenerateWithDeploymentGuard(
+          mockContext as unknown as Parameters<
+            typeof safeGenerateWithDeploymentGuard
+          >[0],
+          mockGenerateFn
+        )
       ).rejects.toThrow("Generation failed");
     });
   });

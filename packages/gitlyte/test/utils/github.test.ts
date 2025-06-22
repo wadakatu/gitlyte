@@ -79,7 +79,7 @@ describe("GitHub Utils", () => {
       ctx.octokit.repos.getReadme.mockResolvedValue(mockReadme);
 
       const result = await collectRepoData(
-        ctx as Parameters<typeof collectRepoData>[0]
+        ctx as unknown as Parameters<typeof collectRepoData>[0]
       );
 
       expect(result).toEqual({
@@ -112,7 +112,7 @@ describe("GitHub Utils", () => {
       ctx.octokit.repos.getReadme.mockRejectedValue(new Error("API Error"));
 
       const result = await collectRepoData(
-        ctx as Parameters<typeof collectRepoData>[0]
+        ctx as unknown as Parameters<typeof collectRepoData>[0]
       );
 
       expect(result).toEqual({
@@ -159,7 +159,7 @@ describe("GitHub Utils", () => {
       });
 
       const result = await collectRepoData(
-        ctx as Parameters<typeof collectRepoData>[0]
+        ctx as unknown as Parameters<typeof collectRepoData>[0]
       );
 
       expect(result.prs).toHaveLength(1);

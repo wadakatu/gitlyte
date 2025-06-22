@@ -80,7 +80,7 @@ describe("Batch Commit", () => {
       ];
 
       await batchCommitFiles(
-        ctx as Parameters<typeof batchCommitFiles>[0],
+        ctx as unknown as Parameters<typeof batchCommitFiles>[0],
         files,
         "Test commit message"
       );
@@ -145,7 +145,7 @@ describe("Batch Commit", () => {
 
       await expect(
         batchCommitFiles(
-          ctx as Parameters<typeof batchCommitFiles>[0],
+          ctx as unknown as Parameters<typeof batchCommitFiles>[0],
           files,
           "Test commit"
         )
@@ -186,7 +186,7 @@ describe("Batch Commit", () => {
       ctx.octokit.git.updateRef.mockResolvedValue({});
 
       await batchCommitFiles(
-        ctx as Parameters<typeof batchCommitFiles>[0],
+        ctx as unknown as Parameters<typeof batchCommitFiles>[0],
         [],
         "Empty commit"
       );

@@ -30,7 +30,9 @@ describe("AI Analyzer", () => {
 
   beforeEach(() => {
     mockOpenAI = createMockOpenAI();
-    setOpenAIClient(mockOpenAI as Parameters<typeof setOpenAIClient>[0]);
+    setOpenAIClient(
+      mockOpenAI as unknown as Parameters<typeof setOpenAIClient>[0]
+    );
   });
 
   afterEach(() => {

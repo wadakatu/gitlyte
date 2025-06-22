@@ -29,7 +29,7 @@ describe("GitLyte App Integration", () => {
       };
 
       // アプリ関数を呼び出して、Probotにイベントハンドラーが登録されることを確認
-      app(mockProbot as Parameters<typeof app>[0]);
+      app(mockProbot as unknown as Parameters<typeof app>[0]);
 
       expect(mockProbot.on).toHaveBeenCalledWith(
         "pull_request.closed",
@@ -49,7 +49,7 @@ describe("GitLyte App Integration", () => {
         }),
       };
 
-      app(mockProbot as Parameters<typeof app>[0]);
+      app(mockProbot as unknown as Parameters<typeof app>[0]);
 
       // PRハンドラーが登録されていることを確認
       expect(mockProbot.on).toHaveBeenCalledWith(
