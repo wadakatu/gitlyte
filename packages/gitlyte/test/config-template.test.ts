@@ -78,6 +78,7 @@ describe("Config Template Generator", () => {
       expect(result.logo?.path).toBe("./assets/logo.svg");
       expect(result.logo?.alt).toBe("test-project Logo");
       expect(result.favicon?.path).toBe("./assets/favicon.ico");
+      expect(result.site?.layout).toBe("hero-focused");
       expect(result.site?.theme?.primary).toBeDefined();
       expect(result.site?.theme?.secondary).toBeDefined();
       expect(result.site?.theme?.accent).toBeDefined();
@@ -150,6 +151,40 @@ describe("Config Template Generator", () => {
 
       expect(result.logo?.path).toBe("./public/logo.svg");
       expect(result.favicon?.path).toBe("./public/favicon.ico");
+    });
+
+    it("should include layout from design strategy", () => {
+      const minimalDesignStrategy = {
+        ...mockDesignStrategy,
+        layout: "minimal" as const,
+      };
+
+      const result = generateConfigTemplate(
+        mockRepoData,
+        mockAnalysis,
+        minimalDesignStrategy
+      );
+
+      expect(result.site?.layout).toBe("minimal");
+    });
+
+    it("should include different layout types", () => {
+      const layoutTypes = ["grid", "sidebar", "content-heavy"] as const;
+
+      for (const layout of layoutTypes) {
+        const designStrategy = {
+          ...mockDesignStrategy,
+          layout,
+        };
+
+        const result = generateConfigTemplate(
+          mockRepoData,
+          mockAnalysis,
+          designStrategy
+        );
+
+        expect(result.site?.layout).toBe(layout);
+      }
     });
   });
 
