@@ -10,6 +10,10 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
     ctx.log.info(`🚀 Starting site generation for PR: ${pr.title}`);
     ctx.log.info(`📋 PR Labels: ${pr.labels.map((l) => l.name).join(", ")}`);
 
+    // PRマージ直後のGitHub API同期待ち（特に設定ファイル読み込みのため）
+    ctx.log.info("⏳ Waiting for GitHub API sync after PR merge...");
+    await new Promise((resolve) => setTimeout(resolve, 5000)); // 5秒待機
+
     const repoData = await collectRepoData(ctx);
     ctx.log.info(`📊 Repository data collected: ${repoData.repo.name}`);
 

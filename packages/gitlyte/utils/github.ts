@@ -97,12 +97,17 @@ export async function collectRepoData(ctx: Context): Promise<RepoData> {
     ctx.log.warn(`Failed to fetch README: ${(e as Error).message}`);
   }
 
+  // デフォルトブランチを取得
+  const defaultBranch = repoInfo.data.default_branch;
+  ctx.log.info(`📌 Using default branch: ${defaultBranch}`);
+
   // 設定ファイルの取得を試行
   const configFile = await getFileContent(
     ctx.octokit,
     ctx.repo().owner,
     ctx.repo().repo,
-    ".gitlyte.json"
+    ".gitlyte.json",
+    defaultBranch
   );
 
   if (configFile) {
@@ -116,7 +121,8 @@ export async function collectRepoData(ctx: Context): Promise<RepoData> {
     ctx.octokit,
     ctx.repo().owner,
     ctx.repo().repo,
-    "package.json"
+    "package.json",
+    defaultBranch
   );
 
   return {
@@ -136,13 +142,15 @@ async function getFileContent(
   octokit: Context["octokit"],
   owner: string,
   repo: string,
-  path: string
+  path: string,
+  ref = "main"
 ): Promise<string | undefined> {
   try {
     const response = await octokit.rest.repos.getContent({
       owner,
       repo,
       path,
+      ref, // 明示的にブランチを指定
     });
 
     if ("content" in response.data && response.data.content) {

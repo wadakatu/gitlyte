@@ -211,6 +211,9 @@ async function generateHeroComponent(
   design: EnhancedDesignStrategy,
   logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
+  // デバッグ: 実際に使用されるレイアウトをログ出力
+  console.log(`🎯 generateHeroComponent: Using layout "${design.layout}"`);
+
   // レイアウト固有のHeroコンポーネントを生成
   return generateLayoutSpecificHero(
     design.layout,
@@ -228,16 +231,25 @@ async function generateLayoutSpecificHero(
   design: EnhancedDesignStrategy,
   logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
+  console.log(`🎯 generateLayoutSpecificHero: Switching on layout "${layout}"`);
+
   switch (layout) {
     case "minimal":
+      console.log("🎯 Generating MINIMAL hero component");
       return generateMinimalHero(context, repoData, design, logoResult);
     case "grid":
+      console.log("🎯 Generating GRID hero component");
       return generateGridHero(context, repoData, design, logoResult);
     case "sidebar":
+      console.log("🎯 Generating SIDEBAR hero component");
       return generateSidebarHero(context, repoData, design, logoResult);
     case "content-heavy":
+      console.log("🎯 Generating CONTENT-HEAVY hero component");
       return generateContentHeavyHero(context, repoData, design, logoResult);
     default:
+      console.log(
+        `🎯 Falling back to HERO-FOCUSED layout (input was "${layout}")`
+      );
       return generateHeroFocusedHero(context, repoData, design, logoResult);
   }
 }
@@ -245,7 +257,7 @@ async function generateLayoutSpecificHero(
 async function generateMinimalHero(
   _context: string,
   _repoData: RepoData,
-  design: EnhancedDesignStrategy,
+  _design: EnhancedDesignStrategy,
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
@@ -266,208 +278,178 @@ export interface Props {
 const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
 ---
 
-<!-- Minimal Layout - Clean and Simple -->
-<header class="minimal-header">
-  <div class="container">
-    <nav class="minimal-nav">
-      {hasLogo && logoUrl ? (
-        <a href="./" class="brand-link">
-          <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
-        </a>
-      ) : (
-        <a href="./" class="brand-link">
-          <h1>{title}</h1>
-        </a>
-      )}
-      <div class="nav-links">
-        <a href="./" class="nav-link">Home</a>
-        {hasReadme && <a href="./docs" class="nav-link">Docs</a>}
-        <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">GitHub</a>
-      </div>
-    </nav>
-  </div>
-</header>
-
-<section class="minimal-hero">
-  <div class="container">
-    <div class="hero-content">
-      <h1 class="hero-title">{title}</h1>
-      <p class="hero-description">{description || 'A modern solution for development'}</p>
+<div class="minimal-layout">
+  <!-- Hero Section -->
+  <section class="hero-minimal">
+    <div class="container">
+      <header class="header">
+        <h1>{title}</h1>
+        <p class="description">{description}</p>
+        
+        <div class="actions">
+          <a href={repoUrl} class="button" target="_blank" rel="noopener noreferrer">
+            View Repository
+          </a>
+        </div>
+      </header>
       
-      <div class="hero-actions">
-        {hasReadme && <a href="./docs" class="btn-primary">Documentation</a>}
-        <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">View on GitHub</a>
-      </div>
-      
-      <div class="hero-stats">
-        <span class="stat">⭐ {stats.stars}</span>
-        <span class="stat">🍴 {stats.forks}</span>
-        <span class="stat">📊 {stats.issues} issues</span>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-value">{stats.stars}</span>
+          <span class="stat-label">Stars</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{stats.forks}</span>
+          <span class="stat-label">Forks</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{stats.issues}</span>
+          <span class="stat-label">Issues</span>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
+</div>
 
 <style>
-  .minimal-header {
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 1rem 0;
+  /* Base Layout Styles */
+  .minimal-layout {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background-color: #ffffff;
   }
 
   .container {
-    max-width: 1200px;
+    max-width: 800px;
     margin: 0 auto;
-    padding: 0 1.5rem;
+    padding: 0 2rem;
   }
 
-  .minimal-nav {
+  /* Hero Section */
+  .hero-minimal {
+    min-height: 50vh;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    padding: 3rem 0;
   }
 
-  .brand-link {
-    text-decoration: none;
-    color: var(--primary);
+  .header {
+    text-align: left;
+    margin-bottom: 2rem;
   }
 
-  .brand-link h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    font-family: ${design.typography.heading};
+  .header h1 {
+    font-size: 2rem;
     font-weight: 600;
-  }
-
-  .brand-logo {
-    height: 2rem;
-    width: auto;
-  }
-
-  .nav-links {
-    display: flex;
-    gap: 2rem;
-    align-items: center;
-  }
-
-  .nav-link {
-    text-decoration: none;
-    color: #6b7280;
-    font-weight: 500;
-    transition: color 0.2s ease;
-  }
-
-  .nav-link:hover {
-    color: var(--primary);
-  }
-
-  .minimal-hero {
-    padding: 4rem 0;
-    text-align: center;
-    background: #fafafa;
-  }
-
-  .hero-content {
-    max-width: 600px;
-    margin: 0 auto;
-  }
-
-  .hero-title {
-    font-size: 2.5rem;
-    font-family: ${design.typography.heading};
-    font-weight: 700;
-    color: #111827;
     margin-bottom: 1rem;
-    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: #1a1a1a;
   }
 
-  .hero-description {
-    font-size: 1.25rem;
-    color: #6b7280;
+  .description {
+    font-size: 1.125rem;
     margin-bottom: 2rem;
+    max-width: 600px;
     line-height: 1.6;
+    color: #666666;
   }
 
-  .hero-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
+  .actions {
     margin-bottom: 2rem;
-    flex-wrap: wrap;
   }
 
-  .btn-primary {
-    background: var(--primary);
+  .button {
+    display: inline-block;
+    padding: 0.5rem 1.5rem;
+    background-color: #000000;
     color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    text-decoration: none;
+    border: none;
+    border-radius: 2px;
+    font-size: 0.875rem;
     font-weight: 500;
-    transition: all 0.2s ease;
-  }
-
-  .btn-primary:hover {
-    background: var(--secondary);
-    transform: translateY(-2px);
-  }
-
-  .btn-secondary {
-    background: transparent;
-    color: var(--primary);
-    padding: 0.75rem 1.5rem;
-    border: 2px solid var(--primary);
-    border-radius: 6px;
     text-decoration: none;
-    font-weight: 500;
-    transition: all 0.2s ease;
+    transition: opacity 0.2s ease;
   }
 
-  .btn-secondary:hover {
-    background: var(--primary);
-    color: white;
-    transform: translateY(-2px);
+  .button:hover {
+    opacity: 0.8;
   }
 
-  .hero-stats {
+  .stats {
     display: flex;
     gap: 2rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    color: #6b7280;
-    font-size: 0.9rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e5e5;
   }
 
   .stat {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 0.25rem;
   }
 
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: #999999;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+
+  /* Responsive Design */
   @media (max-width: 768px) {
-    .minimal-nav {
+    .container {
+      padding: 0 1rem;
+    }
+    
+    .hero-minimal {
+      min-height: auto;
+      padding: 2rem 0;
+    }
+    
+    .header h1 {
+      font-size: 1.75rem;
+    }
+    
+    .description {
+      font-size: 1rem;
+    }
+    
+    .stats {
+      gap: 1.5rem;
+    }
+    
+    .stat-value {
+      font-size: 1.25rem;
+    }
+    
+    .stat-label {
+      font-size: 0.75rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats {
       flex-direction: column;
       gap: 1rem;
     }
-
-    .nav-links {
-      gap: 1rem;
+    
+    .stat {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 0.5rem;
     }
-
-    .hero-title {
-      font-size: 2rem;
-    }
-
-    .hero-description {
-      font-size: 1.1rem;
-    }
-
-    .hero-actions {
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .hero-stats {
-      gap: 1rem;
+    
+    .stat-value {
+      font-size: 1rem;
     }
   }
 </style>`;
@@ -2026,12 +2008,185 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
 </style>`;
 }
 
+async function generateMinimalFeaturesComponent(
+  _design: EnhancedDesignStrategy,
+  _contentAnalysis: ContentAnalysis
+): Promise<string> {
+  // Use demo minimal layout hardcoded features
+  const demoFeatures = [
+    {
+      title: "AI Analysis",
+      description:
+        "Automatically analyzes your repository structure, language, and project characteristics to generate optimized showcase sites.",
+      icon: "🤖",
+    },
+    {
+      title: "Astro-Powered",
+      description:
+        "Built with Astro for fast, SEO-friendly static sites with minimal JavaScript. Perfect for project documentation.",
+      icon: "🚀",
+    },
+    {
+      title: "Custom Design",
+      description:
+        "Each generated site features unique design tailored to your project's personality and target audience.",
+      icon: "🎨",
+    },
+    {
+      title: "GitHub Integration",
+      description:
+        "Seamlessly integrates with GitHub APIs to fetch repository data, issues, and pull requests automatically.",
+      icon: "📊",
+    },
+    {
+      title: "Multiple Layouts",
+      description:
+        "Choose from various layout patterns including minimal, hero-focused, grid, and content-heavy designs.",
+      icon: "📐",
+    },
+    {
+      title: "Responsive Design",
+      description:
+        "All generated sites are fully responsive and optimized for mobile, tablet, and desktop viewing.",
+      icon: "📱",
+    },
+  ];
+
+  return `---
+export interface Props {
+  prs: Array<{
+    title: string;
+    user: { login: string } | null;
+    merged_at: string | null;
+  }>;
+}
+
+const { prs } = Astro.props;
+
+// Demo features for minimal layout
+const features = ${JSON.stringify(demoFeatures)};
+---
+
+<!-- Features Section -->
+<section class="features-minimal">
+  <div class="container">
+    <div class="section">
+      <h2>Key Features</h2>
+      
+      <div class="features-grid">
+        {features.map((feature) => (
+          <div class="feature-card">
+            <div class="feature-icon">{feature.icon}</div>
+            <h3 class="feature-title">{feature.title}</h3>
+            <p class="feature-description">{feature.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Base Layout Styles */
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* Features Section */
+  .features-minimal {
+    padding: 4rem 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #1a1a1a;
+    background-color: #ffffff;
+  }
+
+  .section {
+    margin-bottom: 4rem;
+  }
+
+  .section h2 {
+    margin-bottom: 3rem;
+    font-weight: 500;
+    color: #1a1a1a;
+    font-size: 1.5rem;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+
+  .feature-card {
+    padding: 1.5rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    background-color: #fafafa;
+    transition: all 0.2s ease;
+  }
+
+  .feature-card:hover {
+    border-color: #999999;
+  }
+
+  .feature-icon {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: #1a1a1a;
+  }
+
+  .feature-title {
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #1a1a1a;
+  }
+
+  .feature-description {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #666666;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .container {
+      padding: 0 1rem;
+    }
+    
+    .features-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    
+    .feature-card {
+      padding: 1rem;
+    }
+    
+    .section h2 {
+      font-size: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    
+    .features-minimal {
+      padding: 2rem 0;
+    }
+  }
+</style>`;
+}
+
 async function generateFeaturesComponent(
   _context: string,
   _repoData: RepoData,
   design: EnhancedDesignStrategy,
   contentAnalysis: ContentAnalysis
 ): Promise<string> {
+  // For minimal layout, use demo-style minimal features
+  if (design.layout === "minimal") {
+    return generateMinimalFeaturesComponent(design, contentAnalysis);
+  }
   const borderRadius =
     design.effects.borders === "pill"
       ? "50px"
@@ -2473,13 +2628,248 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
 </style>`;
 }
 
+async function generateMinimalIndexPage(logoResult?: {
+  hasLogo: boolean;
+  logoUrl?: string;
+}): Promise<string> {
+  return `---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import Features from '../components/Features.astro';
+
+// Repository data will be replaced during generation
+const repoDataJson = '{{REPO_DATA}}';
+const repoData = JSON.parse(repoDataJson);
+const repo = repoData.repo || {};
+const prs = repoData.prs || [];
+const readme = repoData.readme || '';
+const issues = repoData.issues || [];
+
+const stats = {
+  stars: repo.stargazers_count || 0,
+  forks: repo.forks_count || 0,
+  issues: issues.length || 0
+};
+---
+
+<Layout title={repo.name + ' - Project Dashboard'} description={repo.description}>
+  <Hero 
+    title={repo.name}
+    description={repo.description}
+    stats={stats}
+    hasReadme={!!readme}
+    repoUrl={repo.html_url}
+    hasLogo={${logoResult?.hasLogo || false}}
+    logoUrl={"${logoResult?.logoUrl || ""}"}
+  />
+  
+  <Features prs={prs || []} />
+  
+  <!-- About Section -->
+  <section class="section">
+    <div class="container">
+      <div class="content-section">
+        <h2>About This Project</h2>
+        <p>
+          {repo.description || 'This project provides a robust foundation for building scalable applications with modern development practices.'}
+        </p>
+        
+        <div class="layout-characteristics">
+          <h3>Design Characteristics</h3>
+          <ul>
+            <li>Clean, typography-focused design</li>
+            <li>Minimal color palette (blacks, grays, whites)</li>
+            <li>Subtle borders and spacing</li>
+            <li>Inter + JetBrains Mono font combination</li>
+            <li>Responsive grid layouts</li>
+            <li>Accessibility-first approach</li>
+          </ul>
+        </div>
+
+        {readme && (
+          <div class="code-example">
+            <h3>Documentation Available</h3>
+            <p>Comprehensive documentation is available to help you get started with this project.</p>
+            <div class="docs-actions">
+              <a href="./docs" class="docs-link">📖 View Documentation</a>
+              <a href={repo.html_url} class="docs-link-secondary" target="_blank" rel="noopener">🔗 View on GitHub</a>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  /* Base Layout Styles matching demo */
+  .section {
+    margin-bottom: 4rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #1a1a1a;
+    background-color: #ffffff;
+    padding: 4rem 0;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* Content Section */
+  .content-section {
+    max-width: 700px;
+  }
+
+  .content-section h2 {
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+    font-size: 1.5rem;
+    color: #1a1a1a;
+  }
+
+  .content-section p {
+    margin-bottom: 2rem;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #666666;
+  }
+
+  .layout-characteristics {
+    margin-bottom: 2rem;
+  }
+
+  .layout-characteristics h3 {
+    margin-bottom: 1rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #1a1a1a;
+  }
+
+  .layout-characteristics ul {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .layout-characteristics li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e5e5;
+    color: #666666;
+    font-size: 0.875rem;
+  }
+
+  .layout-characteristics li:last-child {
+    border-bottom: none;
+  }
+
+  .layout-characteristics li::before {
+    content: "—";
+    margin-right: 0.5rem;
+    color: #999999;
+  }
+
+  .code-example {
+    padding: 1.5rem;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    border: 1px solid #e5e5e5;
+  }
+
+  .code-example h3 {
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #1a1a1a;
+  }
+
+  .code-example p {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    color: #666666;
+  }
+
+  .docs-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .docs-link {
+    display: inline-block;
+    padding: 0.5rem 1.5rem;
+    background-color: #000000;
+    color: white;
+    border: none;
+    border-radius: 2px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .docs-link:hover {
+    opacity: 0.8;
+  }
+
+  .docs-link-secondary {
+    display: inline-block;
+    padding: 0.5rem 1.5rem;
+    background-color: transparent;
+    color: #1a1a1a;
+    border: 1px solid #e5e5e5;
+    border-radius: 2px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .docs-link-secondary:hover {
+    border-color: #999999;
+    background-color: #f5f5f5;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .container {
+      padding: 0 1rem;
+    }
+    
+    .section {
+      padding: 2rem 0;
+    }
+    
+    .content-section h2 {
+      font-size: 1.25rem;
+    }
+    
+    .layout-characteristics li {
+      font-size: 0.8rem;
+    }
+    
+    .code-example {
+      padding: 1rem;
+    }
+    
+    .docs-actions {
+      flex-direction: column;
+    }
+  }
+</style>`;
+}
+
 async function generateIndexPage(
   _context: string,
   _repoData: RepoData,
-  _design: EnhancedDesignStrategy,
+  design: EnhancedDesignStrategy,
   _contentAnalysis: ContentAnalysis,
   logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
+  // For minimal layout, use demo-style minimal index page
+  if (design.layout === "minimal") {
+    return generateMinimalIndexPage(logoResult);
+  }
   return `---
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';

@@ -33,11 +33,11 @@ export async function loadGitLyteConfig(
 async function loadConfigFromGitlyteJson(
   repoData: RepoData
 ): Promise<ConfigLoadResult> {
+  const configContent = repoData.configFile;
+
   try {
     // GitHubのcontents APIを使って.gitlyte.jsonを取得することを想定
     // 実際の実装では、repoData内に設定ファイルの内容が含まれていることを期待
-    const configContent = repoData.configFile;
-
     if (!configContent) {
       return { found: false, config: {} };
     }
@@ -53,7 +53,11 @@ async function loadConfigFromGitlyteJson(
       source: ".gitlyte.json",
     };
   } catch (error) {
-    console.warn("Failed to load .gitlyte.json:", error);
+    console.error("Failed to load .gitlyte.json:", error);
+    if (configContent) {
+      console.error("Config content length:", configContent.length);
+      console.error("Config content preview:", configContent.substring(0, 200));
+    }
     return { found: false, config: {} };
   }
 }
