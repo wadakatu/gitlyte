@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "start": "probot run ./lib/index.js",
+    "start": "cd ../../ && probot run ./packages/gitlyte/lib/index.js",
     "test": "vitest",
     "lint": "biome lint .",
     "lint:fix": "biome lint --fix .",

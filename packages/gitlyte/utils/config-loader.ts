@@ -168,7 +168,8 @@ export function mergeConfigWithDefaults(
   existingConfig: GitLyteConfig,
   defaultConfig: GitLyteConfig
 ): GitLyteConfig {
-  const merged: GitLyteConfig = { ...existingConfig };
+  // 深いコピーを作成して元のオブジェクトを変更しないように
+  const merged: GitLyteConfig = JSON.parse(JSON.stringify(existingConfig));
 
   // ロゴ設定のマージ
   if (!merged.logo && defaultConfig.logo) {
