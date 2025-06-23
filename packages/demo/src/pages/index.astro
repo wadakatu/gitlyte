@@ -4,6 +4,7 @@ import HeroFocused from '../components/layouts/HeroFocused.astro';
 import Minimal from '../components/layouts/Minimal.astro';
 import DocsContent from '../components/DocsContent.astro';
 import MinimalDocs from '../components/MinimalDocs.astro';
+import HeroFocusedDocs from '../components/HeroFocusedDocs.astro';
 
 const sampleData = {
   title: "GitLyte Demo Project",
@@ -96,6 +97,10 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
     <!-- Minimal Docs Layout (hidden by default) -->
     <div id="minimal-docs-layout" style="display: none;">
       <MinimalDocs />
+    </div>
+    <!-- Hero Focused Docs Layout (hidden by default) -->
+    <div id="hero-focused-docs-layout" style="display: none;">
+      <HeroFocusedDocs />
     </div>
   </main>
 
@@ -374,7 +379,8 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
       const layoutFeatures = document.getElementById('layout-features') as HTMLElement;
       
       // すべてのレイアウトを非表示
-      const allLayouts = [heroFocusedLayout, minimalLayout, minimalDocsLayout];
+      const heroFocusedDocsLayout = document.getElementById('hero-focused-docs-layout') as HTMLElement;
+      const allLayouts = [heroFocusedLayout, minimalLayout, minimalDocsLayout, heroFocusedDocsLayout];
       allLayouts.forEach(layout => {
         if (layout) layout.style.display = 'none';
       });
@@ -420,15 +426,19 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
         
         // Minimalレイアウトのナビゲーションボタンにイベントリスナーを追加
         setTimeout(() => {
-          // Docsボタンのイベントリスナー
+          // Documentationボタンのイベントリスナー（Hero部分のボタン）
           const minimalDocsBtn = minimalLayout.querySelector('.button-primary') as HTMLElement;
           if (minimalDocsBtn) {
+            // ボタンテキストを保持
+            const originalDocsBtnText = minimalDocsBtn.textContent;
             minimalDocsBtn.addEventListener('click', (e) => {
               e.preventDefault();
               // Minimalレイアウトを隠してMinimalDocsを表示
               minimalLayout.style.display = 'none';
               minimalDocsLayout.style.display = 'block';
             });
+            // テキストを確実に保持
+            if (originalDocsBtnText) minimalDocsBtn.textContent = originalDocsBtnText;
           }
           
           // ヘッダーナビゲーションボタンのイベントリスナーを再アタッチ
@@ -436,6 +446,8 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
           const docsBtn = minimalLayout.querySelector('.nav-link[onclick="showDocs()"]') as HTMLElement;
           
           if (homeBtn) {
+            // テキストを保持
+            const originalHomeBtnText = homeBtn.textContent;
             homeBtn.removeAttribute('onclick');
             homeBtn.addEventListener('click', (e) => {
               e.preventDefault();
@@ -443,9 +455,13 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
               minimalDocsLayout.style.display = 'none';
               minimalLayout.style.display = 'block';
             });
+            // テキストを確実に保持
+            if (originalHomeBtnText) homeBtn.textContent = originalHomeBtnText;
           }
           
           if (docsBtn) {
+            // テキストを保持（固定値として "Documentation" を設定）
+            const originalDocsBtnText = 'Documentation';
             docsBtn.removeAttribute('onclick');
             docsBtn.addEventListener('click', (e) => {
               e.preventDefault();
@@ -453,6 +469,8 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
               minimalLayout.style.display = 'none';
               minimalDocsLayout.style.display = 'block';
             });
+            // テキストを確実に固定値で保持
+            docsBtn.textContent = originalDocsBtnText;
           }
           
           // MinimalDocsレイアウトのHeaderボタンにもイベントリスナーを追加
@@ -460,6 +478,8 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
           const minimalDocsDocsBtn = minimalDocsLayout.querySelector('.nav-link[onclick="showDocs()"]') as HTMLElement;
           
           if (minimalDocsHomeBtn) {
+            // テキストを保持
+            const originalMinimalDocsHomeBtnText = minimalDocsHomeBtn.textContent;
             minimalDocsHomeBtn.removeAttribute('onclick');
             minimalDocsHomeBtn.addEventListener('click', (e) => {
               e.preventDefault();
@@ -467,14 +487,20 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
               minimalDocsLayout.style.display = 'none';
               minimalLayout.style.display = 'block';
             });
+            // テキストを確実に保持
+            if (originalMinimalDocsHomeBtnText) minimalDocsHomeBtn.textContent = originalMinimalDocsHomeBtnText;
           }
           
           if (minimalDocsDocsBtn) {
+            // テキストを保持（固定値として "Documentation" を設定）
+            const originalMinimalDocsDocsBtnText = 'Documentation';
             minimalDocsDocsBtn.removeAttribute('onclick');
             minimalDocsDocsBtn.addEventListener('click', (e) => {
               e.preventDefault();
               // すでにMinimalDocsが表示されているので何もしない（またはページ内でリフレッシュ）
             });
+            // テキストを確実に固定値で保持
+            minimalDocsDocsBtn.textContent = originalMinimalDocsDocsBtnText;
           }
         }, 100);
         
@@ -483,6 +509,7 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
         heroFocusedLayout.style.display = 'block';
         minimalLayout.style.display = 'none';
         minimalDocsLayout.style.display = 'none';
+        heroFocusedDocsLayout.style.display = 'none';
         
         // 説明を更新
         const info = layoutInfo['hero-focused'];
@@ -494,6 +521,62 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
             <span>${feature.text}</span>
           </div>`
         ).join('');
+        
+        // Hero Focusedレイアウトのナビゲーションボタンにイベントリスナーを追加
+        setTimeout(() => {
+          // Documentationボタンのイベントリスナー（ヒーロー部分のボタン）
+          const heroDocsBtn = heroFocusedLayout.querySelector('.cta-secondary[href*="docs"]') as HTMLElement;
+          if (heroDocsBtn) {
+            heroDocsBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // Hero Focusedレイアウトを隠してHero Focused Docsを表示
+              heroFocusedLayout.style.display = 'none';
+              heroFocusedDocsLayout.style.display = 'block';
+            });
+          }
+          
+          // ヘッダーナビゲーションボタンのイベントリスナー
+          const homeBtn = heroFocusedLayout.querySelector('.nav-link[href="#features"]') as HTMLElement;
+          const docsBtn = heroFocusedLayout.querySelector('.nav-link[href*="docs"]') as HTMLElement;
+          
+          if (homeBtn) {
+            homeBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // Hero Focusedレイアウト内でのHome表示（Hero Focused Docsを隠してHero Focusedホームを表示）
+              heroFocusedDocsLayout.style.display = 'none';
+              heroFocusedLayout.style.display = 'block';
+            });
+          }
+          
+          if (docsBtn) {
+            docsBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // Hero Focusedレイアウトを隠してHero Focused Docsを表示
+              heroFocusedLayout.style.display = 'none';
+              heroFocusedDocsLayout.style.display = 'block';
+            });
+          }
+          
+          // Hero Focused DocsレイアウトのHeaderボタンにもイベントリスナーを追加
+          const heroDocsHomeBtn = heroFocusedDocsLayout.querySelector('.nav-link[href="#features"]') as HTMLElement;
+          const heroDocsDocsBtn = heroFocusedDocsLayout.querySelector('.nav-link[href="#docs"]') as HTMLElement;
+          
+          if (heroDocsHomeBtn) {
+            heroDocsHomeBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // Hero Focused DocsからHero Focusedホームに戻る
+              heroFocusedDocsLayout.style.display = 'none';
+              heroFocusedLayout.style.display = 'block';
+            });
+          }
+          
+          if (heroDocsDocsBtn) {
+            heroDocsDocsBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // すでにHero Focused Docsが表示されているので何もしない（またはページ内でリフレッシュ）
+            });
+          }
+        }, 100);
         
       } else {
         alert(`${layoutType} レイアウトは準備中です！`);
