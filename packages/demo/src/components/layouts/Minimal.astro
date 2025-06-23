@@ -47,6 +47,24 @@ const features = [
 ---
 
 <div class="minimal-layout">
+  <!-- Header -->
+  <header class="minimal-header">
+    <div class="container">
+      <nav class="minimal-nav">
+        <div class="nav-brand">
+          <a href="./" class="brand-link">
+            <h1>{title}</h1>
+          </a>
+        </div>
+        <div class="nav-links">
+          <button class="nav-link nav-active" onclick="showDemo()">Home</button>
+          <button class="nav-link" onclick="showDocs()">Documentation</button>
+          <a href="https://github.com/wadakatu/gitlyte" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
   <!-- Hero Section -->
   <section class="hero-minimal">
     <div class="container">
@@ -55,7 +73,10 @@ const features = [
         <p class="description">{description}</p>
         
         <div class="actions">
-          <a href="https://github.com/wadakatu/gitlyte" class="button" target="_blank" rel="noopener noreferrer">
+          <button class="button button-primary">
+            📖 Documentation
+          </button>
+          <a href="https://github.com/wadakatu/gitlyte" class="button button-secondary" target="_blank" rel="noopener noreferrer">
             View Repository
           </a>
         </div>
@@ -98,7 +119,7 @@ const features = [
   </section>
 
   <!-- About Section -->
-  <section class="section">
+  <section class="about-section">
     <div class="container">
       <div class="content-section">
         <h2>About Minimal Layout</h2>
@@ -107,26 +128,56 @@ const features = [
           It's perfect for projects that prioritize readability and simplicity over visual complexity.
         </p>
         
-        <div class="layout-characteristics">
-          <h3>Design Characteristics</h3>
-          <ul>
-            <li>Clean, typography-focused design</li>
-            <li>Minimal color palette (blacks, grays, whites)</li>
-            <li>Subtle borders and spacing</li>
-            <li>Inter + JetBrains Mono font combination</li>
-            <li>Responsive grid layouts</li>
-            <li>Accessibility-first approach</li>
-          </ul>
+        <div class="design-principles">
+          <h3>Design Principles</h3>
+          <div class="principles-list">
+            <div class="principle">
+              <h4>— Typography First</h4>
+              <p>Inter フォントファミリーを使用し、可読性を最優先にした文字組み</p>
+            </div>
+            <div class="principle">
+              <h4>— Generous Whitespace</h4>
+              <p>十分な余白によってコンテンツに呼吸を与える</p>
+            </div>
+            <div class="principle">
+              <h4>— Monochrome Palette</h4>
+              <p>黒・グレー・白を基調とした控えめなカラーパレット</p>
+            </div>
+            <div class="principle">
+              <h4>— Subtle Borders</h4>
+              <p>微細なボーダーとシャドウで要素を分離</p>
+            </div>
+          </div>
         </div>
 
-        <div class="code-example">
+        <div class="usage-example">
           <h3>Usage Example</h3>
           <code>pnpm --filter @gitlyte/demo dev</code>
           <p>Select "Minimal" from the layout selector to see this design in action.</p>
         </div>
+        
+        <div class="tech-details">
+          <div class="detail-item">
+            <h4>Color Palette</h4>
+            <div class="color-samples">
+              <div class="color-sample primary">#1a1a1a</div>
+              <div class="color-sample secondary">#666666</div>
+              <div class="color-sample accent">#ffffff</div>
+            </div>
+          </div>
+          <div class="detail-item">
+            <h4>Typography</h4>
+            <div class="font-info">
+              <span>Heading: Inter (600 weight)</span>
+              <span>Body: Inter (400 weight)</span>
+              <span>Code: JetBrains Mono</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
+
 </div>
 
 <style>
@@ -136,6 +187,67 @@ const features = [
     line-height: 1.6;
     color: #1a1a1a;
     background-color: #ffffff;
+  }
+
+  /* Header */
+  .minimal-header {
+    border-bottom: 1px solid #e5e5e5;
+    background-color: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .minimal-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+  }
+
+  .brand-link {
+    text-decoration: none;
+    color: #1a1a1a;
+  }
+
+  .brand-link h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .nav-link {
+    background: none;
+    border: none;
+    text-decoration: none;
+    color: #666666;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+    position: relative;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .nav-link:hover,
+  .nav-link.nav-active {
+    color: #1a1a1a;
+  }
+
+  .nav-link.nav-active::after {
+    content: '';
+    position: absolute;
+    bottom: -1rem;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #1a1a1a;
   }
 
   .container {
@@ -175,23 +287,41 @@ const features = [
 
   .actions {
     margin-bottom: 2rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
   .button {
     display: inline-block;
     padding: 0.5rem 1.5rem;
-    background-color: #000000;
-    color: white;
     border: none;
     border-radius: 2px;
     font-size: 0.875rem;
     font-weight: 500;
     text-decoration: none;
-    transition: opacity 0.2s ease;
+    transition: all 0.2s ease;
   }
 
-  .button:hover {
+  .button-primary {
+    background-color: #000000;
+    color: white;
+  }
+
+  .button-primary:hover {
     opacity: 0.8;
+    transform: translateY(-1px);
+  }
+
+  .button-secondary {
+    background-color: transparent;
+    color: #1a1a1a;
+    border: 1px solid #e5e5e5;
+  }
+
+  .button-secondary:hover {
+    border-color: #999999;
+    background-color: #f5f5f5;
   }
 
   .stats {
@@ -275,7 +405,12 @@ const features = [
     color: #666666;
   }
 
-  /* Content Section */
+  /* About Section */
+  .about-section {
+    padding: 4rem 0;
+  }
+
+
   .content-section {
     max-width: 700px;
   }
@@ -283,6 +418,17 @@ const features = [
   .content-section h2 {
     margin-bottom: 1.5rem;
     font-weight: 500;
+    font-size: 1.5rem;
+    color: #1a1a1a;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 0.5rem;
+  }
+
+  .content-section h3 {
+    margin-bottom: 1rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #1a1a1a;
   }
 
   .content-section p {
@@ -292,52 +438,57 @@ const features = [
     color: #666666;
   }
 
-  .layout-characteristics {
-    margin-bottom: 2rem;
+  /* Design Principles */
+  .design-principles {
+    margin-bottom: 3rem;
   }
 
-  .layout-characteristics h3 {
-    margin-bottom: 1rem;
-    font-size: 1.125rem;
-    font-weight: 500;
+  .principles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 2rem 0;
   }
 
-  .layout-characteristics ul {
-    list-style: none;
-    padding-left: 0;
-  }
-
-  .layout-characteristics li {
-    padding: 0.5rem 0;
+  .principle {
+    padding: 1rem 0;
     border-bottom: 1px solid #e5e5e5;
-    color: #666666;
-    font-size: 0.875rem;
   }
 
-  .layout-characteristics li:last-child {
+  .principle:last-child {
     border-bottom: none;
   }
 
-  .layout-characteristics li::before {
-    content: "—";
-    margin-right: 0.5rem;
-    color: #999999;
+  .principle h4 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #1a1a1a;
   }
 
-  .code-example {
+  .principle p {
+    font-size: 0.875rem;
+    color: #666666;
+    margin: 0;
+  }
+
+  /* Usage Example */
+  .usage-example {
+    margin: 2rem 0;
     padding: 1.5rem;
     background-color: #f5f5f5;
     border-radius: 4px;
     border: 1px solid #e5e5e5;
   }
 
-  .code-example h3 {
+  .usage-example h3 {
     margin-bottom: 1rem;
     font-size: 1rem;
     font-weight: 500;
+    color: #1a1a1a;
   }
 
-  .code-example code {
+  .usage-example code {
     display: block;
     margin-bottom: 1rem;
     padding: 0.5rem;
@@ -348,16 +499,87 @@ const features = [
     font-size: 0.875rem;
   }
 
-  .code-example p {
+  .usage-example p {
     font-size: 0.875rem;
-    margin-bottom: 0;
+    margin: 0;
     color: #666666;
+  }
+
+  /* Technical Details */
+  .tech-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin: 2rem 0;
+  }
+
+  .detail-item h4 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    color: #1a1a1a;
+  }
+
+  .color-samples {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .color-sample {
+    padding: 0.5rem 1rem;
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid #e5e5e5;
+  }
+
+  .color-sample.primary {
+    background-color: #1a1a1a;
+    color: white;
+  }
+
+  .color-sample.secondary {
+    background-color: #666666;
+    color: white;
+  }
+
+  .color-sample.accent {
+    background-color: #ffffff;
+    color: #1a1a1a;
+    border: 1px solid #1a1a1a;
+  }
+
+  .font-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .font-info span {
+    font-size: 0.875rem;
+    color: #666666;
+    padding: 0.5rem;
+    background-color: #f5f5f5;
+    border-radius: 2px;
+    border: 1px solid #e5e5e5;
   }
 
   /* Responsive Design */
   @media (max-width: 768px) {
     .container {
       padding: 0 1rem;
+    }
+
+    .minimal-nav {
+      flex-direction: column;
+      gap: 1rem;
+      padding: 0.75rem 0;
+    }
+
+    .nav-links {
+      gap: 1rem;
     }
     
     .hero-minimal {
@@ -371,6 +593,10 @@ const features = [
     
     .description {
       font-size: 1rem;
+    }
+    
+    .actions {
+      gap: 0.75rem;
     }
     
     .stats {
@@ -402,9 +628,34 @@ const features = [
     .features-minimal {
       padding: 2rem 0;
     }
+    
+    .about-section {
+      padding: 2rem 0;
+    }
+    
+    .content-section h2 {
+      font-size: 1.25rem;
+    }
+    
+    .color-samples {
+      flex-direction: column;
+    }
+    
+    .color-sample {
+      text-align: center;
+    }
   }
 
   @media (max-width: 480px) {
+    .actions {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .button {
+      text-align: center;
+    }
+    
     .stats {
       flex-direction: column;
       gap: 1rem;
@@ -433,12 +684,12 @@ const features = [
       font-size: 0.8rem;
     }
     
-    .layout-characteristics li {
-      font-size: 0.8rem;
+    .usage-example {
+      padding: 1rem;
     }
     
-    .code-example {
-      padding: 1rem;
+    .tech-details {
+      gap: 1.5rem;
     }
   }
 </style>

@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import HeroFocused from '../components/layouts/HeroFocused.astro';
 import Minimal from '../components/layouts/Minimal.astro';
 import DocsContent from '../components/DocsContent.astro';
+import MinimalDocs from '../components/MinimalDocs.astro';
 
 const sampleData = {
   title: "GitLyte Demo Project",
@@ -91,6 +92,10 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
         description={sampleData.description}
         stats={sampleData.stats}
       />
+    </div>
+    <!-- Minimal Docs Layout (hidden by default) -->
+    <div id="minimal-docs-layout" style="display: none;">
+      <MinimalDocs />
     </div>
   </main>
 
@@ -318,8 +323,8 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
     const docsContent = document.getElementById('docs-content') as HTMLElement;
     const layoutSelector = document.getElementById('layout-selector') as HTMLSelectElement;
     
-    // ページ切り替え機能
-    function showDemo() {
+    // グローバル関数として定義
+    window.showDemo = function() {
       // コンテンツの表示切り替え
       demoSection.style.display = 'block';
       demoContent.style.display = 'block';
@@ -333,7 +338,7 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
       layoutSelector.parentElement.style.display = 'block';
     }
     
-    function showDocs() {
+    window.showDocs = function() {
       // コンテンツの表示切り替え
       demoSection.style.display = 'none';
       demoContent.style.display = 'none';
@@ -363,9 +368,16 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
     function switchLayout(layoutType: string) {
       const heroFocusedLayout = document.getElementById('hero-focused-layout') as HTMLElement;
       const minimalLayout = document.getElementById('minimal-layout') as HTMLElement;
+      const minimalDocsLayout = document.getElementById('minimal-docs-layout') as HTMLElement;
       const layoutTitle = document.getElementById('layout-title') as HTMLElement;
       const layoutDescription = document.getElementById('layout-description') as HTMLElement;
       const layoutFeatures = document.getElementById('layout-features') as HTMLElement;
+      
+      // すべてのレイアウトを非表示
+      const allLayouts = [heroFocusedLayout, minimalLayout, minimalDocsLayout];
+      allLayouts.forEach(layout => {
+        if (layout) layout.style.display = 'none';
+      });
       
       // レイアウト説明データ
       const layoutInfo = {
@@ -393,6 +405,7 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
         // Minimal レイアウトを表示
         heroFocusedLayout.style.display = 'none';
         minimalLayout.style.display = 'block';
+        minimalDocsLayout.style.display = 'none';
         
         // 説明を更新
         const info = layoutInfo.minimal;
@@ -405,10 +418,71 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
           </div>`
         ).join('');
         
+        // Minimalレイアウトのナビゲーションボタンにイベントリスナーを追加
+        setTimeout(() => {
+          // Docsボタンのイベントリスナー
+          const minimalDocsBtn = minimalLayout.querySelector('.button-primary') as HTMLElement;
+          if (minimalDocsBtn) {
+            minimalDocsBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // Minimalレイアウトを隠してMinimalDocsを表示
+              minimalLayout.style.display = 'none';
+              minimalDocsLayout.style.display = 'block';
+            });
+          }
+          
+          // ヘッダーナビゲーションボタンのイベントリスナーを再アタッチ
+          const homeBtn = minimalLayout.querySelector('.nav-link[onclick="showDemo()"]') as HTMLElement;
+          const docsBtn = minimalLayout.querySelector('.nav-link[onclick="showDocs()"]') as HTMLElement;
+          
+          if (homeBtn) {
+            homeBtn.removeAttribute('onclick');
+            homeBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // Minimalレイアウト内でのHome表示（MinimalDocsを隠してMinimalホームを表示）
+              minimalDocsLayout.style.display = 'none';
+              minimalLayout.style.display = 'block';
+            });
+          }
+          
+          if (docsBtn) {
+            docsBtn.removeAttribute('onclick');
+            docsBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // Minimalレイアウトを隠してMinimalDocsを表示
+              minimalLayout.style.display = 'none';
+              minimalDocsLayout.style.display = 'block';
+            });
+          }
+          
+          // MinimalDocsレイアウトのHeaderボタンにもイベントリスナーを追加
+          const minimalDocsHomeBtn = minimalDocsLayout.querySelector('.nav-link[onclick="showDemo()"]') as HTMLElement;
+          const minimalDocsDocsBtn = minimalDocsLayout.querySelector('.nav-link[onclick="showDocs()"]') as HTMLElement;
+          
+          if (minimalDocsHomeBtn) {
+            minimalDocsHomeBtn.removeAttribute('onclick');
+            minimalDocsHomeBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // MinimalDocsからMinimalホームに戻る
+              minimalDocsLayout.style.display = 'none';
+              minimalLayout.style.display = 'block';
+            });
+          }
+          
+          if (minimalDocsDocsBtn) {
+            minimalDocsDocsBtn.removeAttribute('onclick');
+            minimalDocsDocsBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              // すでにMinimalDocsが表示されているので何もしない（またはページ内でリフレッシュ）
+            });
+          }
+        }, 100);
+        
       } else if (layoutType === 'hero-focused') {
         // Hero Focused レイアウトを表示
         heroFocusedLayout.style.display = 'block';
         minimalLayout.style.display = 'none';
+        minimalDocsLayout.style.display = 'none';
         
         // 説明を更新
         const info = layoutInfo['hero-focused'];
