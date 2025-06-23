@@ -22,7 +22,8 @@
     "check": "pnpm -r run check",
     "check:fix": "pnpm -r run check:fix",
     "ci:check": "pnpm --filter @gitlyte/core ci:check",
-    "dev:demo": "pnpm --filter @gitlyte/demo dev"
+    "dev:demo": "pnpm --filter @gitlyte/demo dev",
+    "build:shared": "pnpm --filter @gitlyte/shared build"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",

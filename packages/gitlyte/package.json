@@ -26,7 +26,8 @@
   "dependencies": {
     "date-fns": "^4.1.0",
     "openai": "^5.5.1",
-    "probot": "^13.4.5"
+    "probot": "^13.4.5",
+    "@gitlyte/shared": "workspace:*"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
