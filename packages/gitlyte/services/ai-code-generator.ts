@@ -8,7 +8,7 @@ import { generateDocsPage } from "./docs-generator.js";
 import { detectRepoLogo } from "../utils/logo-detector.js";
 
 // 型拡張: 新しいデザインプロパティを含む
-interface EnhancedDesignStrategy extends Omit<DesignStrategy, "effects"> {
+export interface EnhancedDesignStrategy extends Omit<DesignStrategy, "effects"> {
   effects: {
     blur: boolean;
     shadows: "subtle" | "prominent" | "none";
@@ -99,7 +99,7 @@ export async function generateAstroSite(
       logoResult
     ),
     repoData.readme
-      ? generateDocsPage(repoData, design)
+      ? generateDocsPage(repoData, enhancedDesign)
       : Promise.resolve(null),
     generateGlobalStyles(baseContext, enhancedDesign),
   ]);
@@ -279,11 +279,35 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
 ---
 
 <div class="minimal-layout">
+  <!-- Navigation Header -->
+  <header class="minimal-header">
+    <div class="container">
+      <nav class="minimal-nav">
+        <div class="nav-brand">
+          {hasLogo && logoUrl ? (
+            <a href="./" class="brand-link">
+              <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
+            </a>
+          ) : (
+            <a href="./" class="brand-link">
+              <h1 class="brand-title">{title}</h1>
+            </a>
+          )}
+        </div>
+        <div class="nav-links">
+          <a href="./" class="nav-link nav-active">Home</a>
+          {hasReadme && <a href="./docs" class="nav-link">Documentation</a>}
+          <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
   <!-- Hero Section -->
   <section class="hero-minimal">
     <div class="container">
-      <header class="header">
-        <h1>{title}</h1>
+      <header class="hero-header">
+        <h1 class="hero-title">{title}</h1>
         <p class="description">{description}</p>
         
         <div class="actions">
@@ -326,6 +350,69 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
     padding: 0 2rem;
   }
 
+  /* Navigation Header */
+  .minimal-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .minimal-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+  }
+
+  .brand-link {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .brand-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: #1a1a1a;
+  }
+
+  .brand-logo {
+    height: 32px;
+    width: auto;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: #666666;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+    transition: color 0.2s ease;
+  }
+
+  .nav-link:hover {
+    color: #1a1a1a;
+  }
+
+  .nav-link.nav-active {
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
   /* Hero Section */
   .hero-minimal {
     min-height: 50vh;
@@ -334,12 +421,12 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
     padding: 3rem 0;
   }
 
-  .header {
+  .hero-header {
     text-align: left;
     margin-bottom: 2rem;
   }
 
-  .header h1 {
+  .hero-title {
     font-size: 2rem;
     font-weight: 600;
     margin-bottom: 1rem;
@@ -410,12 +497,32 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       padding: 0 1rem;
     }
     
+    .minimal-nav {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+      padding: 0.75rem 0;
+    }
+    
+    .nav-links {
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .brand-title {
+      font-size: 1.25rem;
+    }
+    
+    .nav-link {
+      font-size: 0.85rem;
+    }
+    
     .hero-minimal {
       min-height: auto;
       padding: 2rem 0;
     }
     
-    .header h1 {
+    .hero-title {
       font-size: 1.75rem;
     }
     
