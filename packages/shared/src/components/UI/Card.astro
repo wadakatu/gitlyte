@@ -1,0 +1,73 @@
+---
+export interface Props {
+  variant?: 'default' | 'elevated' | 'bordered';
+  padding?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+const { variant = 'default', padding = 'md', className = '' } = Astro.props;
+---
+
+<div class={`card card-${variant} card-padding-${padding} ${className}`}>
+  <slot />
+</div>
+
+<style>
+  .card {
+    border-radius: var(--radius-lg);
+    transition: all 0.2s ease;
+  }
+  
+  /* Variants */
+  .card-default {
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+  }
+  
+  .card-elevated {
+    background-color: var(--color-background);
+    box-shadow: var(--shadow-md);
+    border: 1px solid transparent;
+  }
+  
+  .card-elevated:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+  
+  .card-bordered {
+    background-color: var(--color-surface);
+    border: 2px solid var(--color-border);
+  }
+  
+  .card-bordered:hover {
+    border-color: var(--color-primary);
+  }
+  
+  /* Padding */
+  .card-padding-sm {
+    padding: var(--space-md);
+  }
+  
+  .card-padding-md {
+    padding: var(--space-lg);
+  }
+  
+  .card-padding-lg {
+    padding: var(--space-xl);
+  }
+  
+  @media (max-width: 768px) {
+    .card-padding-sm {
+      padding: var(--space-sm);
+    }
+    
+    .card-padding-md {
+      padding: var(--space-md);
+    }
+    
+    .card-padding-lg {
+      padding: var(--space-lg);
+    }
+  }
+</style>
