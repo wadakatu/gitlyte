@@ -369,6 +369,77 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
       switchLayout(selectedLayout);
     });
     
+    // 初期ロード時にHero-focusedレイアウトのイベントリスナーを設定
+    setupHeroFocusedNavigation();
+    
+    // Hero-focusedナビゲーション設定関数
+    function setupHeroFocusedNavigation() {
+      const heroFocusedLayout = document.getElementById('hero-focused-layout') as HTMLElement;
+      const heroFocusedDocsLayout = document.getElementById('hero-focused-docs-layout') as HTMLElement;
+      
+      if (heroFocusedLayout && heroFocusedDocsLayout) {
+        // 既存のイベントリスナーをクリアするために、要素を複製して置換する
+        const heroDocsBtn = heroFocusedLayout.querySelector('.cta-secondary[href="#docs"]') as HTMLElement;
+        const headerDocsBtn = heroFocusedLayout.querySelector('.nav-link[href="#docs"]') as HTMLElement;
+        const headerHomeBtn = heroFocusedLayout.querySelector('.nav-link[href="#features"]') as HTMLElement;
+        const heroDocsHomeBtn = heroFocusedDocsLayout.querySelector('.nav-link[href="#features"]') as HTMLElement;
+        const heroDocsDocsBtn = heroFocusedDocsLayout.querySelector('.nav-link[href="#docs"]') as HTMLElement;
+        
+        // ヒーロー部分のDocumentationボタン
+        if (heroDocsBtn) {
+          const newHeroDocsBtn = heroDocsBtn.cloneNode(true) as HTMLElement;
+          heroDocsBtn.parentNode?.replaceChild(newHeroDocsBtn, heroDocsBtn);
+          newHeroDocsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            heroFocusedLayout.style.display = 'none';
+            heroFocusedDocsLayout.style.display = 'block';
+          });
+        }
+        
+        // ヘッダーのDocsボタン
+        if (headerDocsBtn) {
+          const newHeaderDocsBtn = headerDocsBtn.cloneNode(true) as HTMLElement;
+          headerDocsBtn.parentNode?.replaceChild(newHeaderDocsBtn, headerDocsBtn);
+          newHeaderDocsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            heroFocusedLayout.style.display = 'none';
+            heroFocusedDocsLayout.style.display = 'block';
+          });
+        }
+        
+        // ヘッダーのHomeボタン
+        if (headerHomeBtn) {
+          const newHeaderHomeBtn = headerHomeBtn.cloneNode(true) as HTMLElement;
+          headerHomeBtn.parentNode?.replaceChild(newHeaderHomeBtn, headerHomeBtn);
+          newHeaderHomeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            heroFocusedDocsLayout.style.display = 'none';
+            heroFocusedLayout.style.display = 'block';
+          });
+        }
+        
+        // Hero Focused Docsレイアウトのナビゲーション
+        if (heroDocsHomeBtn) {
+          const newHeroDocsHomeBtn = heroDocsHomeBtn.cloneNode(true) as HTMLElement;
+          heroDocsHomeBtn.parentNode?.replaceChild(newHeroDocsHomeBtn, heroDocsHomeBtn);
+          newHeroDocsHomeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            heroFocusedDocsLayout.style.display = 'none';
+            heroFocusedLayout.style.display = 'block';
+          });
+        }
+        
+        if (heroDocsDocsBtn) {
+          const newHeroDocsDocsBtn = heroDocsDocsBtn.cloneNode(true) as HTMLElement;
+          heroDocsDocsBtn.parentNode?.replaceChild(newHeroDocsDocsBtn, heroDocsDocsBtn);
+          newHeroDocsDocsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // すでにHero Focused Docsが表示されているので何もしない
+          });
+        }
+      }
+    }
+    
     // レイアウト切り替え関数
     function switchLayout(layoutType: string) {
       const heroFocusedLayout = document.getElementById('hero-focused-layout') as HTMLElement;
@@ -524,58 +595,7 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
         
         // Hero Focusedレイアウトのナビゲーションボタンにイベントリスナーを追加
         setTimeout(() => {
-          // Documentationボタンのイベントリスナー（ヒーロー部分のボタン）
-          const heroDocsBtn = heroFocusedLayout.querySelector('.cta-secondary[href*="docs"]') as HTMLElement;
-          if (heroDocsBtn) {
-            heroDocsBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              // Hero Focusedレイアウトを隠してHero Focused Docsを表示
-              heroFocusedLayout.style.display = 'none';
-              heroFocusedDocsLayout.style.display = 'block';
-            });
-          }
-          
-          // ヘッダーナビゲーションボタンのイベントリスナー
-          const homeBtn = heroFocusedLayout.querySelector('.nav-link[href="#features"]') as HTMLElement;
-          const docsBtn = heroFocusedLayout.querySelector('.nav-link[href*="docs"]') as HTMLElement;
-          
-          if (homeBtn) {
-            homeBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              // Hero Focusedレイアウト内でのHome表示（Hero Focused Docsを隠してHero Focusedホームを表示）
-              heroFocusedDocsLayout.style.display = 'none';
-              heroFocusedLayout.style.display = 'block';
-            });
-          }
-          
-          if (docsBtn) {
-            docsBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              // Hero Focusedレイアウトを隠してHero Focused Docsを表示
-              heroFocusedLayout.style.display = 'none';
-              heroFocusedDocsLayout.style.display = 'block';
-            });
-          }
-          
-          // Hero Focused DocsレイアウトのHeaderボタンにもイベントリスナーを追加
-          const heroDocsHomeBtn = heroFocusedDocsLayout.querySelector('.nav-link[href="#features"]') as HTMLElement;
-          const heroDocsDocsBtn = heroFocusedDocsLayout.querySelector('.nav-link[href="#docs"]') as HTMLElement;
-          
-          if (heroDocsHomeBtn) {
-            heroDocsHomeBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              // Hero Focused DocsからHero Focusedホームに戻る
-              heroFocusedDocsLayout.style.display = 'none';
-              heroFocusedLayout.style.display = 'block';
-            });
-          }
-          
-          if (heroDocsDocsBtn) {
-            heroDocsDocsBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              // すでにHero Focused Docsが表示されているので何もしない（またはページ内でリフレッシュ）
-            });
-          }
+          setupHeroFocusedNavigation();
         }, 100);
         
       } else {
