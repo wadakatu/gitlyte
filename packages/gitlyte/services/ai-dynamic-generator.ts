@@ -231,12 +231,12 @@ async function generateDynamicLayout(
     console.error("Layout generation failed:", error);
     // フォールバック: 基本レイアウト
     return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description } = Astro.props as Props;
 ---
 
 <!DOCTYPE html>
@@ -308,7 +308,7 @@ import Layout from '../layouts/Layout.astro';
 ${imports}
 
 // Repository data will be replaced during generation
-const repoData = {{REPO_DATA}};
+const repoData = JSON.parse('{{REPO_DATA}}');
 const repo = repoData.repo || {};
 const prs = repoData.prs || [];
 const readme = repoData.readme || '';

@@ -245,7 +245,7 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
                 <span class="code-language">JSON</span>
                 <button class="copy-button">📋 Copy</button>
               </div>
-              <pre><code>{`{
+              <pre><code>{JSON.stringify({
   "colorScheme": {
     "primary": "#667eea",
     "secondary": "#764ba2",
@@ -257,7 +257,7 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
   },
   "layout": "hero-focused",
   "style": "modern"
-}`}</code></pre>
+}, null, 2)}</code></pre>
             </div>
           </section>
 

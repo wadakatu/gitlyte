@@ -110,12 +110,12 @@ const AVAILABLE_TEMPLATES: Template[] = [
       {
         path: "src/layouts/Layout.astro",
         content: `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description } = Astro.props as Props;
 ---
 
 <!DOCTYPE html>
@@ -166,7 +166,7 @@ const { title, description } = Astro.props;
       {
         path: "src/components/Hero.astro",
         content: `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -176,7 +176,7 @@ export interface Props {
   };
 }
 
-const { title, description, stats } = Astro.props;
+const { title, description, stats } = Astro.props as Props;
 ---
 
 <section class="hero">
@@ -279,7 +279,7 @@ const { title, description, stats } = Astro.props;
       {
         path: "src/components/Features.astro",
         content: `---
-export interface Props {
+interface Props {
   prs: Array<{
     title: string;
     user: { login: string } | null;
@@ -287,7 +287,7 @@ export interface Props {
   }>;
 }
 
-const { prs } = Astro.props;
+const { prs } = Astro.props as Props;
 ---
 
 <section class="features">
@@ -371,7 +371,7 @@ import Hero from '../components/Hero.astro';
 import Features from '../components/Features.astro';
 
 // Repository data will be replaced during generation
-const repoData = {{REPO_DATA}};
+const repoData = JSON.parse('{{REPO_DATA}}');
 const repo = repoData.repo || {};
 const prs = repoData.prs || [];
 const issues = repoData.issues || [];

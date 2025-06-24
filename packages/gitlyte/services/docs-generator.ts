@@ -1,5 +1,5 @@
 import type { RepoData } from "../types.js";
-import type { DesignStrategy } from "./ai-analyzer.js";
+import type { EnhancedDesignStrategy } from "./ai-code-generator.js";
 import { detectRepoLogo } from "../utils/logo-detector.js";
 
 /** Markdownコンテンツの構造分析結果 */
@@ -188,7 +188,7 @@ function extractDocumentTitle(readme: string): string {
  */
 export async function generateDocsPage(
   repoData: RepoData,
-  design: DesignStrategy
+  design: EnhancedDesignStrategy
 ): Promise<GeneratedDocsPage> {
   const readme = repoData.readme || "";
   const docStructure = analyzeDocumentStructure(readme);
@@ -238,6 +238,109 @@ function generateSearchData(structure: DocumentStructure): string {
     null,
     2
   );
+}
+
+/**
+ * サイドバー生成（Minimal用）
+ */
+function generateSidebar(
+  structure: DocumentStructure,
+  _design: EnhancedDesignStrategy
+): { sidebar: string; searchData: string } {
+  const navigation = generateNavigation(structure);
+  const searchData = generateSearchData(structure);
+
+  const sidebar = `
+<nav class="minimal-docs-navigation">
+  <div class="nav-header">
+    <h3>Documentation</h3>
+  </div>
+  <div class="nav-content">
+    ${navigation}
+  </div>
+  <div class="nav-meta">
+    <div class="read-time">
+      <span class="label">読了時間</span>
+      <span class="value">${Math.ceil(structure.metadata.wordCount / 200)}分</span>
+    </div>
+    <div class="word-count">
+      <span class="label">単語数</span>
+      <span class="value">${structure.metadata.wordCount}</span>
+    </div>
+  </div>
+</nav>
+<style>
+  .minimal-docs-navigation {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+  
+  .nav-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+    color: #1a1a1a;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 0.5rem;
+  }
+  
+  .nav-content .toc-link {
+    display: block;
+    color: #666666;
+    text-decoration: none;
+    padding: 0.375rem 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    transition: color 0.2s ease;
+    border-left: 2px solid transparent;
+    padding-left: 0.5rem;
+  }
+  
+  .nav-content .toc-link:hover {
+    color: #1a1a1a;
+    border-left-color: #e5e5e5;
+  }
+  
+  .nav-content .toc-link.level-1 {
+    font-weight: 600;
+    margin-top: 0.75rem;
+    color: #1a1a1a;
+  }
+  
+  .nav-content .toc-link.level-2 {
+    padding-left: 1rem;
+  }
+  
+  .nav-content .toc-link.level-3 {
+    padding-left: 1.5rem;
+    font-size: 0.8rem;
+  }
+  
+  .nav-meta {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e5e5;
+  }
+  
+  .nav-meta > div {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .nav-meta .label {
+    color: #666666;
+  }
+  
+  .nav-meta .value {
+    font-weight: 500;
+    color: #1a1a1a;
+  }
+</style>`;
+
+  return { sidebar, searchData };
 }
 
 /**
@@ -296,7 +399,343 @@ ${renderTocItems(structure.tableOfContents)}
 async function generateDocsPageContent(
   repoData: RepoData,
   structure: DocumentStructure,
-  design: DesignStrategy,
+  design: EnhancedDesignStrategy,
+  logoResult?: { hasLogo: boolean; logoUrl?: string; faviconUrl?: string }
+): Promise<string> {
+  // レイアウト別処理
+  switch (design.layout) {
+    case "minimal":
+      return generateMinimalDocsPageContent(
+        repoData,
+        structure,
+        design,
+        logoResult
+      );
+    default:
+      return generateDefaultDocsPageContent(
+        repoData,
+        structure,
+        design,
+        logoResult
+      );
+  }
+}
+
+async function generateMinimalDocsPageContent(
+  repoData: RepoData,
+  structure: DocumentStructure,
+  design: EnhancedDesignStrategy,
+  logoResult?: { hasLogo: boolean; logoUrl?: string; faviconUrl?: string }
+): Promise<string> {
+  const processedContent = await processMarkdownContent(structure, repoData);
+  const { sidebar, searchData } = generateSidebar(structure, design);
+
+  return `---
+import Layout from '../layouts/Layout.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  repoData: any;
+}
+
+const { title, description, repoData } = Astro.props as Props;
+
+const hasLogo = ${logoResult?.hasLogo && logoResult.logoUrl ? "true" : "false"};
+const logoUrl = "${logoResult?.logoUrl || ""}";
+const repoName = repoData?.repo?.name || "Repository";
+const repoUrl = repoData?.repo?.html_url || "#";
+---
+
+<Layout title={title + " - Documentation"} description={description}>
+  <div class="minimal-docs-layout">
+    <!-- Navigation Header -->
+    <header class="minimal-header">
+      <div class="container">
+        <nav class="minimal-nav">
+          <div class="nav-brand">
+            <a href="../" class="brand-link">
+              {hasLogo ? (
+                <img src={logoUrl} alt={repoName + " logo"} class="brand-logo" />
+              ) : (
+                <h1 class="brand-title">{repoName}</h1>
+              )}
+            </a>
+          </div>
+          <div class="nav-links">
+            <a href="../" class="nav-link">Home</a>
+            <a href="./" class="nav-link nav-active">Documentation</a>
+            <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">GitHub</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main container with sidebar and content -->
+    <div class="docs-container">
+      <!-- Sidebar navigation -->
+      <aside class="docs-sidebar">
+        ${sidebar}
+      </aside>
+
+      <!-- Main content -->
+      <main class="docs-content">
+        <article class="docs-article">
+          ${processedContent}
+        </article>
+      </main>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  /* Minimal Docs Layout Styles */
+  .minimal-docs-layout {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background-color: #ffffff;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* Navigation Header */
+  .minimal-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .minimal-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+  }
+
+  .brand-link {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .brand-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: #1a1a1a;
+  }
+
+  .brand-logo {
+    height: 32px;
+    width: auto;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: #666666;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+    transition: color 0.2s ease;
+  }
+
+  .nav-link:hover {
+    color: #1a1a1a;
+  }
+
+  .nav-link.nav-active {
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
+  /* Docs Container */
+  .docs-container {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 3rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    min-height: calc(100vh - 80px);
+  }
+
+  /* Sidebar */
+  .docs-sidebar {
+    position: sticky;
+    top: 100px;
+    height: fit-content;
+    background: #fafafa;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+
+  /* Main Content */
+  .docs-content {
+    max-width: none;
+  }
+
+  .docs-article {
+    background: #ffffff;
+    padding: 2rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Typography */
+  .docs-article h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #1a1a1a;
+    border-bottom: 2px solid #e5e5e5;
+    padding-bottom: 1rem;
+  }
+
+  .docs-article h2 {
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 2rem 0 1rem 0;
+    color: #1a1a1a;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 0.5rem;
+  }
+
+  .docs-article h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 1.5rem 0 0.75rem 0;
+    color: #1a1a1a;
+  }
+
+  .docs-article p {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+    color: #333333;
+  }
+
+  .docs-article ul, .docs-article ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+
+  .docs-article li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+
+  .docs-article code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.875em;
+    background-color: #f5f5f5;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    padding: 0.125rem 0.25rem;
+  }
+
+  .docs-article pre {
+    background-color: #f8f9fa;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+
+  .docs-article pre code {
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .docs-article blockquote {
+    border-left: 4px solid #e5e5e5;
+    margin: 1rem 0;
+    padding-left: 1rem;
+    color: #666666;
+    font-style: italic;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .container {
+      padding: 0 1rem;
+    }
+
+    .minimal-nav {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+      padding: 0.75rem 0;
+    }
+
+    .nav-links {
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+    }
+
+    .nav-link {
+      font-size: 0.85rem;
+    }
+
+    .docs-container {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      padding: 1rem;
+    }
+
+    .docs-sidebar {
+      position: static;
+      order: 2;
+    }
+
+    .docs-article {
+      padding: 1.5rem;
+    }
+
+    .docs-article h1 {
+      font-size: 2rem;
+    }
+
+    .docs-article h2 {
+      font-size: 1.5rem;
+    }
+  }
+</style>
+
+<script>
+  const searchData = ${searchData};
+</script>
+`;
+}
+
+async function generateDefaultDocsPageContent(
+  repoData: RepoData,
+  structure: DocumentStructure,
+  design: EnhancedDesignStrategy,
   logoResult?: { hasLogo: boolean; logoUrl?: string; faviconUrl?: string }
 ): Promise<string> {
   const processedContent = await processMarkdownContent(structure, repoData);
@@ -308,7 +747,7 @@ const repoData = ${JSON.stringify(repoData)};
 const docStructure = ${JSON.stringify(structure)};
 ---
 
-<Layout title="${structure.title} - ${repoData.repo.name}" description="Complete documentation for ${repoData.repo.name}">
+<Layout title="${structure.title} - ${repoData.repo?.name || "Repository"}" description="Complete documentation for ${repoData.repo?.name || "Repository"}">
   <header class="site-header">
     <div class="container">
       <nav class="main-nav">
@@ -318,7 +757,7 @@ const docStructure = ${JSON.stringify(structure)};
               ? `
           <a href="../" class="brand-link">
             <div class="brand-with-logo">
-              <img src="${logoResult.logoUrl}" alt="${repoData.repo.name} logo" class="brand-logo" />
+              <img src="${logoResult.logoUrl}" alt="${repoData.repo?.name || "Repository"} logo" class="brand-logo" />
             </div>
           </a>
           `

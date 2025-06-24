@@ -8,7 +8,8 @@ import { generateDocsPage } from "./docs-generator.js";
 import { detectRepoLogo } from "../utils/logo-detector.js";
 
 // 型拡張: 新しいデザインプロパティを含む
-interface EnhancedDesignStrategy extends Omit<DesignStrategy, "effects"> {
+export interface EnhancedDesignStrategy
+  extends Omit<DesignStrategy, "effects"> {
   effects: {
     blur: boolean;
     shadows: "subtle" | "prominent" | "none";
@@ -99,7 +100,7 @@ export async function generateAstroSite(
       logoResult
     ),
     repoData.readme
-      ? generateDocsPage(repoData, design)
+      ? generateDocsPage(repoData, enhancedDesign)
       : Promise.resolve(null),
     generateGlobalStyles(baseContext, enhancedDesign),
   ]);
@@ -156,12 +157,12 @@ async function generateLayout(
   logoResult?: { hasLogo: boolean; faviconUrl?: string }
 ): Promise<string> {
   return `---
-export interface Props {
+interface Props {
   title: string;
-  description?: string;
+  description: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description } = Astro.props as Props;
 ---
 
 <!DOCTYPE html>
@@ -261,7 +262,7 @@ async function generateMinimalHero(
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -275,15 +276,39 @@ export interface Props {
   logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
 ---
 
 <div class="minimal-layout">
+  <!-- Navigation Header -->
+  <header class="minimal-header">
+    <div class="container">
+      <nav class="minimal-nav">
+        <div class="nav-brand">
+          {hasLogo && logoUrl ? (
+            <a href="../" class="brand-link">
+              <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
+            </a>
+          ) : (
+            <a href="../" class="brand-link">
+              <h1 class="brand-title">{title}</h1>
+            </a>
+          )}
+        </div>
+        <div class="nav-links">
+          <a href="../" class="nav-link nav-active">Home</a>
+          {hasReadme && <a href="docs/" class="nav-link">Documentation</a>}
+          <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
   <!-- Hero Section -->
   <section class="hero-minimal">
     <div class="container">
-      <header class="header">
-        <h1>{title}</h1>
+      <header class="hero-header">
+        <h1 class="hero-title">{title}</h1>
         <p class="description">{description}</p>
         
         <div class="actions">
@@ -326,6 +351,69 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
     padding: 0 2rem;
   }
 
+  /* Navigation Header */
+  .minimal-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .minimal-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+  }
+
+  .brand-link {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .brand-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: #1a1a1a;
+  }
+
+  .brand-logo {
+    height: 32px;
+    width: auto;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: #666666;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+    transition: color 0.2s ease;
+  }
+
+  .nav-link:hover {
+    color: #1a1a1a;
+  }
+
+  .nav-link.nav-active {
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
   /* Hero Section */
   .hero-minimal {
     min-height: 50vh;
@@ -334,12 +422,12 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
     padding: 3rem 0;
   }
 
-  .header {
+  .hero-header {
     text-align: left;
     margin-bottom: 2rem;
   }
 
-  .header h1 {
+  .hero-title {
     font-size: 2rem;
     font-weight: 600;
     margin-bottom: 1rem;
@@ -410,12 +498,32 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       padding: 0 1rem;
     }
     
+    .minimal-nav {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+      padding: 0.75rem 0;
+    }
+    
+    .nav-links {
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .brand-title {
+      font-size: 1.25rem;
+    }
+    
+    .nav-link {
+      font-size: 0.85rem;
+    }
+    
     .hero-minimal {
       min-height: auto;
       padding: 2rem 0;
     }
     
-    .header h1 {
+    .hero-title {
       font-size: 1.75rem;
     }
     
@@ -462,7 +570,7 @@ async function generateGridHero(
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -476,7 +584,7 @@ export interface Props {
   logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
 ---
 
 <!-- Grid Layout - Card-based Design -->
@@ -494,7 +602,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       )}
       <div class="nav-links">
         <a href="./" class="nav-link">🏠 Home</a>
-        {hasReadme && <a href="./docs" class="nav-link">📖 Docs</a>}
+        {hasReadme && <a href="docs/" class="nav-link">📖 Docs</a>}
         <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
       </div>
     </nav>
@@ -508,7 +616,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
         <h1 class="hero-title">{title}</h1>
         <p class="hero-description">{description || 'A powerful solution built for modern development'}</p>
         <div class="hero-actions">
-          {hasReadme && <a href="./docs" class="btn-primary">📚 Get Started</a>}
+          {hasReadme && <a href="docs/" class="btn-primary">📚 Get Started</a>}
           <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">⭐ Star on GitHub</a>
         </div>
       </div>
@@ -756,7 +864,7 @@ async function generateSidebarHero(
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -770,7 +878,7 @@ export interface Props {
   logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
 ---
 
 <!-- Sidebar Layout -->
@@ -786,7 +894,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
     
     <nav class="sidebar-nav">
       <a href="./" class="nav-item active">🏠 Home</a>
-      {hasReadme && <a href="./docs" class="nav-item">📖 Documentation</a>}
+      {hasReadme && <a href="docs/" class="nav-item">📖 Documentation</a>}
       <a href={repoUrl} class="nav-item" target="_blank" rel="noopener">🔗 GitHub</a>
     </nav>
     
@@ -824,7 +932,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
         <p class="hero-description">{description || 'An innovative solution for modern development challenges'}</p>
         
         <div class="action-buttons">
-          {hasReadme && <a href="./docs" class="btn-primary">📚 Get Started</a>}
+          {hasReadme && <a href="docs/" class="btn-primary">📚 Get Started</a>}
           <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">⭐ Star Project</a>
         </div>
         
@@ -1112,7 +1220,7 @@ async function generateContentHeavyHero(
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -1126,7 +1234,7 @@ export interface Props {
   logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
 ---
 
 <!-- Content Heavy Layout -->
@@ -1144,7 +1252,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       )}
       <div class="nav-links">
         <a href="./" class="nav-link">🏠 Home</a>
-        {hasReadme && <a href="./docs" class="nav-link">📖 Docs</a>}
+        {hasReadme && <a href="docs/" class="nav-link">📖 Docs</a>}
         <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
       </div>
     </nav>
@@ -1178,7 +1286,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
             <h3>🚀 Getting Started</h3>
             <p>Follow our comprehensive guide to get up and running quickly with best practices and examples.</p>
             <div class="action-links">
-              {hasReadme && <a href="./docs" class="link-primary">📖 Documentation</a>}
+              {hasReadme && <a href="docs/" class="link-primary">📖 Documentation</a>}
               <a href={repoUrl} class="link-secondary" target="_blank" rel="noopener">🔗 Repository</a>
             </div>
           </div>
@@ -1194,7 +1302,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
         </div>
         
         <div class="main-actions">
-          {hasReadme && <a href="./docs" class="btn-primary">📚 Read Documentation</a>}
+          {hasReadme && <a href="docs/" class="btn-primary">📚 Read Documentation</a>}
           <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">👥 Contribute</a>
         </div>
       </div>
@@ -1235,7 +1343,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
               <span>Source Code</span>
             </a>
             {hasReadme && (
-              <a href="./docs" class="sidebar-link">
+              <a href="docs/" class="sidebar-link">
                 <span class="link-icon">📖</span>
                 <span>Documentation</span>
               </a>
@@ -1621,7 +1729,7 @@ async function generateHeroFocusedHero(
         : "4rem 0";
 
   return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -1635,7 +1743,7 @@ export interface Props {
   logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
 ---
 
 <header class="site-header">
@@ -1656,7 +1764,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       </div>
       <div class="nav-links">
         <a href="./" class="nav-link">🏠 Home</a>
-        {hasReadme && <a href="./docs" class="nav-link">📖 Docs</a>}
+        {hasReadme && <a href="docs/" class="nav-link">📖 Docs</a>}
         <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
       </div>
     </nav>
@@ -1673,7 +1781,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       
       <div class="cta-section">
         <a href="#getting-started" class="cta-primary">Get Started</a>
-        {hasReadme && <a href="./docs" class="cta-secondary">📖 Documentation</a>}
+        {hasReadme && <a href="docs/" class="cta-secondary">📖 Documentation</a>}
         <a href={repoUrl} class="cta-secondary" target="_blank" rel="noopener">🔗 GitHub</a>
       </div>
       
@@ -2016,18 +2124,14 @@ async function generateMinimalFeaturesComponent(
   const whyChooseCards = contentAnalysis.features.whyChoose || [];
 
   return `---
-export interface Props {
-  prs: Array<{
-    title: string;
-    user: { login: string } | null;
-    merged_at: string | null;
-  }>;
+interface Props {
+  prs: any;
 }
 
-const { prs } = Astro.props;
+const { prs } = Astro.props as Props;
 
 // 動的Why Choose Cardsの取得
-const whyChooseCards = ${JSON.stringify(whyChooseCards)};
+const whyChooseCards = JSON.parse('${JSON.stringify(whyChooseCards).replace(/'/g, "\\'")}');
 
 // 優先度でソートし、最大6枚まで表示
 const sortedWhyChooseCards = whyChooseCards.sort((a, b) => b.priority - a.priority).slice(0, 6);
@@ -2182,18 +2286,14 @@ async function generateFeaturesComponent(
   const whyChooseCards = contentAnalysis.features.whyChoose || [];
 
   return `---
-export interface Props {
-  prs: Array<{
-    title: string;
-    user: { login: string } | null;
-    merged_at: string | null;
-  }>;
+interface Props {
+  prs: any;
 }
 
-const { prs } = Astro.props;
+const { prs } = Astro.props as Props;
 
 // 動的Why Choose Cardsの取得
-const whyChooseCards = ${JSON.stringify(whyChooseCards)};
+const whyChooseCards = JSON.parse('${JSON.stringify(whyChooseCards).replace(/'/g, "\\'")}');
 
 // 優先度でソートし、最大6枚まで表示
 const sortedWhyChooseCards = whyChooseCards.sort((a, b) => b.priority - a.priority).slice(0, 6);
@@ -2684,7 +2784,7 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
             <h3>Documentation Available</h3>
             <p>Comprehensive documentation is available to help you get started with this project.</p>
             <div class="docs-actions">
-              <a href="./docs" class="docs-link">📖 View Documentation</a>
+              <a href="docs/" class="docs-link">📖 View Documentation</a>
               <a href={repo.html_url} class="docs-link-secondary" target="_blank" rel="noopener">🔗 View on GitHub</a>
             </div>
           </div>
@@ -2954,7 +3054,7 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
               <p>Get comprehensive documentation and usage examples.</p>
             </div>
             <div class="readme-actions">
-              <a href="./docs" class="docs-link-primary">
+              <a href="docs/" class="docs-link-primary">
                 📚 View Full Documentation
               </a>
               <a href={repo.html_url + '/blob/main/README.md'} class="docs-link-secondary" target="_blank" rel="noopener">
