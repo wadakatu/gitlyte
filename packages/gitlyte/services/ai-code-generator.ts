@@ -157,12 +157,12 @@ async function generateLayout(
   logoResult?: { hasLogo: boolean; faviconUrl?: string }
 ): Promise<string> {
   return `---
-export interface Props {
+interface Props {
   title: string;
-  description?: string;
+  description: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description } = Astro.props as Props;
 ---
 
 <!DOCTYPE html>
@@ -286,18 +286,18 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       <nav class="minimal-nav">
         <div class="nav-brand">
           {hasLogo && logoUrl ? (
-            <a href="./" class="brand-link">
+            <a href="../" class="brand-link">
               <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
             </a>
           ) : (
-            <a href="./" class="brand-link">
+            <a href="../" class="brand-link">
               <h1 class="brand-title">{title}</h1>
             </a>
           )}
         </div>
         <div class="nav-links">
-          <a href="./" class="nav-link nav-active">Home</a>
-          {hasReadme && <a href="./docs" class="nav-link">Documentation</a>}
+          <a href="../" class="nav-link nav-active">Home</a>
+          {hasReadme && <a href="docs/" class="nav-link">Documentation</a>}
           <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">GitHub</a>
         </div>
       </nav>
@@ -602,7 +602,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       )}
       <div class="nav-links">
         <a href="./" class="nav-link">🏠 Home</a>
-        {hasReadme && <a href="./docs" class="nav-link">📖 Docs</a>}
+        {hasReadme && <a href="docs/" class="nav-link">📖 Docs</a>}
         <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
       </div>
     </nav>
@@ -616,7 +616,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
         <h1 class="hero-title">{title}</h1>
         <p class="hero-description">{description || 'A powerful solution built for modern development'}</p>
         <div class="hero-actions">
-          {hasReadme && <a href="./docs" class="btn-primary">📚 Get Started</a>}
+          {hasReadme && <a href="docs/" class="btn-primary">📚 Get Started</a>}
           <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">⭐ Star on GitHub</a>
         </div>
       </div>
@@ -894,7 +894,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
     
     <nav class="sidebar-nav">
       <a href="./" class="nav-item active">🏠 Home</a>
-      {hasReadme && <a href="./docs" class="nav-item">📖 Documentation</a>}
+      {hasReadme && <a href="docs/" class="nav-item">📖 Documentation</a>}
       <a href={repoUrl} class="nav-item" target="_blank" rel="noopener">🔗 GitHub</a>
     </nav>
     
@@ -932,7 +932,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
         <p class="hero-description">{description || 'An innovative solution for modern development challenges'}</p>
         
         <div class="action-buttons">
-          {hasReadme && <a href="./docs" class="btn-primary">📚 Get Started</a>}
+          {hasReadme && <a href="docs/" class="btn-primary">📚 Get Started</a>}
           <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">⭐ Star Project</a>
         </div>
         
@@ -1252,7 +1252,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       )}
       <div class="nav-links">
         <a href="./" class="nav-link">🏠 Home</a>
-        {hasReadme && <a href="./docs" class="nav-link">📖 Docs</a>}
+        {hasReadme && <a href="docs/" class="nav-link">📖 Docs</a>}
         <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
       </div>
     </nav>
@@ -1286,7 +1286,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
             <h3>🚀 Getting Started</h3>
             <p>Follow our comprehensive guide to get up and running quickly with best practices and examples.</p>
             <div class="action-links">
-              {hasReadme && <a href="./docs" class="link-primary">📖 Documentation</a>}
+              {hasReadme && <a href="docs/" class="link-primary">📖 Documentation</a>}
               <a href={repoUrl} class="link-secondary" target="_blank" rel="noopener">🔗 Repository</a>
             </div>
           </div>
@@ -1302,7 +1302,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
         </div>
         
         <div class="main-actions">
-          {hasReadme && <a href="./docs" class="btn-primary">📚 Read Documentation</a>}
+          {hasReadme && <a href="docs/" class="btn-primary">📚 Read Documentation</a>}
           <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">👥 Contribute</a>
         </div>
       </div>
@@ -1343,7 +1343,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
               <span>Source Code</span>
             </a>
             {hasReadme && (
-              <a href="./docs" class="sidebar-link">
+              <a href="docs/" class="sidebar-link">
                 <span class="link-icon">📖</span>
                 <span>Documentation</span>
               </a>
@@ -1764,7 +1764,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       </div>
       <div class="nav-links">
         <a href="./" class="nav-link">🏠 Home</a>
-        {hasReadme && <a href="./docs" class="nav-link">📖 Docs</a>}
+        {hasReadme && <a href="docs/" class="nav-link">📖 Docs</a>}
         <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
       </div>
     </nav>
@@ -1781,7 +1781,7 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
       
       <div class="cta-section">
         <a href="#getting-started" class="cta-primary">Get Started</a>
-        {hasReadme && <a href="./docs" class="cta-secondary">📖 Documentation</a>}
+        {hasReadme && <a href="docs/" class="cta-secondary">📖 Documentation</a>}
         <a href={repoUrl} class="cta-secondary" target="_blank" rel="noopener">🔗 GitHub</a>
       </div>
       
@@ -2124,18 +2124,14 @@ async function generateMinimalFeaturesComponent(
   const whyChooseCards = contentAnalysis.features.whyChoose || [];
 
   return `---
-export interface Props {
-  prs: Array<{
-    title: string;
-    user: { login: string } | null;
-    merged_at: string | null;
-  }>;
+interface Props {
+  prs: any;
 }
 
-const { prs } = Astro.props;
+const { prs } = Astro.props as Props;
 
 // 動的Why Choose Cardsの取得
-const whyChooseCards = ${JSON.stringify(whyChooseCards)};
+const whyChooseCards = JSON.parse('${JSON.stringify(whyChooseCards).replace(/'/g, "\\'")}');
 
 // 優先度でソートし、最大6枚まで表示
 const sortedWhyChooseCards = whyChooseCards.sort((a, b) => b.priority - a.priority).slice(0, 6);
@@ -2290,18 +2286,14 @@ async function generateFeaturesComponent(
   const whyChooseCards = contentAnalysis.features.whyChoose || [];
 
   return `---
-export interface Props {
-  prs: Array<{
-    title: string;
-    user: { login: string } | null;
-    merged_at: string | null;
-  }>;
+interface Props {
+  prs: any;
 }
 
-const { prs } = Astro.props;
+const { prs } = Astro.props as Props;
 
 // 動的Why Choose Cardsの取得
-const whyChooseCards = ${JSON.stringify(whyChooseCards)};
+const whyChooseCards = JSON.parse('${JSON.stringify(whyChooseCards).replace(/'/g, "\\'")}');
 
 // 優先度でソートし、最大6枚まで表示
 const sortedWhyChooseCards = whyChooseCards.sort((a, b) => b.priority - a.priority).slice(0, 6);
@@ -2792,7 +2784,7 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
             <h3>Documentation Available</h3>
             <p>Comprehensive documentation is available to help you get started with this project.</p>
             <div class="docs-actions">
-              <a href="./docs" class="docs-link">📖 View Documentation</a>
+              <a href="docs/" class="docs-link">📖 View Documentation</a>
               <a href={repo.html_url} class="docs-link-secondary" target="_blank" rel="noopener">🔗 View on GitHub</a>
             </div>
           </div>
@@ -3062,7 +3054,7 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
               <p>Get comprehensive documentation and usage examples.</p>
             </div>
             <div class="readme-actions">
-              <a href="./docs" class="docs-link-primary">
+              <a href="docs/" class="docs-link-primary">
                 📚 View Full Documentation
               </a>
               <a href={repo.html_url + '/blob/main/README.md'} class="docs-link-secondary" target="_blank" rel="noopener">

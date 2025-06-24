@@ -433,23 +433,18 @@ async function generateMinimalDocsPageContent(
   return `---
 import Layout from '../layouts/Layout.astro';
 
-export interface Props {
+interface Props {
   title: string;
-  description?: string;
-  repoData: {
-    repo: {
-      name: string;
-      html_url: string;
-    };
-  };
+  description: string;
+  repoData: any;
 }
 
 const { title, description, repoData } = Astro.props as Props;
 
 const hasLogo = ${logoResult?.hasLogo && logoResult.logoUrl ? "true" : "false"};
 const logoUrl = "${logoResult?.logoUrl || ""}";
-const repoName = repoData.repo.name;
-const repoUrl = repoData.repo.html_url;
+const repoName = repoData?.repo?.name || "Repository";
+const repoUrl = repoData?.repo?.html_url || "#";
 ---
 
 <Layout title={title + " - Documentation"} description={description}>
@@ -459,7 +454,7 @@ const repoUrl = repoData.repo.html_url;
       <div class="container">
         <nav class="minimal-nav">
           <div class="nav-brand">
-            <a href="./" class="brand-link">
+            <a href="../" class="brand-link">
               {hasLogo ? (
                 <img src={logoUrl} alt={repoName + " logo"} class="brand-logo" />
               ) : (
@@ -468,8 +463,8 @@ const repoUrl = repoData.repo.html_url;
             </a>
           </div>
           <div class="nav-links">
-            <a href="./" class="nav-link">Home</a>
-            <a href="./docs" class="nav-link nav-active">Documentation</a>
+            <a href="../" class="nav-link">Home</a>
+            <a href="./" class="nav-link nav-active">Documentation</a>
             <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">GitHub</a>
           </div>
         </nav>
@@ -732,7 +727,7 @@ const repoUrl = repoData.repo.html_url;
 </style>
 
 <script>
-  ${searchData}
+  const searchData = ${searchData};
 </script>
 `;
 }
@@ -752,7 +747,7 @@ const repoData = ${JSON.stringify(repoData)};
 const docStructure = ${JSON.stringify(structure)};
 ---
 
-<Layout title="${structure.title} - ${repoData.repo.name}" description="Complete documentation for ${repoData.repo.name}">
+<Layout title="${structure.title} - ${repoData.repo?.name || "Repository"}" description="Complete documentation for ${repoData.repo?.name || "Repository"}">
   <header class="site-header">
     <div class="container">
       <nav class="main-nav">
@@ -762,7 +757,7 @@ const docStructure = ${JSON.stringify(structure)};
               ? `
           <a href="../" class="brand-link">
             <div class="brand-with-logo">
-              <img src="${logoResult.logoUrl}" alt="${repoData.repo.name} logo" class="brand-logo" />
+              <img src="${logoResult.logoUrl}" alt="${repoData.repo?.name || "Repository"} logo" class="brand-logo" />
             </div>
           </a>
           `
