@@ -1,0 +1,713 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import type { RepoData } from '../../types/index.js';
+
+export interface Props {
+  title: string;
+  description: string;
+  stats: {
+    stars: number;
+    forks: number;
+    issues: number;
+  };
+  repoData?: RepoData;
+}
+
+const { title, description, stats, repoData } = Astro.props;
+
+// Minimal layout specific design tokens
+const minimalTokens = {
+  colors: {
+    primary: "#1a1a1a",
+    secondary: "#666666", 
+    accent: "#000000",
+    background: "#ffffff",
+    surface: "#fafafa",
+    textPrimary: "#1a1a1a",
+    textSecondary: "#666666",
+    textMuted: "#999999",
+    border: "#e5e5e5",
+    success: "#48bb78",
+    warning: "#ed8936",
+    error: "#f56565"
+  }
+};
+
+// GitLyte features data
+const features = [
+  {
+    title: "AI Analysis",
+    description: "Automatically analyzes your repository structure, language, and project characteristics to generate optimized showcase sites.",
+    icon: "🤖"
+  },
+  {
+    title: "Astro-Powered",
+    description: "Built with Astro for fast, SEO-friendly static sites with minimal JavaScript. Perfect for project documentation.",
+    icon: "🚀"
+  },
+  {
+    title: "Custom Design",
+    description: "Each generated site features unique design tailored to your project's personality and target audience.",
+    icon: "🎨"
+  },
+  {
+    title: "GitHub Integration",
+    description: "Seamlessly integrates with GitHub APIs to fetch repository data, issues, and pull requests automatically.",
+    icon: "📊"
+  },
+  {
+    title: "Multiple Layouts",
+    description: "Choose from various layout patterns including minimal, hero-focused, grid, and content-heavy designs.",
+    icon: "📐"
+  },
+  {
+    title: "Responsive Design",
+    description: "All generated sites are fully responsive and optimized for mobile, tablet, and desktop viewing.",
+    icon: "📱"
+  }
+];
+---
+
+<BaseLayout 
+  title={title} 
+  description={description} 
+  repoData={repoData}
+  layoutType="minimal"
+  customTokens={minimalTokens}
+>
+  <div class="minimal-layout">
+    <!-- Header -->
+    <header class="minimal-header">
+      <div class="container">
+        <nav class="minimal-nav">
+          <div class="nav-brand">
+            <a href="./" class="brand-link">
+              <h1>{title}</h1>
+            </a>
+          </div>
+          <div class="nav-links">
+            <button class="nav-link nav-active" onclick="showDemo()">Home</button>
+            <button class="nav-link" onclick="showDocs()">Documentation</button>
+            <a href="https://github.com/wadakatu/gitlyte" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-minimal">
+      <div class="container">
+        <header class="header">
+          <h1>{title}</h1>
+          <p class="description">{description}</p>
+          
+          <div class="actions">
+            <button class="button button-primary">
+              📖 Documentation
+            </button>
+            <a href="https://github.com/wadakatu/gitlyte" class="button button-secondary" target="_blank" rel="noopener noreferrer">
+              View Repository
+            </a>
+          </div>
+        </header>
+        
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-value">{stats.stars}</span>
+            <span class="stat-label">Stars</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{stats.forks}</span>
+            <span class="stat-label">Forks</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{stats.issues}</span>
+            <span class="stat-label">Issues</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-minimal">
+      <div class="container">
+        <div class="section">
+          <h2>Key Features</h2>
+          
+          <div class="features-grid">
+            {features.map((feature) => (
+              <div class="feature-card">
+                <div class="feature-icon">{feature.icon}</div>
+                <h3 class="feature-title">{feature.title}</h3>
+                <p class="feature-description">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about-section">
+      <div class="container">
+        <div class="content-section">
+          <h2>About Minimal Layout</h2>
+          <p>
+            This minimal layout emphasizes clean typography, subtle borders, and generous whitespace. 
+            It's perfect for projects that prioritize readability and simplicity over visual complexity.
+          </p>
+          
+          <div class="design-principles">
+            <h3>Design Principles</h3>
+            <div class="principles-list">
+              <div class="principle">
+                <h4>— Typography First</h4>
+                <p>Inter フォントファミリーを使用し、可読性を最優先にした文字組み</p>
+              </div>
+              <div class="principle">
+                <h4>— Generous Whitespace</h4>
+                <p>十分な余白によってコンテンツに呼吸を与える</p>
+              </div>
+              <div class="principle">
+                <h4>— Monochrome Palette</h4>
+                <p>黒・グレー・白を基調とした控えめなカラーパレット</p>
+              </div>
+              <div class="principle">
+                <h4>— Subtle Borders</h4>
+                <p>微細なボーダーとシャドウで要素を分離</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="usage-example">
+            <h3>Usage Example</h3>
+            <code>pnpm --filter @gitlyte/demo dev</code>
+            <p>Select "Minimal" from the layout selector to see this design in action.</p>
+          </div>
+          
+          <div class="tech-details">
+            <div class="detail-item">
+              <h4>Color Palette</h4>
+              <div class="color-samples">
+                <div class="color-sample primary">#1a1a1a</div>
+                <div class="color-sample secondary">#666666</div>
+                <div class="color-sample accent">#ffffff</div>
+              </div>
+            </div>
+            <div class="detail-item">
+              <h4>Typography</h4>
+              <div class="font-info">
+                <span>Heading: Inter (600 weight)</span>
+                <span>Body: Inter (400 weight)</span>
+                <span>Code: JetBrains Mono</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  /* Minimal Layout Specific Styles */
+  .minimal-layout {
+    font-family: var(--font-body);
+    line-height: 1.6;
+    color: var(--color-text-primary);
+    background-color: var(--color-background);
+  }
+
+  /* Header */
+  .minimal-header {
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-background);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .minimal-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) 0;
+  }
+
+  .brand-link {
+    text-decoration: none;
+    color: var(--color-text-primary);
+  }
+
+  .brand-link h1 {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: var(--space-xl);
+  }
+
+  .nav-link {
+    background: none;
+    border: none;
+    text-decoration: none;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition: color 0.2s ease;
+    position: relative;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .nav-link:hover,
+  .nav-link.nav-active {
+    color: var(--color-text-primary);
+  }
+
+  .nav-link.nav-active::after {
+    content: '';
+    position: absolute;
+    bottom: -var(--space-md);
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: var(--color-text-primary);
+  }
+
+  /* Hero Section */
+  .hero-minimal {
+    min-height: 50vh;
+    display: flex;
+    align-items: center;
+    padding: var(--space-4xl) 0;
+  }
+
+  .header {
+    text-align: left;
+    margin-bottom: var(--space-xl);
+  }
+
+  .header h1 {
+    font-size: var(--text-4xl);
+    font-weight: 600;
+    margin-bottom: var(--space-md);
+    letter-spacing: -0.02em;
+    color: var(--color-text-primary);
+  }
+
+  .description {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-xl);
+    max-width: 600px;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+  }
+
+  .actions {
+    margin-bottom: var(--space-xl);
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  .button {
+    display: inline-block;
+    padding: var(--space-sm) var(--space-lg);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .button-primary {
+    background-color: var(--color-primary);
+    color: var(--color-background);
+  }
+
+  .button-primary:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+  }
+
+  .button-secondary {
+    background-color: transparent;
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+  }
+
+  .button-secondary:hover {
+    border-color: var(--color-text-secondary);
+    background-color: var(--color-surface);
+  }
+
+  .stats {
+    display: flex;
+    gap: var(--space-xl);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .stat-value {
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-label {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+
+  /* Features Section */
+  .features-minimal {
+    padding: var(--space-5xl) 0;
+  }
+
+  .section {
+    margin-bottom: var(--space-5xl);
+  }
+
+  .section h2 {
+    margin-bottom: var(--space-4xl);
+    font-weight: 500;
+    color: var(--color-text-primary);
+    font-size: var(--text-2xl);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-xl);
+  }
+
+  .feature-card {
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+    transition: all 0.2s ease;
+  }
+
+  .feature-card:hover {
+    border-color: var(--color-text-secondary);
+  }
+
+  .feature-icon {
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-md);
+    color: var(--color-text-primary);
+  }
+
+  .feature-title {
+    font-size: var(--text-lg);
+    font-weight: 500;
+    margin-bottom: var(--space-sm);
+    color: var(--color-text-primary);
+  }
+
+  .feature-description {
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+  }
+
+  /* About Section */
+  .about-section {
+    padding: var(--space-5xl) 0;
+  }
+
+  .content-section {
+    max-width: 700px;
+  }
+
+  .content-section h2 {
+    margin-bottom: var(--space-lg);
+    font-weight: 500;
+    font-size: var(--text-2xl);
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-sm);
+  }
+
+  .content-section h3 {
+    margin-bottom: var(--space-md);
+    font-size: var(--text-lg);
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+
+  .content-section p {
+    margin-bottom: var(--space-xl);
+    font-size: var(--text-base);
+    line-height: 1.7;
+    color: var(--color-text-secondary);
+  }
+
+  /* Design Principles */
+  .design-principles {
+    margin-bottom: var(--space-4xl);
+  }
+
+  .principles-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin: var(--space-xl) 0;
+  }
+
+  .principle {
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .principle:last-child {
+    border-bottom: none;
+  }
+
+  .principle h4 {
+    font-size: var(--text-base);
+    font-weight: 500;
+    margin-bottom: var(--space-sm);
+    color: var(--color-text-primary);
+  }
+
+  .principle p {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  /* Usage Example */
+  .usage-example {
+    margin: var(--space-xl) 0;
+    padding: var(--space-lg);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+  }
+
+  .usage-example h3 {
+    margin-bottom: var(--space-md);
+    font-size: var(--text-base);
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+
+  .usage-example code {
+    display: block;
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm);
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-code);
+    font-size: var(--text-sm);
+  }
+
+  .usage-example p {
+    font-size: var(--text-sm);
+    margin: 0;
+    color: var(--color-text-secondary);
+  }
+
+  /* Technical Details */
+  .tech-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    margin: var(--space-xl) 0;
+  }
+
+  .detail-item h4 {
+    font-size: var(--text-base);
+    font-weight: 500;
+    margin-bottom: var(--space-md);
+    color: var(--color-text-primary);
+  }
+
+  .color-samples {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  .color-sample {
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-code);
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid var(--color-border);
+  }
+
+  .color-sample.primary {
+    background-color: var(--color-primary);
+    color: var(--color-background);
+  }
+
+  .color-sample.secondary {
+    background-color: var(--color-secondary);
+    color: var(--color-background);
+  }
+
+  .color-sample.accent {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-text-primary);
+  }
+
+  .font-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .font-info span {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    padding: var(--space-sm);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .minimal-nav {
+      flex-direction: column;
+      gap: var(--space-md);
+      padding: var(--space-sm) 0;
+    }
+
+    .nav-links {
+      gap: var(--space-md);
+    }
+    
+    .hero-minimal {
+      min-height: auto;
+      padding: var(--space-xl) 0;
+    }
+    
+    .header h1 {
+      font-size: var(--text-3xl);
+    }
+    
+    .description {
+      font-size: var(--text-base);
+    }
+    
+    .actions {
+      gap: var(--space-sm);
+    }
+    
+    .stats {
+      gap: var(--space-lg);
+    }
+    
+    .stat-value {
+      font-size: var(--text-xl);
+    }
+    
+    .stat-label {
+      font-size: var(--text-xs);
+    }
+    
+    .features-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+    }
+    
+    .feature-card {
+      padding: var(--space-md);
+    }
+    
+    .section h2 {
+      font-size: var(--text-xl);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .features-minimal {
+      padding: var(--space-xl) 0;
+    }
+    
+    .about-section {
+      padding: var(--space-xl) 0;
+    }
+    
+    .content-section h2 {
+      font-size: var(--text-xl);
+    }
+    
+    .color-samples {
+      flex-direction: column;
+    }
+    
+    .color-sample {
+      text-align: center;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .actions {
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    
+    .button {
+      text-align: center;
+    }
+    
+    .stats {
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    
+    .stat {
+      flex-direction: row;
+      align-items: baseline;
+      gap: var(--space-sm);
+    }
+    
+    .stat-value {
+      font-size: var(--text-base);
+    }
+    
+    .feature-icon {
+      font-size: var(--text-xl);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .feature-title {
+      font-size: var(--text-base);
+    }
+    
+    .feature-description {
+      font-size: 0.8rem;
+    }
+    
+    .usage-example {
+      padding: var(--space-md);
+    }
+    
+    .tech-details {
+      gap: var(--space-lg);
+    }
+  }
+</style>
