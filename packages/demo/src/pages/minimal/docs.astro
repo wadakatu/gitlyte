@@ -1,0 +1,145 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import MinimalDocs from '../../components/MinimalDocs.astro';
+import MinimalDemoHeader from '../../components/headers/MinimalDemoHeader.astro';
+---
+
+<Layout title="Minimal Documentation - GitLyte Demo" description="Minimal レイアウトの詳細ドキュメント">
+  <MinimalDemoHeader currentPage="docs" />
+  
+  <!-- ドキュメント説明セクション -->
+  <section class="docs-intro">
+    <div class="container">
+      <div class="intro-content">
+        <h2>📚 Minimal Documentation</h2>
+        <p>
+          Minimalレイアウト専用のドキュメントページです。
+          シンプルで読みやすいレイアウト内でのドキュメント表示を体験できます。
+        </p>
+        <div class="navigation-links">
+          <a href="/minimal" class="nav-link">🏠 Minimal Home</a>
+          <a href="/docs" class="nav-link secondary">📖 All Documentation</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Minimal Docs レイアウト -->
+  <main class="docs-content">
+    <MinimalDocs />
+  </main>
+
+  <!-- フッター -->
+  <footer class="demo-footer">
+    <div class="container">
+      <p>🤖 GitLyte Layout Demo - AI-powered GitHub Pages generator</p>
+      <p><a href="https://github.com/wadakatu/gitlyte" target="_blank" rel="noopener">View on GitHub</a></p>
+    </div>
+  </footer>
+</Layout>
+
+<style>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .docs-intro {
+    background: #f8fafc;
+    padding: 3rem 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .intro-content {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .intro-content h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #2d3748;
+  }
+
+  .intro-content p {
+    font-size: 1.1rem;
+    color: #718096;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .navigation-links {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .nav-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+
+  .nav-link.secondary {
+    background: #6b7280;
+  }
+
+  .nav-link.secondary:hover {
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  }
+
+  .docs-content {
+    border: 3px dashed #e2e8f0;
+    margin: 2rem;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    min-height: 600px;
+  }
+
+  .demo-footer {
+    background: #2d3748;
+    color: white;
+    text-align: center;
+    padding: 2rem 0;
+  }
+
+  .demo-footer p {
+    margin: 0.5rem 0;
+  }
+
+  .demo-footer a {
+    color: #667eea;
+    text-decoration: none;
+  }
+
+  .demo-footer a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .navigation-links {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .docs-content {
+      margin: 1rem;
+    }
+  }
+</style>

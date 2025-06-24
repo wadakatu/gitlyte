@@ -1,0 +1,200 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import HeroFocused from '../../components/layouts/HeroFocused.astro';
+import HeroFocusedDemoHeader from '../../components/headers/HeroFocusedDemoHeader.astro';
+
+const sampleData = {
+  title: "GitLyte Demo Project",
+  description: "An innovative solution for modern development challenges with AI-powered features",
+  stats: {
+    stars: 1234,
+    forks: 456,
+    issues: 12
+  }
+};
+---
+
+<Layout title="Hero Focused Layout - GitLyte Demo" description="Hero Focused レイアウトの専用デモページ">
+  <HeroFocusedDemoHeader currentPage="demo" />
+  
+  <!-- レイアウト説明セクション -->
+  <section class="layout-intro">
+    <div class="container">
+      <div class="intro-content">
+        <h2>🌟 Hero Focused Layout</h2>
+        <p>
+          Hero Focusedレイアウトは、<strong>大きなヒーローセクション</strong>で訪問者の注意を引きつけ、
+          プロジェクトの価値を即座に伝えるデザインです。
+        </p>
+        <div class="layout-features">
+          <div class="feature">
+            <span class="feature-icon">🎯</span>
+            <span>強力なファーストインプレッション</span>
+          </div>
+          <div class="feature">
+            <span class="feature-icon">📊</span>
+            <span>統計情報の視覚的表示</span>
+          </div>
+          <div class="feature">
+            <span class="feature-icon">🚀</span>
+            <span>明確なCTAボタン</span>
+          </div>
+        </div>
+        <div class="navigation-links">
+          <a href="/hero-focused/docs" class="nav-link">📚 Documentation</a>
+          <a href="/" class="nav-link secondary">🏠 All Layouts</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 実際のレイアウトデモ -->
+  <main class="demo-content">
+    <HeroFocused 
+      title={sampleData.title}
+      description={sampleData.description}
+      stats={sampleData.stats}
+    />
+  </main>
+
+  <!-- フッター -->
+  <footer class="demo-footer">
+    <div class="container">
+      <p>🤖 GitLyte Layout Demo - AI-powered GitHub Pages generator</p>
+      <p><a href="https://github.com/wadakatu/gitlyte" target="_blank" rel="noopener">View on GitHub</a></p>
+    </div>
+  </footer>
+</Layout>
+
+<style>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .layout-intro {
+    background: #f8fafc;
+    padding: 3rem 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .intro-content {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .intro-content h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #2d3748;
+  }
+
+  .intro-content p {
+    font-size: 1.1rem;
+    color: #718096;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .layout-features {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+
+  .feature {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    font-weight: 500;
+  }
+
+  .feature-icon {
+    font-size: 1.2rem;
+  }
+
+  .navigation-links {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .nav-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+
+  .nav-link.secondary {
+    background: #6b7280;
+  }
+
+  .nav-link.secondary:hover {
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  }
+
+  .demo-content {
+    border: 3px dashed #e2e8f0;
+    margin: 2rem;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+  }
+
+  .demo-footer {
+    background: #2d3748;
+    color: white;
+    text-align: center;
+    padding: 2rem 0;
+  }
+
+  .demo-footer p {
+    margin: 0.5rem 0;
+  }
+
+  .demo-footer a {
+    color: #667eea;
+    text-decoration: none;
+  }
+
+  .demo-footer a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .layout-features {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .navigation-links {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .demo-content {
+      margin: 1rem;
+    }
+  }
+</style>

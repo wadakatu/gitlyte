@@ -106,13 +106,14 @@ describe("AI Code Generator", () => {
       expect(result.astroConfig).toContain("{{REPO_NAME}}");
       expect(result.astroConfig).toContain("{{OWNER}}");
 
-      // レイアウトにデザイン要素が含まれることを確認
+      // レイアウトがインライン化されていることを確認
+      expect(result.layout).toContain("<!DOCTYPE html>");
+      expect(result.layout).toContain("--color-primary:");
       expect(result.layout).toContain(mockDesign.colorScheme.primary);
-      expect(result.layout).toContain(mockDesign.typography.body);
 
-      // Heroコンポーネントにスタイルが含まれることを確認
+      // Heroコンポーネントに共有レイアウトが含まれることを確認
       expect(result.heroComponent).toContain("stats");
-      expect(result.heroComponent).toContain(mockDesign.typography.heading);
+      expect(result.heroComponent).toContain("HeroFocusedLayout");
 
       // Featuresコンポーネントにpropsが含まれることを確認
       expect(result.featuresComponent).toContain("prs");
@@ -126,7 +127,7 @@ describe("AI Code Generator", () => {
 
       // グローバルスタイルにデザイン要素が含まれることを確認
       expect(result.globalStyles).toContain(mockDesign.colorScheme.primary);
-      expect(result.globalStyles).toContain(mockDesign.typography.body);
+      expect(result.globalStyles).toContain("font-family");
     });
 
     it("should handle repository with no description", async () => {
@@ -142,9 +143,7 @@ describe("AI Code Generator", () => {
       );
 
       expect(result.packageJson).toBeDefined();
-      expect(result.heroComponent).toContain(
-        "An innovative solution for modern development"
-      );
+      expect(result.heroComponent).toContain("HeroFocusedLayout");
     });
 
     it("should generate responsive CSS", async () => {
@@ -155,7 +154,8 @@ describe("AI Code Generator", () => {
       );
 
       expect(result.globalStyles).toContain("@media");
-      expect(result.heroComponent).toContain("@media");
+      // Hero component now uses shared layout, so responsive CSS is in the shared component
+      expect(result.heroComponent).toContain("HeroFocusedLayout");
     });
 
     it("should include proper CSS custom properties", async () => {
@@ -165,10 +165,11 @@ describe("AI Code Generator", () => {
         mockDesign
       );
 
-      expect(result.layout).toContain("--primary:");
-      expect(result.layout).toContain("--secondary:");
-      expect(result.layout).toContain("--accent:");
-      expect(result.layout).toContain("--background:");
+      // レイアウトがインライン化されCSS変数が含まれることを確認
+      expect(result.layout).toContain("--color-primary:");
+      expect(result.layout).toContain("--color-secondary:");
+      expect(result.layout).toContain(mockDesign.colorScheme.primary);
+      expect(result.layout).toContain(mockDesign.colorScheme.secondary);
     });
   });
 });
