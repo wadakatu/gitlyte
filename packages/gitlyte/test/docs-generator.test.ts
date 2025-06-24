@@ -209,7 +209,7 @@ This project is licensed under the MIT License.`,
       const result = await generateDocsPage(mockRepoData, mockDesignStrategy);
 
       expect(result.docsPage).toContain("@media (max-width: 1024px)");
-      expect(result.docsPage).toContain("grid-template-columns: 1fr");
+      expect(result.docsPage).toContain("flex-direction: column");
     });
   });
 

@@ -349,6 +349,8 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
     max-width: 800px;
     margin: 0 auto;
     padding: 0 2rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* Navigation Header */
@@ -2163,6 +2165,8 @@ const sortedWhyChooseCards = whyChooseCards.sort((a, b) => b.priority - a.priori
     max-width: 800px;
     margin: 0 auto;
     padding: 0 2rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* Features Section */
@@ -2808,6 +2812,8 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
     max-width: 800px;
     margin: 0 auto;
     padding: 0 2rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* Content Section */
