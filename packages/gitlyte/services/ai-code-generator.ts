@@ -158,42 +158,106 @@ async function generateLayout(
   _logoResult?: { hasLogo: boolean; faviconUrl?: string }
 ): Promise<string> {
   return `---
-import BaseLayout from '@gitlyte/shared/components/Layout/BaseLayout.astro';
-
 interface Props {
   title: string;
   description: string;
 }
 
 const { title, description } = Astro.props as Props;
-
-// Custom design tokens for this generated site
-const customTokens = {
-  colors: {
-    primary: "${design.colorScheme.primary}",
-    secondary: "${design.colorScheme.secondary}",
-    accent: "${design.colorScheme.accent}",
-    background: "${design.colorScheme.background}",
-    surface: "${design.colorScheme.background}",
-    textPrimary: "#2d3748",
-    textSecondary: "#718096",
-    textMuted: "#a0aec0",
-    border: "#e2e8f0",
-    success: "#48bb78",
-    warning: "#ed8936",
-    error: "#f56565"
-  }
-};
 ---
 
-<BaseLayout 
-  title={title} 
-  description={description} 
-  customTokens={customTokens}
-  layoutType="generated"
->
-  <slot />
-</BaseLayout>`;
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description || "AI-generated project site"} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+    
+    <!-- Preload fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body class="layout-generated">
+    <slot />
+  </body>
+</html>
+
+<style>
+  :root {
+    /* Custom Colors */
+    --color-primary: ${design.colorScheme.primary};
+    --color-secondary: ${design.colorScheme.secondary};
+    --color-accent: ${design.colorScheme.accent};
+    --color-background: ${design.colorScheme.background};
+    --color-surface: ${design.colorScheme.background};
+    --color-text-primary: #2d3748;
+    --color-text-secondary: #718096;
+    --color-text-muted: #a0aec0;
+    --color-border: #e2e8f0;
+    --color-success: #48bb78;
+    --color-warning: #ed8936;
+    --color-error: #f56565;
+
+    /* Typography */
+    --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-code: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* Font Sizes */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+    --text-4xl: 2.25rem;
+    --text-5xl: 3rem;
+
+    /* Spacing */
+    --space-xs: 0.5rem;
+    --space-sm: 0.75rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 2.5rem;
+    --space-3xl: 3rem;
+    --space-4xl: 4rem;
+    --space-5xl: 6rem;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+    /* Border Radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-full: 9999px;
+  }
+
+  html {
+    font-family: var(--font-body);
+    color: var(--color-text-primary);
+    background-color: var(--color-background);
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+  
+  .layout-generated {
+    background: var(--color-background);
+  }
+</style>`;
 }
 
 async function generateHeroComponent(
@@ -252,8 +316,6 @@ async function generateMinimalHero(
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
-import MinimalLayout from '@gitlyte/shared/components/Layout/MinimalLayout.astro';
-
 interface Props {
   title: string;
   description?: string;
@@ -269,35 +331,73 @@ interface Props {
 }
 
 const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
-
-// Create repo data for the shared layout
-const repoData = {
-  title,
-  description,
-  stats,
-  hasReadme,
-  repoUrl,
-  hasLogo,
-  logoUrl
-};
 ---
 
-<MinimalLayout 
-  title={title} 
-  description={description || "AI-generated project site"} 
-  stats={stats}
-  repoData={repoData}
-/>
+<div class="minimal-layout">
+  <!-- Header -->
+  <header class="minimal-header">
+    <div class="container">
+      <nav class="minimal-nav">
+        <div class="nav-brand">
+          <a href="./" class="brand-link">
+            {hasLogo && logoUrl ? (
+              <img src={logoUrl} alt={title} class="brand-logo" />
+            ) : (
+              <h1>{title}</h1>
+            )}
+          </a>
+        </div>
+        <div class="nav-links">
+          <a href="./" class="nav-link nav-active">Home</a>
+          <a href="docs/" class="nav-link">Documentation</a>
+          <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-minimal">
+    <div class="container">
+      <header class="header">
+        <h1>{title}</h1>
+        <p class="description">{description}</p>
+        
+        <div class="actions">
+          <a href="docs/" class="button button-primary">
+            📖 Documentation
+          </a>
+          <a href={repoUrl} class="button button-secondary" target="_blank" rel="noopener noreferrer">
+            View Repository
+          </a>
+        </div>
+      </header>
+      
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-value">{stats.stars}</span>
+          <span class="stat-label">Stars</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{stats.forks}</span>
+          <span class="stat-label">Forks</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{stats.issues}</span>
+          <span class="stat-label">Issues</span>
+        </div>
+      </div>
+    </div>
   </section>
 </div>
 
 <style>
-  /* Base Layout Styles */
+  /* Minimal Layout Specific Styles */
   .minimal-layout {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-body);
     line-height: 1.6;
-    color: #1a1a1a;
-    background-color: #ffffff;
+    color: var(--color-text-primary);
+    background-color: var(--color-background);
   }
 
   .container {
@@ -308,67 +408,67 @@ const repoData = {
     box-sizing: border-box;
   }
 
-  /* Navigation Header */
+  /* Header */
   .minimal-header {
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-background);
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid #e5e5e5;
   }
 
   .minimal-nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 0;
-  }
-
-  .nav-brand {
-    display: flex;
-    align-items: center;
+    padding: var(--space-md) 0;
   }
 
   .brand-link {
     text-decoration: none;
-    color: inherit;
+    color: var(--color-text-primary);
   }
 
-  .brand-title {
-    font-size: 1.5rem;
-    font-weight: 700;
+  .brand-link h1 {
     margin: 0;
-    color: #1a1a1a;
+    font-size: var(--text-xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
   }
 
   .brand-logo {
     height: 32px;
     width: auto;
+    max-width: 200px;
   }
 
   .nav-links {
     display: flex;
-    gap: 1.5rem;
-    align-items: center;
+    gap: var(--space-xl);
   }
 
   .nav-link {
     text-decoration: none;
-    color: #666666;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
     font-weight: 500;
-    font-size: 0.9rem;
-    padding: 0.5rem 0;
     transition: color 0.2s ease;
+    position: relative;
   }
 
-  .nav-link:hover {
-    color: #1a1a1a;
-  }
-
+  .nav-link:hover,
   .nav-link.nav-active {
-    color: #1a1a1a;
-    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
+  .nav-link.nav-active::after {
+    content: '';
+    position: absolute;
+    bottom: -var(--space-md);
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: var(--color-text-primary);
   }
 
   /* Hero Section */
@@ -376,74 +476,92 @@ const repoData = {
     min-height: 50vh;
     display: flex;
     align-items: center;
-    padding: 3rem 0;
+    padding: var(--space-4xl) 0;
   }
 
-  .hero-header {
+  .header {
     text-align: left;
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-xl);
   }
 
-  .hero-title {
-    font-size: 2rem;
+  .header h1 {
+    font-size: var(--text-4xl);
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-md);
     letter-spacing: -0.02em;
-    color: #1a1a1a;
+    color: var(--color-text-primary);
   }
 
   .description {
-    font-size: 1.125rem;
-    margin-bottom: 2rem;
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-xl);
     max-width: 600px;
     line-height: 1.6;
-    color: #666666;
+    color: var(--color-text-secondary);
   }
 
   .actions {
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-xl);
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
   }
 
   .button {
     display: inline-block;
-    padding: 0.5rem 1.5rem;
-    background-color: #000000;
-    color: white;
+    padding: var(--space-sm) var(--space-lg);
     border: none;
-    border-radius: 2px;
-    font-size: 0.875rem;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
     font-weight: 500;
     text-decoration: none;
-    transition: opacity 0.2s ease;
+    transition: all 0.2s ease;
   }
 
-  .button:hover {
+  .button-primary {
+    background-color: var(--color-primary);
+    color: var(--color-background);
+  }
+
+  .button-primary:hover {
     opacity: 0.8;
+    transform: translateY(-1px);
+  }
+
+  .button-secondary {
+    background-color: transparent;
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+  }
+
+  .button-secondary:hover {
+    border-color: var(--color-text-secondary);
+    background-color: var(--color-surface);
   }
 
   .stats {
     display: flex;
-    gap: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #e5e5e5;
+    gap: var(--space-xl);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
   }
 
   .stat {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--space-xs);
   }
 
   .stat-value {
-    font-size: 1.5rem;
+    font-size: var(--text-2xl);
     font-weight: 600;
-    color: #1a1a1a;
+    color: var(--color-text-primary);
     font-variant-numeric: tabular-nums;
   }
 
   .stat-label {
-    font-size: 0.875rem;
-    color: #999999;
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 500;
@@ -451,70 +569,47 @@ const repoData = {
 
   /* Responsive Design */
   @media (max-width: 768px) {
-    .container {
-      padding: 0 1rem;
-    }
-    
     .minimal-nav {
       flex-direction: column;
-      gap: 1rem;
-      align-items: flex-start;
-      padding: 0.75rem 0;
+      gap: var(--space-md);
+      padding: var(--space-sm) 0;
     }
-    
+
     .nav-links {
-      gap: 1rem;
-      flex-wrap: wrap;
+      gap: var(--space-md);
     }
-    
-    .brand-title {
-      font-size: 1.25rem;
-    }
-    
-    .nav-link {
-      font-size: 0.85rem;
+
+    .brand-logo {
+      height: 28px;
     }
     
     .hero-minimal {
       min-height: auto;
-      padding: 2rem 0;
+      padding: var(--space-xl) 0;
     }
     
-    .hero-title {
-      font-size: 1.75rem;
+    .header h1 {
+      font-size: var(--text-3xl);
     }
     
     .description {
-      font-size: 1rem;
+      font-size: var(--text-base);
     }
     
-    .stats {
-      gap: 1.5rem;
-    }
-    
-    .stat-value {
-      font-size: 1.25rem;
-    }
-    
-    .stat-label {
-      font-size: 0.75rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .stats {
+    .actions {
+      gap: var(--space-sm);
       flex-direction: column;
-      gap: 1rem;
+    }
+    
+    .stats {
+      gap: var(--space-lg);
+      flex-direction: column;
     }
     
     .stat {
       flex-direction: row;
       align-items: baseline;
-      gap: 0.5rem;
-    }
-    
-    .stat-value {
-      font-size: 1rem;
+      gap: var(--space-sm);
     }
   }
 </style>`;
