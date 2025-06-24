@@ -308,7 +308,7 @@ import Layout from '../layouts/Layout.astro';
 ${imports}
 
 // Repository data will be replaced during generation
-const repoData = {{REPO_DATA}};
+const repoData = JSON.parse('{{REPO_DATA}}');
 const repo = repoData.repo || {};
 const prs = repoData.prs || [];
 const readme = repoData.readme || '';

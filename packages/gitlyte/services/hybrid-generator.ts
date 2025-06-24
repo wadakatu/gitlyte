@@ -371,7 +371,7 @@ import Hero from '../components/Hero.astro';
 import Features from '../components/Features.astro';
 
 // Repository data will be replaced during generation
-const repoData = {{REPO_DATA}};
+const repoData = JSON.parse('{{REPO_DATA}}');
 const repo = repoData.repo || {};
 const prs = repoData.prs || [];
 const issues = repoData.issues || [];
