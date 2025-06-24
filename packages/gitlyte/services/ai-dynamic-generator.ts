@@ -231,12 +231,12 @@ async function generateDynamicLayout(
     console.error("Layout generation failed:", error);
     // フォールバック: 基本レイアウト
     return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description } = Astro.props as Props;
 ---
 
 <!DOCTYPE html>

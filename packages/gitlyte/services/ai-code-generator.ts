@@ -261,7 +261,7 @@ async function generateMinimalHero(
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -275,7 +275,7 @@ export interface Props {
   logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
 ---
 
 <div class="minimal-layout">
@@ -569,7 +569,7 @@ async function generateGridHero(
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -583,7 +583,7 @@ export interface Props {
   logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
 ---
 
 <!-- Grid Layout - Card-based Design -->
@@ -863,7 +863,7 @@ async function generateSidebarHero(
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -877,7 +877,7 @@ export interface Props {
   logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
 ---
 
 <!-- Sidebar Layout -->
@@ -1219,7 +1219,7 @@ async function generateContentHeavyHero(
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -1233,7 +1233,7 @@ export interface Props {
   logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
 ---
 
 <!-- Content Heavy Layout -->
@@ -1728,7 +1728,7 @@ async function generateHeroFocusedHero(
         : "4rem 0";
 
   return `---
-export interface Props {
+interface Props {
   title: string;
   description?: string;
   stats: {
@@ -1742,7 +1742,7 @@ export interface Props {
   logoUrl?: string;
 }
 
-const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props;
+const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
 ---
 
 <header class="site-header">
