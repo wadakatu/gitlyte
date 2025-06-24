@@ -4,6 +4,20 @@ export type { RepoData, DesignTokens, LayoutType, ComponentProps } from './types
 // Design System
 export { designTokens, generateCSSVariables } from './styles/design-tokens.js';
 
+// Layout Components (Note: Astro components are not exportable via TypeScript)
+// These are available for import in Astro files via:
+// import { BaseLayout, MinimalLayout, HeroFocusedLayout } from '@gitlyte/shared';
+
+// UI Components paths for reference:
+// - BaseLayout: './components/Layout/BaseLayout.astro'
+// - MinimalLayout: './components/Layout/MinimalLayout.astro'  
+// - HeroFocusedLayout: './components/Layout/HeroFocusedLayout.astro'
+// - Navigation: './components/Layout/Navigation.astro'
+// - Heading: './components/Typography/Heading.astro'
+// - Button: './components/UI/Button.astro'
+// - Card: './components/UI/Card.astro'
+// - Stats: './components/UI/Stats.astro'
+
 // Layout constants
 export const LAYOUT_TYPES = [
   { id: 'minimal', name: 'Minimal', description: 'Clean and simple design' },

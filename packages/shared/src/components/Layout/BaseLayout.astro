@@ -1,14 +1,20 @@
 ---
 import type { RepoData } from '../../types/index.js';
+import { designTokens, generateCSSVariables } from '../../styles/design-tokens.js';
 
 export interface Props {
   title: string;
   description?: string;
   repoData?: RepoData;
   layoutType?: string;
+  customTokens?: Partial<typeof designTokens>;
 }
 
-const { title, description, repoData, layoutType = 'default' } = Astro.props;
+const { title, description, repoData, layoutType = 'default', customTokens } = Astro.props;
+
+// Merge custom tokens with default design tokens
+const tokens = customTokens ? { ...designTokens, ...customTokens } : designTokens;
+const cssVariables = generateCSSVariables(tokens);
 ---
 
 <!DOCTYPE html>
@@ -24,6 +30,9 @@ const { title, description, repoData, layoutType = 'default' } = Astro.props;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    
+    <!-- Design System CSS Variables -->
+    <style set:html={cssVariables}></style>
   </head>
   <body class={`layout-${layoutType}`}>
     <slot />
