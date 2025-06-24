@@ -1,50 +1,44 @@
 ---
+import BaseLayout from '@gitlyte/shared/components/Layout/BaseLayout.astro';
+
 export interface Props {
   title: string;
+  description?: string;
 }
 
-const { title } = Astro.props;
+const { title, description } = Astro.props;
+
+// Template-specific design tokens using gradients
+const templateTokens = {
+  colors: {
+    primary: "#667eea",
+    secondary: "#764ba2", 
+    accent: "#f093fb",
+    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    surface: "#ffffff",
+    textPrimary: "#2d3748",
+    textSecondary: "#718096",
+    textMuted: "#a0aec0",
+    border: "#e2e8f0",
+    success: "#48bb78",
+    warning: "#ed8936",
+    error: "#f56565"
+  }
+};
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="description" content="{{REPO_DESCRIPTION}}" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title}</title>
-  </head>
-  <body>
-    <main>
-      <slot />
-    </main>
-  </body>
-</html>
+<BaseLayout 
+  title={title} 
+  description={description || "{{REPO_DESCRIPTION}}"} 
+  customTokens={templateTokens}
+  layoutType="template"
+>
+  <main>
+    <slot />
+  </main>
+</BaseLayout>
 
 <style>
-  :root {
-    --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --text-primary: #2d3748;
-    --text-secondary: #718096;
-    --bg-card: #ffffff;
-    --border: #e2e8f0;
-  }
-
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    line-height: 1.6;
-    color: var(--text-primary);
-    background: var(--gradient);
-    min-height: 100vh;
-  }
-
   main {
     min-height: 100vh;
   }
