@@ -82,7 +82,11 @@ const features = [
         <nav class="minimal-nav">
           <div class="nav-brand">
             <a href="./" class="brand-link">
-              <h1>{title}</h1>
+              {repoData?.hasLogo && repoData?.logoUrl ? (
+                <img src={repoData.logoUrl} alt={title} class="brand-logo" />
+              ) : (
+                <h1>{title}</h1>
+              )}
             </a>
           </div>
           <div class="nav-links">
@@ -244,6 +248,12 @@ const features = [
     font-size: var(--text-xl);
     font-weight: 600;
     letter-spacing: -0.02em;
+  }
+
+  .brand-logo {
+    height: 32px;
+    width: auto;
+    max-width: 200px;
   }
 
   .nav-links {
@@ -598,6 +608,10 @@ const features = [
 
     .nav-links {
       gap: var(--space-md);
+    }
+
+    .brand-logo {
+      height: 28px;
     }
     
     .hero-minimal {
