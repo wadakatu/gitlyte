@@ -8,7 +8,8 @@ import { generateDocsPage } from "./docs-generator.js";
 import { detectRepoLogo } from "../utils/logo-detector.js";
 
 // 型拡張: 新しいデザインプロパティを含む
-export interface EnhancedDesignStrategy extends Omit<DesignStrategy, "effects"> {
+export interface EnhancedDesignStrategy
+  extends Omit<DesignStrategy, "effects"> {
   effects: {
     blur: boolean;
     shadows: "subtle" | "prominent" | "none";

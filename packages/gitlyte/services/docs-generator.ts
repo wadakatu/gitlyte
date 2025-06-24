@@ -243,10 +243,13 @@ function generateSearchData(structure: DocumentStructure): string {
 /**
  * サイドバー生成（Minimal用）
  */
-function generateSidebar(structure: DocumentStructure, _design: EnhancedDesignStrategy): { sidebar: string; searchData: string } {
+function generateSidebar(
+  structure: DocumentStructure,
+  _design: EnhancedDesignStrategy
+): { sidebar: string; searchData: string } {
   const navigation = generateNavigation(structure);
   const searchData = generateSearchData(structure);
-  
+
   const sidebar = `
 <nav class="minimal-docs-navigation">
   <div class="nav-header">
@@ -402,9 +405,19 @@ async function generateDocsPageContent(
   // レイアウト別処理
   switch (design.layout) {
     case "minimal":
-      return generateMinimalDocsPageContent(repoData, structure, design, logoResult);
+      return generateMinimalDocsPageContent(
+        repoData,
+        structure,
+        design,
+        logoResult
+      );
     default:
-      return generateDefaultDocsPageContent(repoData, structure, design, logoResult);
+      return generateDefaultDocsPageContent(
+        repoData,
+        structure,
+        design,
+        logoResult
+      );
   }
 }
 
@@ -433,8 +446,8 @@ export interface Props {
 
 const { title, description, repoData } = Astro.props as Props;
 
-const hasLogo = ${logoResult?.hasLogo && logoResult.logoUrl ? 'true' : 'false'};
-const logoUrl = "${logoResult?.logoUrl || ''}";
+const hasLogo = ${logoResult?.hasLogo && logoResult.logoUrl ? "true" : "false"};
+const logoUrl = "${logoResult?.logoUrl || ""}";
 const repoName = repoData.repo.name;
 const repoUrl = repoData.repo.html_url;
 ---
