@@ -6,6 +6,7 @@ import {
 } from "./content-analyzer.js";
 import { generateDocsPage } from "./docs-generator.js";
 import { detectRepoLogo } from "../utils/logo-detector.js";
+// Note: Shared design system is now used in generated components
 
 // 型拡張: 新しいデザインプロパティを含む
 export interface EnhancedDesignStrategy
@@ -154,56 +155,45 @@ export default defineConfig({
 async function generateLayout(
   _context: string,
   design: EnhancedDesignStrategy,
-  logoResult?: { hasLogo: boolean; faviconUrl?: string }
+  _logoResult?: { hasLogo: boolean; faviconUrl?: string }
 ): Promise<string> {
   return `---
+import BaseLayout from '@gitlyte/shared/components/Layout/BaseLayout.astro';
+
 interface Props {
   title: string;
   description: string;
 }
 
 const { title, description } = Astro.props as Props;
+
+// Custom design tokens for this generated site
+const customTokens = {
+  colors: {
+    primary: "${design.colorScheme.primary}",
+    secondary: "${design.colorScheme.secondary}",
+    accent: "${design.colorScheme.accent}",
+    background: "${design.colorScheme.background}",
+    surface: "${design.colorScheme.background}",
+    textPrimary: "#2d3748",
+    textSecondary: "#718096",
+    textMuted: "#a0aec0",
+    border: "#e2e8f0",
+    success: "#48bb78",
+    warning: "#ed8936",
+    error: "#f56565"
+  }
+};
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="description" content={description || "AI-generated project site"} />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title}</title>
-    ${logoResult?.hasLogo && logoResult.faviconUrl ? `<link rel="icon" type="image/png" href="${logoResult.faviconUrl}" />` : ""}
-    <link rel="stylesheet" href="/styles/global.css" />
-  </head>
-  <body>
-    <slot />
-  </body>
-</html>
-
-<style>
-  :root {
-    --primary: ${design.colorScheme.primary};
-    --secondary: ${design.colorScheme.secondary};
-    --accent: ${design.colorScheme.accent};
-    --background: ${design.colorScheme.background};
-    --text-primary: #2d3748;
-    --text-secondary: #718096;
-  }
-
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  body {
-    font-family: ${design.typography.body};
-    line-height: 1.6;
-    color: var(--text-primary);
-    background: var(--background);
-    min-height: 100vh;
-  }
-</style>`;
+<BaseLayout 
+  title={title} 
+  description={description} 
+  customTokens={customTokens}
+  layoutType="generated"
+>
+  <slot />
+</BaseLayout>`;
 }
 
 async function generateHeroComponent(
@@ -262,6 +252,8 @@ async function generateMinimalHero(
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
+import MinimalLayout from '@gitlyte/shared/components/Layout/MinimalLayout.astro';
+
 interface Props {
   title: string;
   description?: string;
@@ -277,62 +269,25 @@ interface Props {
 }
 
 const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
+
+// Create repo data for the shared layout
+const repoData = {
+  title,
+  description,
+  stats,
+  hasReadme,
+  repoUrl,
+  hasLogo,
+  logoUrl
+};
 ---
 
-<div class="minimal-layout">
-  <!-- Navigation Header -->
-  <header class="minimal-header">
-    <div class="container">
-      <nav class="minimal-nav">
-        <div class="nav-brand">
-          {hasLogo && logoUrl ? (
-            <a href="../" class="brand-link">
-              <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
-            </a>
-          ) : (
-            <a href="../" class="brand-link">
-              <h1 class="brand-title">{title}</h1>
-            </a>
-          )}
-        </div>
-        <div class="nav-links">
-          <a href="../" class="nav-link nav-active">Home</a>
-          {hasReadme && <a href="docs/" class="nav-link">Documentation</a>}
-          <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">GitHub</a>
-        </div>
-      </nav>
-    </div>
-  </header>
-
-  <!-- Hero Section -->
-  <section class="hero-minimal">
-    <div class="container">
-      <header class="hero-header">
-        <h1 class="hero-title">{title}</h1>
-        <p class="description">{description}</p>
-        
-        <div class="actions">
-          <a href={repoUrl} class="button" target="_blank" rel="noopener noreferrer">
-            View Repository
-          </a>
-        </div>
-      </header>
-      
-      <div class="stats">
-        <div class="stat">
-          <span class="stat-value">{stats.stars}</span>
-          <span class="stat-label">Stars</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value">{stats.forks}</span>
-          <span class="stat-label">Forks</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value">{stats.issues}</span>
-          <span class="stat-label">Issues</span>
-        </div>
-      </div>
-    </div>
+<MinimalLayout 
+  title={title} 
+  description={description || "AI-generated project site"} 
+  stats={stats}
+  repoData={repoData}
+/>
   </section>
 </div>
 
@@ -1708,29 +1663,12 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
 async function generateHeroFocusedHero(
   _context: string,
   _repoData: RepoData,
-  design: EnhancedDesignStrategy,
+  _design: EnhancedDesignStrategy,
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
-  const borderRadius =
-    design.effects.borders === "pill"
-      ? "50px"
-      : design.effects.borders === "sharp"
-        ? "0px"
-        : "12px";
-  const shadowLevel =
-    design.effects.shadows === "prominent"
-      ? "0 25px 50px rgba(0, 0, 0, 0.25)"
-      : design.effects.shadows === "subtle"
-        ? "0 4px 6px rgba(0, 0, 0, 0.07)"
-        : "none";
-  const spacing =
-    design.effects.spacing === "tight"
-      ? "3rem 0"
-      : design.effects.spacing === "spacious"
-        ? "6rem 0"
-        : "4rem 0";
-
   return `---
+import HeroFocusedLayout from '@gitlyte/shared/components/Layout/HeroFocusedLayout.astro';
+
 interface Props {
   title: string;
   description?: string;
@@ -1746,376 +1684,25 @@ interface Props {
 }
 
 const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
+
+// Create repo data for the shared layout
+const repoData = {
+  title,
+  description,
+  stats,
+  hasReadme,
+  repoUrl,
+  hasLogo,
+  logoUrl
+};
 ---
 
-<header class="site-header">
-  <div class="container">
-    <nav class="main-nav">
-      <div class="nav-brand">
-        {hasLogo && logoUrl ? (
-          <a href="./" class="brand-link">
-            <div class="brand-with-logo">
-              <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
-            </div>
-          </a>
-        ) : (
-          <a href="./" class="brand-link">
-            <h1>{title}</h1>
-          </a>
-        )}
-      </div>
-      <div class="nav-links">
-        <a href="./" class="nav-link">🏠 Home</a>
-        {hasReadme && <a href="docs/" class="nav-link">📖 Docs</a>}
-        <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
-      </div>
-    </nav>
-  </div>
-</header>
-
-<section class="hero">
-  <div class="hero-background"></div>
-  <div class="container">
-    <div class="hero-content">
-      <div class="badge">🚀 Latest Release</div>
-      <h1 class="hero-title">{title}</h1>
-      <p class="subtitle">{description || 'An innovative solution for modern development'}</p>
-      
-      <div class="cta-section">
-        <a href="#getting-started" class="cta-primary">Get Started</a>
-        {hasReadme && <a href="docs/" class="cta-secondary">📖 Documentation</a>}
-        <a href={repoUrl} class="cta-secondary" target="_blank" rel="noopener">🔗 GitHub</a>
-      </div>
-      
-      <div class="stats">
-        <div class="stat">
-          <span class="stat-number">{stats.stars.toLocaleString()}</span>
-          <span class="stat-label">⭐ Stars</span>
-        </div>
-        <div class="stat">
-          <span class="stat-number">{stats.forks.toLocaleString()}</span>
-          <span class="stat-label">🍴 Forks</span>
-        </div>
-        <div class="stat">
-          <span class="stat-number">{stats.issues}</span>
-          <span class="stat-label">📊 Issues</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<style>
-  .site-header {
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid #e2e8f0;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-
-  .site-header .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem;
-  }
-
-  .main-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 0;
-    min-height: 4rem;
-  }
-
-  .nav-brand {
-    flex-shrink: 0;
-  }
-
-  .brand-link {
-    text-decoration: none;
-    display: block;
-  }
-
-  .nav-brand h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: var(--primary);
-    font-family: ${design.typography.heading};
-    font-weight: 700;
-    white-space: nowrap;
-    transition: color 0.2s ease;
-  }
-
-  .brand-link:hover h1 {
-    color: var(--secondary);
-  }
-
-  .brand-with-logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .brand-logo {
-    height: 2.5rem;
-    width: auto;
-    max-width: 12rem;
-    object-fit: contain;
-    border-radius: 4px;
-    transition: transform 0.2s ease;
-  }
-
-  .brand-link:hover .brand-logo {
-    transform: scale(1.05);
-  }
-
-  .nav-links {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .nav-link {
-    text-decoration: none;
-    color: #374151;
-    font-weight: 500;
-    font-size: 0.9rem;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .nav-link:hover {
-    background: var(--primary)15;
-    color: var(--primary);
-    transform: translateY(-1px);
-  }
-
-  @media (max-width: 1024px) {
-    .main-nav {
-      flex-direction: column;
-      gap: 1rem;
-      padding: 1rem 0;
-    }
-    
-    .nav-brand h1 {
-      font-size: 1.25rem;
-    }
-    
-    .nav-links {
-      gap: 0.25rem;
-      justify-content: center;
-    }
-    
-    .nav-link {
-      font-size: 0.85rem;
-      padding: 0.4rem 0.8rem;
-    }
-  }
-  
-  @media (max-width: 640px) {
-    .site-header .container {
-      padding: 0 0.75rem;
-    }
-    
-    .main-nav {
-      padding: 0.75rem 0;
-    }
-    
-    .nav-brand h1 {
-      font-size: 1.1rem;
-    }
-    
-    .nav-links {
-      gap: 0.25rem;
-    }
-    
-    .nav-link {
-      font-size: 0.8rem;
-      padding: 0.35rem 0.6rem;
-    }
-  }
-
-  .hero {
-    position: relative;
-    background: ${
-      design.style === "gradient"
-        ? "linear-gradient(135deg, var(--primary), var(--secondary))"
-        : design.style === "glassmorphism"
-          ? "linear-gradient(135deg, var(--primary)20, var(--secondary)20)"
-          : "var(--primary)"
-    };
-    color: white;
-    padding: ${spacing};
-    text-align: center;
-    overflow: hidden;
-    ${design.effects.blur ? "backdrop-filter: blur(10px);" : ""}
-  }
-
-  .hero-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    opacity: 0.1;
-    background: radial-gradient(circle at 30% 20%, var(--accent) 20%, transparent 50%),
-                radial-gradient(circle at 70% 80%, var(--secondary) 20%, transparent 50%);
-    ${design.animations ? "animation: float 20s ease-in-out infinite;" : ""}
-  }
-
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .hero-content {
-    max-width: 800px;
-    margin: 0 auto;
-  }
-
-  .badge {
-    display: inline-block;
-    background: rgba(255, 255, 255, 0.15);
-    padding: 0.5rem 1rem;
-    border-radius: ${borderRadius};
-    font-size: 0.9rem;
-    margin-bottom: 2rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    ${design.effects.blur ? "backdrop-filter: blur(10px);" : ""}
-  }
-
-  .hero-title {
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    margin-bottom: 1.5rem;
-    font-weight: 700;
-    font-family: ${design.typography.heading};
-    background: linear-gradient(45deg, white, rgba(255, 255, 255, 0.8));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1.1;
-  }
-
-  .subtitle {
-    font-size: 1.25rem;
-    margin-bottom: 3rem;
-    opacity: 0.9;
-    line-height: 1.6;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .cta-section {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-bottom: 3rem;
-    flex-wrap: wrap;
-  }
-
-  .cta-primary {
-    background: var(--accent);
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: ${borderRadius};
-    text-decoration: none;
-    font-weight: 600;
-    box-shadow: ${shadowLevel};
-    transition: all 0.3s ease;
-    border: 2px solid var(--accent);
-  }
-
-  .cta-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  }
-
-  .cta-secondary {
-    background: transparent;
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: ${borderRadius};
-    text-decoration: none;
-    font-weight: 600;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    transition: all 0.3s ease;
-  }
-
-  .cta-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.5);
-  }
-
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 2rem;
-    max-width: 500px;
-    margin: 0 auto;
-  }
-
-  .stat {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 1.5rem 1rem;
-    border-radius: ${borderRadius};
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    ${design.effects.blur ? "backdrop-filter: blur(10px);" : ""}
-    transition: all 0.3s ease;
-  }
-
-  .stat:hover {
-    transform: translateY(-4px);
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  .stat-number {
-    display: block;
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-  }
-
-  .stat-label {
-    display: block;
-    font-size: 0.9rem;
-    opacity: 0.8;
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    33% { transform: translate(30px, -30px) rotate(1deg); }
-    66% { transform: translate(-20px, 20px) rotate(-1deg); }
-  }
-
-  @media (max-width: 768px) {
-    .hero {
-      padding: 3rem 0;
-    }
-    
-    .cta-section {
-      flex-direction: column;
-      align-items: center;
-    }
-    
-    .stats {
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 1rem;
-    }
-  }
-</style>`;
+<HeroFocusedLayout 
+  title={title} 
+  description={description || "AI-generated project site"} 
+  stats={stats}
+  repoData={repoData}
+/>`;
 }
 
 async function generateMinimalFeaturesComponent(
