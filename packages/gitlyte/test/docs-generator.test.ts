@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { DesignStrategy } from "../services/ai-analyzer.js";
 import {
   analyzeDocumentStructure,
   generateDocsPage,
 } from "../services/docs-generator.js";
 import type { RepoData } from "../types.js";
-import type { DesignStrategy } from "../services/ai-analyzer.js";
 
 describe("Docs Generator", () => {
   const mockRepoData: RepoData = {

@@ -1,6 +1,6 @@
-import type { RepoData } from "../types.js";
-import type { RepoAnalysis, DesignStrategy } from "../services/ai-analyzer.js";
+import type { DesignStrategy, RepoAnalysis } from "../services/ai-analyzer.js";
 import type { GitLyteConfig } from "../types/config.js";
+import type { RepoData } from "../types.js";
 
 /**
  * .gitlyte.json の雛形を生成

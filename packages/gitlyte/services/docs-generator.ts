@@ -1,6 +1,7 @@
 import type { RepoData } from "../types.js";
-import type { EnhancedDesignStrategy } from "./ai-code-generator.js";
 import { detectRepoLogo } from "../utils/logo-detector.js";
+import type { EnhancedDesignStrategy } from "./ai-code-generator.js";
+import { designTokens } from "@gitlyte/shared/styles/design-tokens";
 
 /** Markdownコンテンツの構造分析結果 */
 export interface DocumentStructure {
@@ -570,31 +571,31 @@ const repoUrl = repoData?.repo?.html_url || "#";
 
   /* Docs Container */
   .docs-container {
-    display: flex;
-    max-width: 800px;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    max-width: 1200px;
     margin: 0 auto;
-    min-height: 100vh;
-    width: 100%;
+    min-height: calc(100vh - 80px);
+    gap: 0;
     box-sizing: border-box;
   }
 
   /* Sidebar */
   .docs-sidebar {
-    width: 280px;
-    padding: 2rem 1rem 2rem 2rem;
-    border-right: 1px solid #e5e5e5;
-    background-color: #fafafa;
-    position: sticky;
-    top: 80px;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    padding: 2rem 1.5rem;
     height: calc(100vh - 80px);
     overflow-y: auto;
+    position: sticky;
+    top: 80px;
   }
 
   /* Main Content */
   .docs-content {
-    flex: 1;
-    padding: 2rem;
-    max-width: calc(100% - 280px);
+    padding: 2rem 3rem;
+    max-width: none;
+    overflow-x: auto;
   }
 
   .docs-article {
@@ -735,7 +736,7 @@ const repoUrl = repoData?.repo?.html_url || "#";
 async function generateDefaultDocsPageContent(
   repoData: RepoData,
   structure: DocumentStructure,
-  design: EnhancedDesignStrategy,
+  _design: EnhancedDesignStrategy,
   logoResult?: { hasLogo: boolean; logoUrl?: string; faviconUrl?: string }
 ): Promise<string> {
   const processedContent = await processMarkdownContent(structure, repoData);
@@ -748,6 +749,22 @@ const docStructure = ${JSON.stringify(structure)};
 ---
 
 <Layout title="${structure.title} - ${repoData.repo?.name || "Repository"}" description="Complete documentation for ${repoData.repo?.name || "Repository"}">
+  <style is:global>
+    :root {
+      --color-primary: ${designTokens.colors.primary};
+      --color-secondary: ${designTokens.colors.secondary};
+      --color-accent: ${designTokens.colors.accent};
+      --color-background: ${designTokens.colors.background};
+      --color-surface: ${designTokens.colors.surface};
+      --color-text-primary: ${designTokens.colors.textPrimary};
+      --color-text-secondary: ${designTokens.colors.textSecondary};
+      --color-text-muted: ${designTokens.colors.textMuted};
+      --color-border: ${designTokens.colors.border};
+      --font-heading: ${designTokens.typography.fontFamily.heading};
+      --font-body: ${designTokens.typography.fontFamily.body};
+      --font-code: ${designTokens.typography.fontFamily.code};
+    }
+  </style>
   <header class="site-header">
     <div class="container">
       <nav class="main-nav">
@@ -828,9 +845,9 @@ const docStructure = ${JSON.stringify(structure)};
   }
 
   .site-header .container {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 0 1rem;
+    padding: 0 20px;
     width: 100%;
     box-sizing: border-box;
   }
@@ -855,15 +872,15 @@ const docStructure = ${JSON.stringify(structure)};
   .nav-brand h1 {
     margin: 0;
     font-size: 1.5rem;
-    color: ${design.colorScheme.primary};
-    font-family: ${design.typography.heading};
+    color: var(--color-primary);
+    font-family: var(--font-heading);
     font-weight: 700;
     white-space: nowrap;
     transition: color 0.2s ease;
   }
 
   .brand-link:hover h1 {
-    color: ${design.colorScheme.secondary};
+    color: var(--color-secondary);
   }
 
   .brand-with-logo {
@@ -907,18 +924,18 @@ const docStructure = ${JSON.stringify(structure)};
   }
 
   .nav-link:hover {
-    background: ${design.colorScheme.primary}15;
-    color: ${design.colorScheme.primary};
+    background: var(--color-primary)15;
+    color: var(--color-primary);
     transform: translateY(-1px);
   }
   
   .nav-active {
-    background: ${design.colorScheme.primary};
+    background: var(--color-primary);
     color: white !important;
   }
   
   .nav-active:hover {
-    background: ${design.colorScheme.primary};
+    background: var(--color-primary);
     transform: none;
   }
   
@@ -950,21 +967,18 @@ const docStructure = ${JSON.stringify(structure)};
     }
     
     .docs-container {
-      flex-direction: column;
+      grid-template-columns: 1fr;
     }
 
     .docs-sidebar {
-      width: 100%;
+      position: relative;
       height: auto;
-      position: static;
-      padding: 1rem 2rem;
       border-right: none;
-      border-bottom: 1px solid #e5e5e5;
+      border-bottom: 1px solid var(--color-border);
     }
 
     .docs-content {
-      max-width: 100%;
-      padding: 1rem 2rem 2rem;
+      padding: 1.5rem;
     }
   }
   

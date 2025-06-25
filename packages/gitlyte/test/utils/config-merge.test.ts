@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
-import {
-  mergeConfigWithDefaults,
-  hasConfigChanged,
-} from "../../utils/config-loader.js";
+import { describe, expect, it } from "vitest";
 import type { GitLyteConfig } from "../../types/config.js";
+import {
+  hasConfigChanged,
+  mergeConfigWithDefaults,
+} from "../../utils/config-loader.js";
 
 describe("Config Merge Functions", () => {
   describe("mergeConfigWithDefaults", () => {

@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   checkDeploymentStatus,
-  waitForDeploymentCompletion,
   safeGenerateWithDeploymentGuard,
+  waitForDeploymentCompletion,
 } from "../utils/deployment-guard.js";
 
 interface MockContext {

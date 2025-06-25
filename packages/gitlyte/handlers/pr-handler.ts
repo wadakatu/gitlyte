@@ -1,8 +1,8 @@
 import type { Context } from "probot";
 import { generateAIAstroSite } from "../services/astro-generator.js";
 import type { PullRequest } from "../types.js";
-import { collectRepoData, ensurePages } from "../utils/github.js";
 import { safeGenerateWithDeploymentGuard } from "../utils/deployment-guard.js";
+import { collectRepoData, ensurePages } from "../utils/github.js";
 
 /** Feature PR ハンドラ */
 export async function handleFeaturePR(ctx: Context, pr: PullRequest) {

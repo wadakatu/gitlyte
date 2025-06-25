@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { detectRepoLogo } from "../utils/logo-detector.js";
+import { describe, expect, it } from "vitest";
 import type { RepoData } from "../types.js";
+import { detectRepoLogo } from "../utils/logo-detector.js";
 
 describe("Logo Detector", () => {
   const mockRepoData: RepoData = {

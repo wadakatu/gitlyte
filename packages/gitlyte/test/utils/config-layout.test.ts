@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   analyzeRepository,
-  generateDesignStrategy,
-  setOpenAIClient,
-  type RepoAnalysis,
   type DesignStrategy,
+  generateDesignStrategy,
+  type RepoAnalysis,
+  setOpenAIClient,
 } from "../../services/ai-analyzer.js";
-import type { RepoData } from "../../types.js";
 import type { GitLyteConfig } from "../../types/config.js";
+import type { RepoData } from "../../types.js";
 
 interface MockOpenAI {
   chat: {
