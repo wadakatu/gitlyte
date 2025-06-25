@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import type { RepoAnalysis } from "../../services/ai-analyzer.js";
 import {
   designSiteArchitecture,
   generateComponentSpecs,
   setOpenAIClient,
 } from "../../services/ai-site-architect.js";
 import type { RepoData } from "../../types.js";
-import type { RepoAnalysis } from "../../services/ai-analyzer.js";
 
 // Mock OpenAI client
 const mockOpenAI = {

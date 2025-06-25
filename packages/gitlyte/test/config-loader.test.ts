@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { RepoData } from "../types.js";
 import {
   loadGitLyteConfig,
-  resolveLogoUrl,
   resolveFaviconUrl,
+  resolveLogoUrl,
 } from "../utils/config-loader.js";
-import type { RepoData } from "../types.js";
 
 describe("Config Loader", () => {
   const mockRepoData: RepoData = {

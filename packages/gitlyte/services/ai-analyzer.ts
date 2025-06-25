@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import type { RepoData } from "../types.js";
 import type { GitLyteConfig } from "../types/config.js";
+import type { RepoData } from "../types.js";
 
 // OpenAI クライアント初期化
 let openai: OpenAI | null = null;

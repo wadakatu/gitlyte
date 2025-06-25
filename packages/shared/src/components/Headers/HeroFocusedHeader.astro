@@ -1,0 +1,96 @@
+---
+export interface Props {
+  title: string;
+  currentPage?: 'home' | 'docs' | string;
+  githubUrl?: string;
+}
+
+const { title, currentPage = 'home', githubUrl = 'https://github.com/wadakatu/gitlyte' } = Astro.props;
+---
+
+<header class="hero-focused-header">
+  <div class="container">
+    <nav class="main-nav">
+      <div class="nav-brand">
+        <h1>{title}</h1>
+      </div>
+      <div class="nav-links">
+        <a href="#features" class={`nav-link ${currentPage === 'home' ? 'active' : ''}`}>🏠 Home</a>
+        <a href="#docs" class={`nav-link ${currentPage === 'docs' ? 'active' : ''}`}>📖 Docs</a>
+        <a href={githubUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .hero-focused-header {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .main-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) 0;
+    min-height: 4rem;
+  }
+
+  .nav-brand h1 {
+    margin: 0;
+    font-size: var(--text-2xl);
+    color: var(--color-primary);
+    font-weight: 700;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    font-size: var(--text-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+  }
+
+  .nav-link:hover {
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    color: var(--color-primary);
+    transform: translateY(-1px);
+  }
+
+  .nav-link.active {
+    background: var(--color-primary);
+    color: white;
+  }
+
+  @media (max-width: 768px) {
+    .main-nav {
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .nav-links {
+      gap: var(--space-xs);
+      justify-content: center;
+    }
+  }
+</style>

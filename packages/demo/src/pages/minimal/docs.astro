@@ -4,7 +4,7 @@ import MinimalDocs from '../../components/MinimalDocs.astro';
 import MinimalDemoHeader from '../../components/headers/MinimalDemoHeader.astro';
 ---
 
-<Layout title="Minimal Documentation - GitLyte Demo" description="Minimal レイアウトの詳細ドキュメント">
+<Layout title="Minimal Documentation - GitLyte Demo" description="Minimal レイアウトの詳細ドキュメント" layoutType="minimal">
   <MinimalDemoHeader currentPage="docs" />
   
   <!-- ドキュメント説明セクション -->
@@ -40,9 +40,9 @@ import MinimalDemoHeader from '../../components/headers/MinimalDemoHeader.astro'
 
 <style>
   .container {
-    max-width: 1200px;
+    max-width: 800px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 2rem;
   }
 
   .docs-intro {

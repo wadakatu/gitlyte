@@ -1,0 +1,122 @@
+---
+export interface Props {
+  title: string;
+  currentPage?: 'home' | 'docs' | string;
+  githubUrl?: string;
+}
+
+const { title, currentPage = 'home', githubUrl = 'https://github.com/wadakatu/gitlyte' } = Astro.props;
+---
+
+<header class="minimal-header">
+  <div class="container">
+    <nav class="main-nav">
+      <div class="nav-brand">
+        <h1>{title}</h1>
+      </div>
+      <div class="nav-links">
+        <button class={`nav-link ${currentPage === 'home' ? 'active' : ''}`} onclick="showDemo()">Home</button>
+        <button class={`nav-link ${currentPage === 'docs' ? 'active' : ''}`} onclick="showDocs()">Documentation</button>
+        <a href={githubUrl} class="nav-link" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .minimal-header {
+    border-bottom: 1px solid #e5e5e5;
+    background-color: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .main-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+  }
+
+  .nav-brand h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #1a1a1a;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    background: none;
+    border: none;
+    text-decoration: none;
+    color: #666666;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+    position: relative;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .nav-link:hover,
+  .nav-link.active {
+    color: #1a1a1a;
+  }
+
+  .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1rem;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #1a1a1a;
+  }
+
+  @media (max-width: 768px) {
+    .main-nav {
+      flex-direction: column;
+      gap: 1rem;
+      padding: 0.75rem 0;
+    }
+
+    .nav-links {
+      gap: 1rem;
+    }
+  }
+</style>
+
+<script>
+  // Navigation functionality for demo pages
+  function showDemo() {
+    const currentPath = window.location.pathname;
+    const isDemoPage = !currentPath.includes('/docs');
+    if (!isDemoPage) {
+      window.location.href = window.location.pathname.replace('/docs', '');
+    }
+  }
+
+  function showDocs() {
+    const currentPath = window.location.pathname;
+    const isDocsPage = currentPath.includes('/docs');
+    if (!isDocsPage) {
+      window.location.href = window.location.pathname + '/docs';
+    }
+  }
+</script>

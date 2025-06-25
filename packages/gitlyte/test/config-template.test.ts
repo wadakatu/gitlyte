@@ -1,13 +1,13 @@
-import { describe, it, expect } from "vitest";
-import {
-  generateConfigTemplate,
-  generateConfigFileContent,
-  generateConfigDocumentation,
-  getRecommendedLogoFormat,
-  adjustColorsForAudience,
-} from "../utils/config-template.js";
+import { describe, expect, it } from "vitest";
+import type { DesignStrategy, RepoAnalysis } from "../services/ai-analyzer.js";
 import type { RepoData } from "../types.js";
-import type { RepoAnalysis, DesignStrategy } from "../services/ai-analyzer.js";
+import {
+  adjustColorsForAudience,
+  generateConfigDocumentation,
+  generateConfigFileContent,
+  generateConfigTemplate,
+  getRecommendedLogoFormat,
+} from "../utils/config-template.js";
 
 describe("Config Template Generator", () => {
   const mockRepoData: RepoData = {

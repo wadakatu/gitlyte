@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type {
+  DesignStrategy,
+  RepoAnalysis,
+} from "../../services/ai-analyzer.js";
 import { generateAstroSite } from "../../services/ai-code-generator.js";
 import type { RepoData } from "../../types.js";
-import type {
-  RepoAnalysis,
-  DesignStrategy,
-} from "../../services/ai-analyzer.js";
 
 describe("AI Code Generator", () => {
   const mockRepoData: RepoData = {
@@ -111,9 +111,9 @@ describe("AI Code Generator", () => {
       expect(result.layout).toContain("--color-primary:");
       expect(result.layout).toContain(mockDesign.colorScheme.primary);
 
-      // Heroコンポーネントに共有レイアウトが含まれることを確認
+      // Heroコンポーネントに必要な要素が含まれることを確認
       expect(result.heroComponent).toContain("stats");
-      expect(result.heroComponent).toContain("HeroFocusedLayout");
+      expect(result.heroComponent).toContain("hero-focused");
 
       // Featuresコンポーネントにpropsが含まれることを確認
       expect(result.featuresComponent).toContain("prs");
@@ -143,7 +143,7 @@ describe("AI Code Generator", () => {
       );
 
       expect(result.packageJson).toBeDefined();
-      expect(result.heroComponent).toContain("HeroFocusedLayout");
+      expect(result.heroComponent).toContain("hero-focused");
     });
 
     it("should generate responsive CSS", async () => {
@@ -154,8 +154,8 @@ describe("AI Code Generator", () => {
       );
 
       expect(result.globalStyles).toContain("@media");
-      // Hero component now uses shared layout, so responsive CSS is in the shared component
-      expect(result.heroComponent).toContain("HeroFocusedLayout");
+      // Hero component contains responsive CSS
+      expect(result.heroComponent).toContain("@media");
     });
 
     it("should include proper CSS custom properties", async () => {

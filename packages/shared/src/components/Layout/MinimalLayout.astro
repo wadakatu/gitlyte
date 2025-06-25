@@ -1,5 +1,6 @@
 ---
 import BaseLayout from './BaseLayout.astro';
+import MinimalHeader from '../Headers/MinimalHeader.astro';
 import type { RepoData } from '../../types/index.js';
 
 export interface Props {
@@ -11,9 +12,11 @@ export interface Props {
     issues: number;
   };
   repoData?: RepoData;
+  currentPage?: 'home' | 'docs' | string;
+  githubUrl?: string;
 }
 
-const { title, description, stats, repoData } = Astro.props;
+const { title, description, stats, repoData, currentPage = 'home', githubUrl } = Astro.props;
 
 // Minimal layout specific design tokens
 const minimalTokens = {
@@ -77,26 +80,7 @@ const features = [
 >
   <div class="minimal-layout">
     <!-- Header -->
-    <header class="minimal-header">
-      <div class="container">
-        <nav class="minimal-nav">
-          <div class="nav-brand">
-            <a href="./" class="brand-link">
-              {repoData?.hasLogo && repoData?.logoUrl ? (
-                <img src={repoData.logoUrl} alt={title} class="brand-logo" />
-              ) : (
-                <h1>{title}</h1>
-              )}
-            </a>
-          </div>
-          <div class="nav-links">
-            <button class="nav-link nav-active" onclick="showDemo()">Home</button>
-            <button class="nav-link" onclick="showDocs()">Documentation</button>
-            <a href="https://github.com/wadakatu/gitlyte" class="nav-link" target="_blank" rel="noopener">GitHub</a>
-          </div>
-        </nav>
-      </div>
-    </header>
+    <MinimalHeader title={title} currentPage={currentPage} githubUrl={githubUrl} />
 
     <!-- Hero Section -->
     <section class="hero-minimal">
@@ -222,72 +206,12 @@ const features = [
     background-color: var(--color-background);
   }
 
-  /* Header */
-  .minimal-header {
-    border-bottom: 1px solid var(--color-border);
-    background-color: var(--color-background);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
   }
 
-  .minimal-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-md) 0;
-  }
-
-  .brand-link {
-    text-decoration: none;
-    color: var(--color-text-primary);
-  }
-
-  .brand-link h1 {
-    margin: 0;
-    font-size: var(--text-xl);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-
-  .brand-logo {
-    height: 32px;
-    width: auto;
-    max-width: 200px;
-  }
-
-  .nav-links {
-    display: flex;
-    gap: var(--space-xl);
-  }
-
-  .nav-link {
-    background: none;
-    border: none;
-    text-decoration: none;
-    color: var(--color-text-secondary);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    transition: color 0.2s ease;
-    position: relative;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  .nav-link:hover,
-  .nav-link.nav-active {
-    color: var(--color-text-primary);
-  }
-
-  .nav-link.nav-active::after {
-    content: '';
-    position: absolute;
-    bottom: -var(--space-md);
-    left: 0;
-    right: 0;
-    height: 1px;
-    background-color: var(--color-text-primary);
-  }
 
   /* Hero Section */
   .hero-minimal {
@@ -600,19 +524,6 @@ const features = [
 
   /* Responsive Design */
   @media (max-width: 768px) {
-    .minimal-nav {
-      flex-direction: column;
-      gap: var(--space-md);
-      padding: var(--space-sm) 0;
-    }
-
-    .nav-links {
-      gap: var(--space-md);
-    }
-
-    .brand-logo {
-      height: 28px;
-    }
     
     .hero-minimal {
       min-height: auto;

@@ -1,8 +1,8 @@
 import type { RepoData } from "../types.js";
 import {
   loadGitLyteConfig,
-  resolveLogoUrl,
   resolveFaviconUrl,
+  resolveLogoUrl,
 } from "./config-loader.js";
 
 /** ロゴ画像検出結果 */

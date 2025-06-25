@@ -1,11 +1,11 @@
 import type { RepoData } from "../types.js";
+import { detectRepoLogo } from "../utils/logo-detector.js";
 import type { DesignStrategy, RepoAnalysis } from "./ai-analyzer.js";
 import {
   analyzeRepositoryContent,
   type ContentAnalysis,
 } from "./content-analyzer.js";
 import { generateDocsPage } from "./docs-generator.js";
-import { detectRepoLogo } from "../utils/logo-detector.js";
 // Note: Shared design system is now used in generated components
 
 // 型拡張: 新しいデザインプロパティを含む
@@ -1758,12 +1758,10 @@ const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astr
 async function generateHeroFocusedHero(
   _context: string,
   _repoData: RepoData,
-  _design: EnhancedDesignStrategy,
+  design: EnhancedDesignStrategy,
   _logoResult?: { hasLogo: boolean; logoUrl?: string }
 ): Promise<string> {
   return `---
-import HeroFocusedLayout from '@gitlyte/shared/components/Layout/HeroFocusedLayout.astro';
-
 interface Props {
   title: string;
   description?: string;
@@ -1779,25 +1777,326 @@ interface Props {
 }
 
 const { title, description, stats, hasReadme, repoUrl, hasLogo, logoUrl } = Astro.props as Props;
-
-// Create repo data for the shared layout
-const repoData = {
-  title,
-  description,
-  stats,
-  hasReadme,
-  repoUrl,
-  hasLogo,
-  logoUrl
-};
 ---
 
-<HeroFocusedLayout 
-  title={title} 
-  description={description || "AI-generated project site"} 
-  stats={stats}
-  repoData={repoData}
-/>`;
+<!-- Hero-Focused Layout with Header -->
+<div class="hero-focused-layout">
+  <!-- Navigation Header -->
+  <header class="site-header">
+    <div class="container">
+      <nav class="main-nav">
+        <div class="nav-brand">
+          {hasLogo && logoUrl ? (
+            <img src={logoUrl} alt={title + " logo"} class="brand-logo" />
+          ) : (
+            <h1>{title}</h1>
+          )}
+        </div>
+        <div class="nav-links">
+          <a href="./" class="nav-link">🏠 Home</a>
+          {hasReadme && <a href="docs/" class="nav-link">📖 Docs</a>}
+          <a href={repoUrl} class="nav-link" target="_blank" rel="noopener">🔗 GitHub</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Hero Section -->
+  <section class="hero-focused">
+    <div class="hero-background"></div>
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">✨ Featured Project</div>
+        <h1 class="hero-title">{title}</h1>
+        <p class="hero-description">{description || 'An innovative solution for modern development challenges'}</p>
+      
+      <div class="action-buttons">
+        {hasReadme && <a href="docs/" class="btn-primary">📚 Get Started</a>}
+        <a href={repoUrl} class="btn-secondary" target="_blank" rel="noopener">⭐ Star Project</a>
+      </div>
+      
+      <div class="stats-row">
+        <div class="stat-item">
+          <span class="stat-value">{stats.stars}</span>
+          <span class="stat-label">Stars</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">{stats.forks}</span>
+          <span class="stat-label">Forks</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">{stats.issues}</span>
+          <span class="stat-label">Issues</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  .hero-focused-layout {
+    min-height: 100vh;
+  }
+
+  .site-header {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .main-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    min-height: 4rem;
+  }
+
+  .nav-brand h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: ${design.colorScheme.primary};
+    font-weight: 700;
+    font-family: ${design.typography.heading};
+  }
+
+  .brand-logo {
+    height: 2rem;
+    width: auto;
+    max-width: 200px;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: #374151;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .nav-link:hover {
+    background: ${design.colorScheme.primary}15;
+    color: ${design.colorScheme.primary};
+    transform: translateY(-1px);
+  }
+
+  .hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.1;
+    background: radial-gradient(circle at 30% 20%, ${design.colorScheme.accent} 20%, transparent 50%),
+                radial-gradient(circle at 70% 80%, ${design.colorScheme.secondary} 20%, transparent 50%);
+    animation: float 20s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(30px, -30px) rotate(1deg); }
+    66% { transform: translate(-20px, 20px) rotate(-1deg); }
+  }
+
+  .hero-focused {
+    background: linear-gradient(135deg, ${design.colorScheme.primary}, ${design.colorScheme.secondary});
+    color: white;
+    padding: 6rem 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-focused::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .hero-title {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-family: ${design.typography.heading};
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .hero-description {
+    font-size: 1.25rem;
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+    opacity: 0.9;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: white;
+    color: ${design.colorScheme.primary};
+    padding: 0.875rem 2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: white;
+    padding: 0.875rem 2rem;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    backdrop-filter: blur(10px);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: white;
+    transform: translateY(-2px);
+  }
+
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 768px) {
+    .main-nav {
+      flex-direction: column;
+      gap: 1rem;
+      padding: 0.75rem 0;
+    }
+
+    .nav-links {
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .nav-link {
+      font-size: 0.8rem;
+      padding: 0.5rem 0.75rem;
+    }
+
+    .brand-logo {
+      height: 1.5rem;
+    }
+
+    .hero-focused {
+      padding: 4rem 0;
+    }
+
+    .hero-description {
+      font-size: 1.1rem;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stats-row {
+      gap: 2rem;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+    }
+  }
+</style>`;
 }
 
 async function generateMinimalFeaturesComponent(
@@ -2064,12 +2363,17 @@ const gridClass = getGridClass(sortedWhyChooseCards.length);
   .section-header h2 {
     font-size: clamp(2rem, 4vw, 3rem);
     margin-bottom: 1rem;
-    color: var(--text-primary);
+    color: ${design.colorScheme.primary};
     font-family: ${design.typography.heading};
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: linear-gradient(135deg, ${design.colorScheme.primary}, ${design.colorScheme.secondary});
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    /* Fallback for browsers that don't support background-clip */
+    @supports not (-webkit-background-clip: text) {
+      color: ${design.colorScheme.primary};
+      background: none;
+    }
   }
 
   .section-subtitle {
@@ -2778,11 +3082,16 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
     font-size: 2.5rem;
     margin-bottom: 3rem;
     text-align: center;
-    color: var(--text-primary);
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: ${design.colorScheme.primary};
+    background: linear-gradient(135deg, ${design.colorScheme.primary}, ${design.colorScheme.secondary});
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    /* Fallback for browsers that don't support background-clip */
+    @supports not (-webkit-background-clip: text) {
+      color: ${design.colorScheme.primary};
+      background: none;
+    }
   }
 
   .project-overview {
@@ -2916,7 +3225,7 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
   }
 
   .docs-link-primary {
-    background: var(--primary);
+    background: ${design.colorScheme.primary};
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
@@ -2926,19 +3235,20 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   .docs-link-primary:hover {
-    background: var(--secondary);
+    background: ${design.colorScheme.secondary};
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   .docs-link-secondary {
     background: transparent;
-    color: var(--primary);
+    color: ${design.colorScheme.primary};
     padding: 0.75rem 1.5rem;
-    border: 2px solid var(--primary);
+    border: 2px solid ${design.colorScheme.primary};
     border-radius: 8px;
     text-decoration: none;
     font-weight: 600;
@@ -2949,7 +3259,7 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
   }
 
   .docs-link-secondary:hover {
-    background: var(--primary);
+    background: ${design.colorScheme.primary};
     color: white;
     transform: translateY(-2px);
   }
@@ -2973,7 +3283,7 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
   }
 
   footer {
-    background: var(--primary);
+    background: ${design.colorScheme.primary};
     color: white;
     text-align: center;
     padding: 2rem 0;
@@ -2981,7 +3291,8 @@ const sortedCards = dynamicCards.sort((a, b) => b.priority - a.priority).slice(0
 
   footer p {
     margin: 0;
-    opacity: 0.9;
+    opacity: 0.95;
+    font-weight: 500;
   }
 </style>`;
 }

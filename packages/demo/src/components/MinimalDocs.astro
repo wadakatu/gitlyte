@@ -1,4 +1,6 @@
 ---
+import MinimalHeader from '@gitlyte/shared/components/Headers/MinimalHeader.astro';
+
 // Simulate the README content and repository data for GitLyte project
 const repoData = {
   repo: {
@@ -123,22 +125,7 @@ const metadata = {
 
 <div class="minimal-docs-layout">
   <!-- Header -->
-  <header class="minimal-header">
-    <div class="container">
-      <nav class="minimal-nav">
-        <div class="nav-brand">
-          <a href="./" class="brand-link">
-            <h1>GitLyte</h1>
-          </a>
-        </div>
-        <div class="nav-links">
-          <button class="nav-link" onclick="showDemo()">Home</button>
-          <button class="nav-link nav-active" onclick="showDocs()">Documentation</button>
-          <a href="https://github.com/wadakatu/gitlyte" class="nav-link" target="_blank" rel="noopener">GitHub</a>
-        </div>
-      </nav>
-    </div>
-  </header>
+  <MinimalHeader title={repoData.repo.name} currentPage="docs" githubUrl={repoData.repo.html_url} />
 
   <!-- Main container with sidebar and content -->
   <div class="docs-container">
@@ -322,71 +309,10 @@ pnpm run dev:demo</code></pre>
     background-color: #ffffff;
   }
 
-  /* Header */
-  .minimal-header {
-    border-bottom: 1px solid #e5e5e5;
-    background-color: #ffffff;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
   .container {
     max-width: 800px;
     margin: 0 auto;
     padding: 0 2rem;
-  }
-
-  .minimal-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 0;
-  }
-
-  .brand-link {
-    text-decoration: none;
-    color: #1a1a1a;
-  }
-
-  .brand-link h1 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-
-  .nav-links {
-    display: flex;
-    gap: 2rem;
-  }
-
-  .nav-link {
-    background: none;
-    border: none;
-    text-decoration: none;
-    color: #666666;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: color 0.2s ease;
-    position: relative;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  .nav-link:hover,
-  .nav-link.nav-active {
-    color: #1a1a1a;
-  }
-
-  .nav-link.nav-active::after {
-    content: '';
-    position: absolute;
-    bottom: -1rem;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background-color: #1a1a1a;
   }
 
   /* Container layout */
@@ -695,15 +621,6 @@ pnpm run dev:demo</code></pre>
   }
 
   @media (max-width: 768px) {
-    .minimal-nav {
-      flex-direction: column;
-      gap: 1rem;
-      padding: 0.75rem 0;
-    }
-
-    .nav-links {
-      gap: 1rem;
-    }
 
     .docs-header h1 {
       font-size: 1.5rem;
@@ -728,9 +645,5 @@ pnpm run dev:demo</code></pre>
   }
 
   @media (max-width: 480px) {
-    .nav-links {
-      flex-direction: column;
-      gap: 0.5rem;
-    }
   }
 </style>

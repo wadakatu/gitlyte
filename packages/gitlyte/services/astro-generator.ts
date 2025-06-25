@@ -2,6 +2,15 @@ import type { Context } from "probot";
 import type { RepoData } from "../types.js";
 import { batchCommitFiles, type FileChange } from "../utils/batch-commit.js";
 import {
+  hasConfigChanged,
+  loadGitLyteConfig,
+  mergeConfigWithDefaults,
+} from "../utils/config-loader.js";
+import {
+  generateConfigFileContent,
+  generateConfigTemplate,
+} from "../utils/config-template.js";
+import {
   analyzeRepository,
   type DesignStrategy,
   generateDesignStrategy,
@@ -10,15 +19,6 @@ import {
   type GeneratedAstroSite,
   generateAstroSite,
 } from "./ai-code-generator.js";
-import {
-  generateConfigTemplate,
-  generateConfigFileContent,
-} from "../utils/config-template.js";
-import {
-  loadGitLyteConfig,
-  mergeConfigWithDefaults,
-  hasConfigChanged,
-} from "../utils/config-loader.js";
 
 /** AI駆動でAstroサイトを生成 */
 export async function generateAIAstroSite(ctx: Context, data: RepoData) {
