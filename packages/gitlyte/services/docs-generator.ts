@@ -1,7 +1,28 @@
 import type { RepoData } from "../types.js";
 import { detectRepoLogo } from "../utils/logo-detector.js";
 import type { EnhancedDesignStrategy } from "./ai-code-generator.js";
-import { designTokens } from "@gitlyte/shared/styles/design-tokens";
+
+// Default design tokens for docs generator
+const designTokens = {
+  colors: {
+    primary: "#3b82f6",
+    secondary: "#8b5cf6", 
+    accent: "#06b6d4",
+    background: "#ffffff",
+    surface: "#f8fafc",
+    textPrimary: "#1e293b",
+    textSecondary: "#475569",
+    textMuted: "#64748b",
+    border: "#e2e8f0"
+  },
+  typography: {
+    fontFamily: {
+      heading: "Inter, system-ui, sans-serif",
+      body: "Inter, system-ui, sans-serif", 
+      code: "JetBrains Mono, Monaco, monospace"
+    }
+  }
+};
 
 /** Markdownコンテンツの構造分析結果 */
 export interface DocumentStructure {
