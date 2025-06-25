@@ -32,9 +32,6 @@ importers:
 
   packages/gitlyte:
     dependencies:
-      '@gitlyte/shared':
-        specifier: workspace:*
-        version: link:../shared
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
