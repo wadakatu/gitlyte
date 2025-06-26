@@ -388,7 +388,6 @@ function generatePackageJson(repoData: RepoData): string {
       },
       dependencies: {
         astro: "^4.0.0",
-        "@gitlyte/shared": "workspace:*",
       },
     },
     null,
