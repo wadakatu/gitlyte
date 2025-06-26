@@ -1,0 +1,224 @@
+---
+// デモ全体をコントロールするメインアイランド
+---
+
+<div id="demo-controller"></div>
+
+<script>
+  interface LayoutData {
+    title: string;
+    description: string;
+    stats: {
+      stars: number;
+      forks: number;
+      issues: number;
+    };
+  }
+
+  class DemoController {
+    private demoSection: HTMLElement | null;
+    private demoContent: HTMLElement | null;
+    private docsContent: HTMLElement | null;
+    private layoutSelector: any;
+    private pageSelector: any;
+    private layoutSwitcher: any;
+
+    private heroFocusedLayout: HTMLElement | null;
+    private minimalLayout: HTMLElement | null;
+    private minimalDocsLayout: HTMLElement | null;
+    private heroFocusedDocsLayout: HTMLElement | null;
+
+    private currentLayout: string = 'hero-focused';
+    private currentPage: 'demo' | 'docs' = 'demo';
+
+    constructor() {
+      this.demoSection = document.getElementById('demo-section');
+      this.demoContent = document.getElementById('demo-content');
+      this.docsContent = document.getElementById('docs-content');
+
+      this.heroFocusedLayout = document.getElementById('hero-focused-layout');
+      this.minimalLayout = document.getElementById('minimal-layout');
+      this.minimalDocsLayout = document.getElementById('minimal-docs-layout');
+      this.heroFocusedDocsLayout = document.getElementById('hero-focused-docs-layout');
+
+      this.init();
+    }
+
+    init() {
+      setTimeout(() => {
+        this.setupIslandInstances();
+        this.setupLayoutNavigation();
+        this.showDemo();
+      }, 100);
+    }
+
+    private setupIslandInstances() {
+      this.layoutSelector = (window as any).layoutSelectorInstance;
+      this.pageSelector = (window as any).pageSelectorInstance;
+      this.layoutSwitcher = (window as any).layoutSwitcherInstance;
+
+      if (this.layoutSelector) {
+        this.layoutSelector.setOnLayoutChange(this.handleLayoutChange.bind(this));
+      }
+
+      if (this.pageSelector) {
+        this.pageSelector.setEvents({
+          onShowDemo: this.showDemo.bind(this),
+          onShowDocs: this.showDocs.bind(this)
+        });
+      }
+    }
+
+    private handleLayoutChange(layoutType: string) {
+      this.currentLayout = layoutType;
+      this.switchLayout(layoutType);
+      
+      if (this.layoutSwitcher) {
+        this.layoutSwitcher.switchLayout(layoutType);
+      }
+    }
+
+    showDemo() {
+      this.currentPage = 'demo';
+      
+      if (this.demoSection) this.demoSection.style.display = 'block';
+      if (this.demoContent) this.demoContent.style.display = 'block';
+      if (this.docsContent) this.docsContent.style.display = 'none';
+
+      this.showCurrentLayout();
+    }
+
+    showDocs() {
+      this.currentPage = 'docs';
+      
+      if (this.demoSection) this.demoSection.style.display = 'none';
+      if (this.demoContent) this.demoContent.style.display = 'none';
+      if (this.docsContent) this.docsContent.style.display = 'block';
+    }
+
+    private switchLayout(layoutType: string) {
+      if (this.currentPage === 'docs') {
+        return;
+      }
+
+      this.hideAllLayouts();
+
+      if (layoutType === 'minimal') {
+        if (this.minimalLayout) this.minimalLayout.style.display = 'block';
+        setTimeout(() => this.setupMinimalNavigation(), 100);
+      } else if (layoutType === 'hero-focused') {
+        if (this.heroFocusedLayout) this.heroFocusedLayout.style.display = 'block';
+        setTimeout(() => this.setupHeroFocusedNavigation(), 100);
+      }
+    }
+
+    private showCurrentLayout() {
+      this.hideAllLayouts();
+      
+      if (this.currentLayout === 'minimal') {
+        if (this.minimalLayout) this.minimalLayout.style.display = 'block';
+        setTimeout(() => this.setupMinimalNavigation(), 100);
+      } else {
+        if (this.heroFocusedLayout) this.heroFocusedLayout.style.display = 'block';
+        setTimeout(() => this.setupHeroFocusedNavigation(), 100);
+      }
+    }
+
+    private hideAllLayouts() {
+      const layouts = [
+        this.heroFocusedLayout,
+        this.minimalLayout, 
+        this.minimalDocsLayout,
+        this.heroFocusedDocsLayout
+      ];
+      
+      layouts.forEach(layout => {
+        if (layout) layout.style.display = 'none';
+      });
+    }
+
+    private setupHeroFocusedNavigation() {
+      if (!this.heroFocusedLayout || !this.heroFocusedDocsLayout) return;
+
+      const heroDocsBtn = this.heroFocusedLayout.querySelector('.cta-secondary[href="#docs"]');
+      const headerDocsBtn = this.heroFocusedLayout.querySelector('.nav-link[href="#docs"]');
+      const headerHomeBtn = this.heroFocusedLayout.querySelector('.nav-link[href="#features"]');
+      const heroDocsHomeBtn = this.heroFocusedDocsLayout.querySelector('.nav-link[href="#features"]');
+
+      this.attachNavHandler(heroDocsBtn, () => {
+        if (this.heroFocusedLayout) this.heroFocusedLayout.style.display = 'none';
+        if (this.heroFocusedDocsLayout) this.heroFocusedDocsLayout.style.display = 'block';
+      });
+
+      this.attachNavHandler(headerDocsBtn, () => {
+        if (this.heroFocusedLayout) this.heroFocusedLayout.style.display = 'none';
+        if (this.heroFocusedDocsLayout) this.heroFocusedDocsLayout.style.display = 'block';
+      });
+
+      this.attachNavHandler(headerHomeBtn, () => {
+        if (this.heroFocusedDocsLayout) this.heroFocusedDocsLayout.style.display = 'none';
+        if (this.heroFocusedLayout) this.heroFocusedLayout.style.display = 'block';
+      });
+
+      this.attachNavHandler(heroDocsHomeBtn, () => {
+        if (this.heroFocusedDocsLayout) this.heroFocusedDocsLayout.style.display = 'none';
+        if (this.heroFocusedLayout) this.heroFocusedLayout.style.display = 'block';
+      });
+    }
+
+    private setupMinimalNavigation() {
+      if (!this.minimalLayout || !this.minimalDocsLayout) return;
+
+      const minimalDocsBtn = this.minimalLayout.querySelector('.button-primary');
+      const homeBtn = this.minimalLayout.querySelector('.nav-link[onclick="showDemo()"]');
+      const docsBtn = this.minimalLayout.querySelector('.nav-link[onclick="showDocs()"]');
+      const minimalDocsHomeBtn = this.minimalDocsLayout.querySelector('.nav-link[onclick="showDemo()"]');
+
+      this.attachNavHandler(minimalDocsBtn, () => {
+        if (this.minimalLayout) this.minimalLayout.style.display = 'none';
+        if (this.minimalDocsLayout) this.minimalDocsLayout.style.display = 'block';
+      });
+
+      this.attachNavHandler(homeBtn, () => {
+        if (this.minimalDocsLayout) this.minimalDocsLayout.style.display = 'none';
+        if (this.minimalLayout) this.minimalLayout.style.display = 'block';
+      }, true);
+
+      this.attachNavHandler(docsBtn, () => {
+        if (this.minimalLayout) this.minimalLayout.style.display = 'none';
+        if (this.minimalDocsLayout) this.minimalDocsLayout.style.display = 'block';
+      }, true);
+
+      this.attachNavHandler(minimalDocsHomeBtn, () => {
+        if (this.minimalDocsLayout) this.minimalDocsLayout.style.display = 'none';
+        if (this.minimalLayout) this.minimalLayout.style.display = 'block';
+      }, true);
+    }
+
+    private attachNavHandler(element: Element | null, handler: () => void, removeOnclick = false) {
+      if (!element) return;
+
+      const newElement = element.cloneNode(true) as HTMLElement;
+      element.parentNode?.replaceChild(newElement, element);
+
+      if (removeOnclick) {
+        newElement.removeAttribute('onclick');
+      }
+
+      newElement.addEventListener('click', (e) => {
+        e.preventDefault();
+        handler();
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const demoController = new DemoController();
+      (window as any).demoController = demoController;
+      
+      (window as any).showDemo = () => demoController.showDemo();
+      (window as any).showDocs = () => demoController.showDocs();
+    }, 200);
+  });
+</script>

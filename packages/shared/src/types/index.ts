@@ -99,3 +99,79 @@ export interface ComponentProps {
   className?: string;
   children?: any;
 }
+
+// AI Generated Content Types
+export interface AIGeneratedContent {
+  hero: HeroContent;
+  features: FeaturesContent;
+  stats: StatsContent;
+  metadata: SiteMetadata;
+}
+
+export interface HeroContent {
+  title: string;
+  subtitle: string;
+  description: string;
+  badge?: {
+    text: string;
+    emoji?: string;
+  };
+  ctaButtons: CTAButton[];
+}
+
+export interface CTAButton {
+  text: string;
+  url: string;
+  type: 'primary' | 'secondary';
+  emoji?: string;
+}
+
+export interface FeaturesContent {
+  sectionTitle: string;
+  sectionSubtitle: string;
+  features: Feature[];
+}
+
+export interface Feature {
+  title: string;
+  description: string;
+  icon: string; // emoji or icon identifier
+  highlight?: string; // e.g., "10x faster", "5-minute setup"
+}
+
+export interface StatsContent {
+  stats: StatItem[];
+}
+
+export interface StatItem {
+  value: string | number;
+  label: string;
+  emoji?: string;
+  source: 'github' | 'custom';
+}
+
+export interface SiteMetadata {
+  title: string;
+  description: string;
+  githubUrl?: string;
+  logoUrl?: string;
+  theme: ThemeVariant;
+}
+
+export interface ThemeVariant {
+  colorScheme: 'primary' | 'secondary' | 'accent' | 'custom';
+  style: 'minimal' | 'modern' | 'gradient' | 'glassmorphism';
+  layout: 'hero-focused' | 'minimal' | 'grid' | 'sidebar' | 'content-heavy';
+}
+
+// Template Props Interface
+export interface TemplateProps {
+  content: AIGeneratedContent;
+  repoData: RepoData;
+  designTokens?: Partial<DesignTokens>;
+  customization?: {
+    enableAnimations?: boolean;
+    showGithubStats?: boolean;
+    enableGradients?: boolean;
+  };
+}

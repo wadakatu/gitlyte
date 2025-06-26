@@ -1,71 +1,79 @@
 ---
-import BaseLayout from './BaseLayout.astro';
+import BaseLayout from '../Layout/BaseLayout.astro';
 import HeroFocusedHeader from '../Headers/HeroFocusedHeader.astro';
-import type { RepoData } from '../../types/index.js';
+import type { TemplateProps } from '../../types/index.js';
 
-export interface Props {
-  title: string;
-  description: string;
-  stats: {
-    stars: number;
-    forks: number;
-    issues: number;
-  };
-  repoData?: RepoData;
-  currentPage?: 'home' | 'docs' | string;
-  githubUrl?: string;
-  isDemo?: boolean;
+export interface Props extends TemplateProps {
+  title?: string;
+  description?: string;
 }
 
-const { title, description, stats, repoData, currentPage = 'home', githubUrl, isDemo = false } = Astro.props;
+const { content, repoData, designTokens, customization, title, description } = Astro.props;
 
-// Hero-focused layout specific design tokens - keeping default design system
-const heroTokens = {};
+// Use content data or fallback to props/repoData
+const siteTitle = title || content.metadata.title || repoData.title;
+const siteDescription = description || content.metadata.description || repoData.description || '';
+
+// Hero-focused layout specific design tokens
+const heroTokens = designTokens || {};
 
 // Path configuration
 const isProd = import.meta.env.PROD;
 const docsPath = isProd ? '/gitlyte/docs' : '/docs';
+
+// Theme-based CSS variables
+const themeClasses = `theme-${content.metadata.theme.colorScheme} style-${content.metadata.theme.style}`;
 ---
 
 <BaseLayout 
-  title={title} 
-  description={description} 
+  title={siteTitle} 
+  description={siteDescription} 
   repoData={repoData}
   layoutType="hero-focused"
   customTokens={heroTokens}
 >
-  <section class="hero-focused-layout">
+  <section class={`hero-focused-layout ${themeClasses}`}>
     <!-- Navigation -->
-    <HeroFocusedHeader title={title} currentPage={currentPage} githubUrl={githubUrl} isDemo={isDemo} />
+    <HeroFocusedHeader 
+      title={siteTitle} 
+      currentPage="home" 
+      githubUrl={content.metadata.githubUrl || repoData.repoUrl} 
+    />
 
     <!-- Main Hero Section -->
     <section class="hero">
       <div class="hero-background"></div>
       <div class="container">
         <div class="hero-content">
-          <div class="badge">🚀 Latest Release</div>
-          <h1 class="hero-title">{title}</h1>
-          <p class="subtitle">{description}</p>
+          {content.hero.badge && (
+            <div class="badge">
+              {content.hero.badge.emoji} {content.hero.badge.text}
+            </div>
+          )}
+          <h1 class="hero-title">{content.hero.title}</h1>
+          <p class="subtitle">{content.hero.subtitle}</p>
+          <p class="description">{content.hero.description}</p>
           
           <div class="cta-section">
-            <a href="#features" class="cta-primary">Get Started</a>
-            <a href="#docs" class="cta-secondary">📖 Documentation</a>
-            <a href="https://github.com/wadakatu/gitlyte" class="cta-secondary" target="_blank" rel="noopener">🔗 GitHub</a>
+            {content.hero.ctaButtons.map((cta) => (
+              <a 
+                href={cta.url} 
+                class={`cta-${cta.type}`}
+                target={cta.url.startsWith('http') ? '_blank' : undefined}
+                rel={cta.url.startsWith('http') ? 'noopener' : undefined}
+              >
+                {cta.emoji} {cta.text}
+              </a>
+            ))}
           </div>
           
           <div class="stats">
-            <div class="stat">
-              <span class="stat-number">{stats.stars.toLocaleString()}</span>
-              <span class="stat-label">⭐ Stars</span>
-            </div>
-            <div class="stat">
-              <span class="stat-number">{stats.forks.toLocaleString()}</span>
-              <span class="stat-label">🍴 Forks</span>
-            </div>
-            <div class="stat">
-              <span class="stat-number">{stats.issues}</span>
-              <span class="stat-label">📊 Issues</span>
-            </div>
+            {content.stats.stats.map((stat) => (
+              <div class="stat">
+                <span class="stat-number">{stat.value}</span>
+                <span class="stat-label">{stat.emoji} {stat.label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -75,29 +83,21 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
     <section id="features" class="features">
       <div class="container">
         <div class="section-header">
-          <h2>Why Choose This Project?</h2>
-          <p class="section-subtitle">Discover the powerful features that make this project stand out</p>
+          <h2>{content.features.sectionTitle}</h2>
+          <p class="section-subtitle">{content.features.sectionSubtitle}</p>
         </div>
         
         <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon">⚡</div>
-            <h3>High Performance</h3>
-            <p>Optimized algorithms and minimal overhead for maximum speed</p>
-            <div class="feature-highlight">10x faster</div>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">🔧</div>
-            <h3>Easy Integration</h3>
-            <p>Simple installation and intuitive API design</p>
-            <div class="feature-highlight">5-minute setup</div>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">📚</div>
-            <h3>Rich Documentation</h3>
-            <p>Comprehensive guides, examples, and API references</p>
-            <div class="feature-highlight">100% coverage</div>
-          </div>
+          {content.features.features.map((feature) => (
+            <div class="feature-card">
+              <div class="feature-icon">{feature.icon}</div>
+              <h3>{feature.title}</h3>
+              <p>{feature.description}</p>
+              {feature.highlight && (
+                <div class="feature-highlight">{feature.highlight}</div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -108,7 +108,6 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
   .hero-focused-layout {
     min-height: 100vh;
   }
-
 
   .hero {
     position: relative;
@@ -161,10 +160,21 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
 
   .subtitle {
     font-size: var(--text-xl);
-    margin-bottom: var(--space-4xl);
-    opacity: 0.9;
+    margin-bottom: var(--space-md);
+    opacity: 0.95;
     line-height: 1.6;
     max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    font-weight: 600;
+  }
+
+  .description {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-4xl);
+    opacity: 0.85;
+    line-height: 1.6;
+    max-width: 700px;
     margin-left: auto;
     margin-right: auto;
   }
@@ -334,6 +344,37 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
     display: inline-block;
   }
 
+  /* Theme Variations */
+  .theme-secondary .hero {
+    background: linear-gradient(135deg, var(--color-secondary), var(--color-accent));
+  }
+
+  .theme-accent .hero {
+    background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+  }
+
+  .style-glassmorphism .feature-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .style-minimal .hero-background {
+    display: none;
+  }
+
+  .style-minimal .hero {
+    background: linear-gradient(135deg, var(--color-surface), var(--color-background));
+    color: var(--color-text-primary);
+  }
+
+  .style-minimal .hero-title {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   @keyframes float {
     0%, 100% { transform: translate(0, 0) rotate(0deg); }
     33% { transform: translate(30px, -30px) rotate(1deg); }
@@ -354,7 +395,6 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
       grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       gap: var(--space-md);
     }
-
 
     .features-grid {
       grid-template-columns: 1fr;

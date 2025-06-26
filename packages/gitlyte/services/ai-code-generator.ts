@@ -164,6 +164,9 @@ interface Props {
 }
 
 const { title, description } = Astro.props as Props;
+
+// Import global styles
+import '../styles/global.css';
 ---
 
 <!DOCTYPE html>
@@ -3304,14 +3307,69 @@ async function generateGlobalStyles(
   return `/* Global Styles for AI-Generated Site */
 
 :root {
-  --primary: ${design.colorScheme.primary};
-  --secondary: ${design.colorScheme.secondary};
-  --accent: ${design.colorScheme.accent};
-  --background: ${design.colorScheme.background};
-  --text-primary: #2d3748;
-  --text-secondary: #718096;
-  --border: #e2e8f0;
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  /* Colors */
+  --color-primary: ${design.colorScheme.primary};
+  --color-secondary: ${design.colorScheme.secondary};
+  --color-accent: ${design.colorScheme.accent};
+  --color-background: ${design.colorScheme.background};
+  --color-surface: ${design.colorScheme.background};
+  --color-text-primary: #2d3748;
+  --color-text-secondary: #718096;
+  --color-text-muted: #a0aec0;
+  --color-border: #e2e8f0;
+  --color-success: #48bb78;
+  --color-warning: #ed8936;
+  --color-error: #f56565;
+
+  /* Typography */
+  --font-heading: ${design.typography.heading};
+  --font-body: ${design.typography.body};
+  --font-code: ${design.typography.code};
+
+  /* Font Sizes */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+
+  /* Spacing */
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 2.5rem;
+  --space-3xl: 3rem;
+  --space-4xl: 4rem;
+  --space-5xl: 6rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  /* Legacy compatibility */
+  --primary: var(--color-primary);
+  --secondary: var(--color-secondary);
+  --accent: var(--color-accent);
+  --background: var(--color-background);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --border: var(--color-border);
+  --shadow: var(--shadow-md);
 }
 
 * {
@@ -3321,19 +3379,19 @@ async function generateGlobalStyles(
 }
 
 body {
-  font-family: ${design.typography.body};
+  font-family: var(--font-body);
   line-height: 1.6;
-  color: var(--text-primary);
-  background: var(--background);
+  color: var(--color-text-primary);
+  background: var(--color-background);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: ${design.typography.heading};
+  font-family: var(--font-heading);
   line-height: 1.2;
 }
 
 code, pre {
-  font-family: ${design.typography.code};
+  font-family: var(--font-code);
 }
 
 .container {

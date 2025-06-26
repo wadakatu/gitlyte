@@ -20,8 +20,8 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
       </div>
       <div class="nav-controls">
         <div class="page-selector">
-          <a href={homePath} class={`page-btn ${currentPage === 'demo' ? 'active' : ''}`}>Demo</a>
-          <a href={docsPath} class={`page-btn ${currentPage === 'docs' ? 'active' : ''}`}>Docs</a>
+          <button class={`page-btn ${currentPage === 'demo' ? 'active' : ''}`} onclick="showDemo()">Demo</button>
+          <button class={`page-btn ${currentPage === 'docs' ? 'active' : ''}`} onclick="showDocs()">Docs</button>
         </div>
         <div class="layout-selector">
           <label for="layout-selector" class="sr-only">レイアウトを選択</label>
@@ -94,6 +94,8 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
   }
 
   .page-btn {
+    background: none;
+    border: none;
     text-decoration: none;
     color: #374151;
     font-weight: 500;
@@ -105,6 +107,7 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
     display: flex;
     align-items: center;
     gap: 0.25rem;
+    cursor: pointer;
   }
 
   .page-btn:hover {
@@ -187,19 +190,37 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
   }
 </style>
 
+
 <script>
+  // Navigation functionality for demo pages
+  function showDemo() {
+    const currentPath = window.location.pathname;
+    const isDemoPage = !currentPath.includes('/docs');
+    if (!isDemoPage) {
+      window.location.href = window.location.pathname.replace('/docs', '');
+    }
+  }
+
+  function showDocs() {
+    const currentPath = window.location.pathname;
+    const isDocsPage = currentPath.includes('/docs');
+    if (!isDocsPage) {
+      window.location.href = window.location.pathname + '/docs';
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
-    const layoutSelector = document.getElementById('layout-selector') as HTMLSelectElement;
+    const layoutSelector = document.getElementById('layout-selector');
     
     if (layoutSelector) {
       layoutSelector.addEventListener('change', (e) => {
-        const target = e.target as HTMLSelectElement;
+        const target = e.target;
         const selectedLayout = target.value;
         
         const currentPath = window.location.pathname;
         const isDocsPage = currentPath.includes('/docs');
         
-        let targetUrl: string;
+        let targetUrl;
         
         if (selectedLayout === 'hero-focused') {
           targetUrl = isDocsPage ? '/hero-focused/docs' : '/hero-focused';

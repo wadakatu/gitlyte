@@ -1,42 +1,24 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import HeroFocusedDocs from '../../components/HeroFocusedDocs.astro';
-import HeroFocusedDemoHeader from '../../components/headers/HeroFocusedDemoHeader.astro';
+// Redirect to main page - docs view will be handled by JavaScript
 ---
 
-<Layout title="Hero Focused Documentation - GitLyte Demo" description="Hero Focused レイアウトの詳細ドキュメント" layoutType="hero-focused">
-  <HeroFocusedDemoHeader currentPage="docs" />
-  
-  <!-- ドキュメント説明セクション -->
-  <section class="docs-intro">
-    <div class="container">
-      <div class="intro-content">
-        <h2>📚 Hero Focused Documentation</h2>
-        <p>
-          Hero Focusedレイアウト専用のドキュメントページです。
-          実際のレイアウト内でのドキュメント表示を体験できます。
-        </p>
-        <div class="navigation-links">
-          <a href="/hero-focused" class="nav-link">🏠 Hero Focused Home</a>
-          <a href="/docs" class="nav-link secondary">📖 All Documentation</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Hero Focused Docs レイアウト -->
-  <main class="docs-content">
-    <HeroFocusedDocs />
-  </main>
-
-  <!-- フッター -->
-  <footer class="demo-footer">
-    <div class="container">
-      <p>🤖 GitLyte Layout Demo - AI-powered GitHub Pages generator</p>
-      <p><a href="https://github.com/wadakatu/gitlyte" target="_blank" rel="noopener">View on GitHub</a></p>
-    </div>
-  </footer>
-</Layout>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=/hero-focused">
+  <title>Redirecting...</title>
+</head>
+<body>
+  <script>
+    // Redirect to main page with docs fragment
+    if (typeof window !== 'undefined') {
+      window.location.href = '/hero-focused#docs';
+    }
+  </script>
+  <p>Redirecting to Hero Focused documentation...</p>
+</body>
+</html>
 
 <style>
   .container {

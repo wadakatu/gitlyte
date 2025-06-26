@@ -1,11 +1,14 @@
 ---
+import LayoutSelector from './islands/LayoutSelector.astro';
+
 interface Props {
   currentPage?: 'demo' | 'docs';
   showLayoutSelector?: boolean;
   layoutName?: string;
+  currentLayout?: string;
 }
 
-const { currentPage = 'demo', showLayoutSelector = true, layoutName } = Astro.props;
+const { currentPage = 'demo', showLayoutSelector = true, layoutName, currentLayout = 'hero-focused' } = Astro.props;
 
 const isProd = import.meta.env.PROD;
 const homePath = isProd ? '/gitlyte/' : '/';
@@ -26,15 +29,7 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
           <a href={docsPath} class={`page-btn ${currentPage === 'docs' ? 'active' : ''}`}>Docs</a>
         </div>
         {showLayoutSelector && (
-          <div class="layout-selector">
-            <select id="layout-selector" class="layout-select">
-              <option value="hero-focused" selected>Hero Focused</option>
-              <option value="minimal">Minimal</option>
-              <option value="grid" disabled>Grid (Coming Soon)</option>
-              <option value="sidebar" disabled>Sidebar (Coming Soon)</option>
-              <option value="content-heavy" disabled>Content Heavy (Coming Soon)</option>
-            </select>
-          </div>
+          <LayoutSelector client:load currentLayout={currentLayout} />
         )}
       </div>
     </div>
@@ -118,25 +113,6 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
     font-weight: 600;
   }
 
-  .layout-select {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .layout-select:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  .layout-select option {
-    background: #2d3748;
-    color: white;
-  }
 
 
   @media (max-width: 768px) {
@@ -156,48 +132,3 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
   }
 </style>
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const layoutSelector = document.getElementById('layout-selector') as HTMLSelectElement;
-    
-    if (layoutSelector) {
-      layoutSelector.addEventListener('change', (e) => {
-        const target = e.target as HTMLSelectElement;
-        const selectedLayout = target.value;
-        
-        // 現在のページがメインデモページかどうか判定
-        const currentPath = window.location.pathname;
-        const isMainDemo = currentPath === '/' || currentPath === '/index.html';
-        const isMainDocs = currentPath === '/docs' || currentPath === '/docs/';
-        
-        if (isMainDemo || isMainDocs) {
-          // メインページでは元のswitchLayout関数を使用（存在する場合）
-          if (typeof (window as any).switchLayout === 'function') {
-            (window as any).switchLayout(selectedLayout);
-          } else {
-            // switchLayout関数が存在しない場合は個別ページへ遷移
-            navigateToLayout(selectedLayout, currentPath.includes('/docs'));
-          }
-        } else {
-          // 個別ページでは該当ページに遷移
-          navigateToLayout(selectedLayout, currentPath.includes('/docs'));
-        }
-      });
-    }
-    
-    function navigateToLayout(selectedLayout: string, isDocsPage: boolean) {
-      let targetUrl: string;
-      
-      if (selectedLayout === 'hero-focused') {
-        targetUrl = isDocsPage ? '/hero-focused/docs' : '/hero-focused';
-      } else if (selectedLayout === 'minimal') {
-        targetUrl = isDocsPage ? '/minimal/docs' : '/minimal';
-      } else {
-        alert(`${selectedLayout} レイアウトは準備中です！`);
-        return;
-      }
-      
-      window.location.href = targetUrl;
-    }
-  });
-</script>
