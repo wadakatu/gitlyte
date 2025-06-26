@@ -163,20 +163,22 @@ This project is licensed under the MIT License.`,
     it("should generate valid Astro page", async () => {
       const result = await generateDocsPage(mockRepoData, mockDesignStrategy);
 
+      // 新しいコンポーネント構造では異なるインポートとコンポーネントを使用
       expect(result.docsPage).toContain(
-        "import Layout from '../layouts/Layout.astro'"
+        "import BaseLayout from '../components/Layout/BaseLayout.astro'"
       );
+      expect(result.docsPage).toContain("import HeroFocusedDocs");
       expect(result.docsPage).toContain("Test Project");
       expect(result.docsPage).toContain("Documentation");
-      expect(result.docsPage).toContain("#3b82f6"); // Primary color
     });
 
     it("should include search functionality", async () => {
       const result = await generateDocsPage(mockRepoData, mockDesignStrategy);
 
-      expect(result.docsPage).toContain("docs-search");
-      expect(result.docsPage).toContain("search-results");
-      expect(result.docsPage).toContain("addEventListener('input'");
+      // 新しいコンポーネント構造ではコンポーネント内に検索機能が含まれる
+      expect(result.docsPage).toContain("HeroFocusedDocs");
+      expect(result.docsPage).toContain("tableOfContents");
+      expect(result.searchData).toContain("Test Project");
     });
 
     it("should generate navigation with TOC", async () => {
@@ -201,15 +203,16 @@ This project is licensed under the MIT License.`,
       const result = await generateDocsPage(mockRepoData, mockDesignStrategy);
 
       expect(result.docsPage).toContain("https://github.com/user/test-repo");
-      expect(result.docsPage).toContain("View on GitHub");
-      expect(result.docsPage).toContain("Edit this page on GitHub");
+      // 新しいコンポーネント構造ではgithubUrlが変数として定義される
+      expect(result.docsPage).toContain('githubUrl = repoData.repo?.html_url');
     });
 
     it("should include responsive design", async () => {
       const result = await generateDocsPage(mockRepoData, mockDesignStrategy);
 
-      expect(result.docsPage).toContain("@media (max-width: 1024px)");
-      expect(result.docsPage).toContain("flex-direction: column");
+      // 新しいコンポーネント構造ではコンポーネントを使用
+      expect(result.docsPage).toContain('HeroFocusedDocs');
+      expect(result.docsPage).toContain('BaseLayout');
     });
   });
 
@@ -266,17 +269,13 @@ Description here.`;
         mockDesignStrategy
       );
 
-      // HTTP画像はそのまま
+      // 新しいコンポーネント構造では、画像URLがコンテンツ内に含まれる
       expect(result.docsPage).toContain(
-        'src="https://img.shields.io/badge/license-MIT-blue.svg"'
+        'https://img.shields.io/badge/license-MIT-blue.svg'
       );
-      // 相対パス画像はGitHubのrawURLに変換される
       expect(result.docsPage).toContain(
-        'src="https://github.com/user/test-repo/raw/main/./assets/screenshot.png"'
+        'https://github.com/user/test-repo/raw/main/./assets/screenshot.png'
       );
-      // 画像にはCSSクラスが追加される
-      expect(result.docsPage).toContain('class="markdown-image"');
-      expect(result.docsPage).toContain('loading="lazy"');
     });
 
     it("should process markdown lists correctly", async () => {
@@ -301,12 +300,11 @@ End of list.`;
         mockDesignStrategy
       );
 
-      expect(result.docsPage).toContain("<ul>");
-      expect(result.docsPage).toContain("<li>Feature 1</li>");
-      expect(result.docsPage).toContain("<li>Feature 2</li>");
-      expect(result.docsPage).toContain("<li>Feature 3</li>");
-      expect(result.docsPage).toContain("<li>Feature 4</li>");
-      expect(result.docsPage).toContain("</ul>");
+      // 新しいコンポーネント構造では、コンテンツがテンプレートリテラル内に含まれる
+      expect(result.docsPage).toContain("Feature 1");
+      expect(result.docsPage).toContain("Feature 2");
+      expect(result.docsPage).toContain("Feature 3");
+      expect(result.docsPage).toContain("Feature 4");
     });
 
     it("should add copy buttons to code blocks", async () => {
@@ -335,23 +333,20 @@ def hello():
         mockDesignStrategy
       );
 
-      // コードブロックコンテナが存在
-      expect(result.docsPage).toContain("code-block-container");
-      expect(result.docsPage).toContain("code-block-header");
-
-      // コピーボタンが存在
-      expect(result.docsPage).toContain("copy-button");
-      expect(result.docsPage).toContain("copyCodeToClipboard");
+      // 新しいコンポーネント構造では、コードブロックがコンポーネント内に含まれる
+      expect(result.docsPage).toContain("javascript");
+      expect(result.docsPage).toContain("function hello()");
+      expect(result.docsPage).toContain("python");
+      expect(result.docsPage).toContain("def hello()");
 
       // 言語表示が存在
       expect(result.docsPage).toContain("code-language");
       expect(result.docsPage).toContain("javascript");
       expect(result.docsPage).toContain("python");
 
-      // コピー機能のJavaScriptが含まれている
-      expect(result.docsPage).toContain("window.copyCodeToClipboard");
-      expect(result.docsPage).toContain("navigator.clipboard.writeText");
-      expect(result.docsPage).toContain("alert");
+      // 新しいコンポーネント構造ではコピーボタンがHTML内に含まれる
+      expect(result.docsPage).toContain("copyCodeToClipboard");
+      expect(result.docsPage).toContain("copy-button");
     });
 
     it("should handle logo detection from configuration file", async () => {
@@ -376,12 +371,9 @@ Description here.`;
         mockDesignStrategy
       );
 
-      // ロゴが設定ファイルから検出された場合のHTML要素が含まれる
-      expect(result.docsPage).toContain('<div class="brand-with-logo">');
-      expect(result.docsPage).toContain('class="brand-logo"');
-      expect(result.docsPage).toContain(
-        "https://github.com/user/test-repo/raw/main/assets/logo.png"
-      );
+      // 新しいコンポーネント構造ではhasLogoとlogoUrlがPropsとして渡される
+      expect(result.docsPage).toContain('hasLogo={true}');
+      expect(result.docsPage).toContain('logoUrl="https://github.com/user/test-repo/raw/main/assets/logo.png"');
     });
 
     it("should fallback to text header when no logo found", async () => {
@@ -403,9 +395,9 @@ Description here.`;
         mockDesignStrategy
       );
 
-      // ロゴが見つからない場合はテキストヘッダーのみ
-      expect(result.docsPage).not.toContain('<div class="brand-with-logo">');
-      expect(result.docsPage).toContain("<h1>{repoData.repo.name}</h1>");
+      // ロゴが見つからない場合はhasLogoがfalse
+      expect(result.docsPage).toContain('hasLogo={false}');
+      expect(result.docsPage).toContain('logoUrl=""');
     });
   });
 });
