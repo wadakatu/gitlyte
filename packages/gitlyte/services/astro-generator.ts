@@ -16,9 +16,125 @@ import {
   generateDesignStrategy,
 } from "./ai-analyzer.js";
 import {
-  type GeneratedAstroSite,
-  generateAstroSite,
-} from "./ai-code-generator.js";
+  type GeneratedSiteContent,
+  generateSiteContent,
+} from "./ai-content-generator.js";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const sharedPath = join(__dirname, "../../../shared/src");
+
+/**
+ * sharedコンポーネントを読み込む
+ */
+function readSharedComponent(componentPath: string): string {
+  try {
+    const fullPath = join(sharedPath, componentPath);
+    return readFileSync(fullPath, "utf-8");
+  } catch (error) {
+    console.warn(`Failed to read shared component: ${componentPath}`, error);
+    return "";
+  }
+}
+
+/**
+ * 必要なsharedコンポーネントをファイルリストに追加
+ */
+function addSharedComponents(layout: string): FileChange[] {
+  const components: FileChange[] = [];
+
+  // 共通コンポーネント
+  const baseLayoutContent = readSharedComponent(
+    "components/Layout/BaseLayout.astro"
+  );
+  if (baseLayoutContent) {
+    components.push({
+      path: "docs/src/components/Layout/BaseLayout.astro",
+      content: baseLayoutContent,
+    });
+  }
+
+  const designTokensContent = readSharedComponent("styles/design-tokens.ts");
+  if (designTokensContent) {
+    components.push({
+      path: "docs/src/styles/design-tokens.ts",
+      content: designTokensContent,
+    });
+  }
+
+  const baseCssContent = readSharedComponent("styles/base.css");
+  if (baseCssContent) {
+    components.push({
+      path: "docs/src/styles/base.css",
+      content: baseCssContent,
+    });
+  }
+
+  const typesContent = readSharedComponent("types/index.ts");
+  if (typesContent) {
+    components.push({
+      path: "docs/src/types/index.ts",
+      content: typesContent,
+    });
+  }
+
+  // Template コンポーネント（新しいアプローチ）
+  if (layout === "hero-focused") {
+    const heroFocusedTemplateContent = readSharedComponent(
+      "components/Templates/HeroFocusedTemplate.astro"
+    );
+    if (heroFocusedTemplateContent) {
+      components.push({
+        path: "docs/src/components/Templates/HeroFocusedTemplate.astro",
+        content: heroFocusedTemplateContent,
+      });
+    }
+
+    const heroFocusedHeaderContent = readSharedComponent(
+      "components/Headers/HeroFocusedHeader.astro"
+    );
+    if (heroFocusedHeaderContent) {
+      components.push({
+        path: "docs/src/components/Headers/HeroFocusedHeader.astro",
+        content: heroFocusedHeaderContent,
+      });
+    }
+
+    const heroFocusedDocsContent = readSharedComponent(
+      "components/Docs/HeroFocusedDocs.astro"
+    );
+    if (heroFocusedDocsContent) {
+      components.push({
+        path: "docs/src/components/Docs/HeroFocusedDocs.astro",
+        content: heroFocusedDocsContent,
+      });
+    }
+  } else if (layout === "minimal") {
+    const minimalTemplateContent = readSharedComponent(
+      "components/Templates/MinimalTemplate.astro"
+    );
+    if (minimalTemplateContent) {
+      components.push({
+        path: "docs/src/components/Templates/MinimalTemplate.astro",
+        content: minimalTemplateContent,
+      });
+    }
+
+    const minimalHeaderContent = readSharedComponent(
+      "components/Headers/MinimalHeader.astro"
+    );
+    if (minimalHeaderContent) {
+      components.push({
+        path: "docs/src/components/Headers/MinimalHeader.astro",
+        content: minimalHeaderContent,
+      });
+    }
+  }
+
+  return components;
+}
 
 /** AI駆動でAstroサイトを生成 */
 export async function generateAIAstroSite(ctx: Context, data: RepoData) {
@@ -63,18 +179,18 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
     );
     ctx.log.info(`📐 Final layout: ${designStrategy.layout}`);
 
-    // Step 3: 高品質AI生成Astroサイト作成
+    // Step 3: AI生成コンテンツ作成（sharedテンプレート使用）
     ctx.log.info(
-      `🎯 Passing design strategy to generateAstroSite with layout: ${designStrategy.layout}`
+      `🎯 Generating site content for layout: ${designStrategy.layout}`
     );
-    const generatedSite = await generateAstroSite(
+    const generatedSite = await generateSiteContent(
       data,
       analysis,
       designStrategy
     );
-    ctx.log.info("✨ Enhanced AI site generation complete");
+    ctx.log.info("✨ AI content generation complete");
     ctx.log.info(
-      "🎯 Generated components: Layout, Hero, Features, Index, Global Styles"
+      "🎯 Generated: Content data, Index page template, Global Styles"
     );
 
     // Step 4: ファイル一括コミット（ワークフロー含む）
@@ -97,7 +213,7 @@ export async function generateAIAstroSite(ctx: Context, data: RepoData) {
 async function batchCommitGeneratedFiles(
   ctx: Context,
   data: RepoData,
-  generatedSite: GeneratedAstroSite,
+  generatedSite: GeneratedSiteContent,
   designStrategy: DesignStrategy,
   analysis: import("./ai-analyzer.js").RepoAnalysis
 ) {
@@ -112,60 +228,38 @@ async function batchCommitGeneratedFiles(
     .replace(/{{REPO_NAME}}/g, repoInfo.repo)
     .replace(/{{OWNER}}/g, repoInfo.owner);
 
-  // リポジトリデータを実際の値に置換
-  const layoutContent = generatedSite.layout;
-  const heroComponent = generatedSite.heroComponent;
-  const featuresComponent = generatedSite.featuresComponent;
+  // Template-based content (no longer need individual components)
   const globalStyles = generatedSite.globalStyles;
 
-  // インデックスページにリポジトリデータとコンテンツ分析を埋め込み
-  // まずコンテンツ分析を実行（設定を考慮した分析を再利用）
-  const { analyzeRepositoryContent } = await import("./content-analyzer.js");
-  const contentAnalysis = await analyzeRepositoryContent(data, analysis);
+  // Template-based approach no longer needs content analysis embedding
+  // Content analysis is handled during generation phase
 
-  // JSON データを安全にエスケープして文字列リテラルに埋め込み
-  function safeJSONStringify(obj: unknown): string {
-    const jsonString = JSON.stringify(obj);
-    return (
-      jsonString
-        // バックスラッシュを最初にエスケープ（他のエスケープ処理の前に行う）
-        .replace(/\\/g, "\\\\")
-        // 改行文字をエスケープ
-        .replace(/\n/g, "\\n")
-        .replace(/\r/g, "\\r")
-        .replace(/\t/g, "\\t")
-        // 引用符をエスケープ
-        .replace(/'/g, "\\'")
-        .replace(/"/g, '\\"')
-        // その他の制御文字をエスケープ
-        // biome-ignore lint/suspicious/noControlCharactersInRegex: 制御文字のエスケープに必要
-        .replace(/[\x00-\x1F\x7F]/g, (match) => {
-          return `\\u${(`0000${match.charCodeAt(0).toString(16)}`).slice(-4)}`;
-        })
-    );
-  }
-
-  const safeRepoData = safeJSONStringify(data);
-  const safeContentAnalysis = safeJSONStringify(contentAnalysis);
-
-  const indexPage = generatedSite.indexPage
-    .replace(/{{REPO_DATA}}/g, safeRepoData)
-    .replace(/{{CONTENT_ANALYSIS}}/g, safeContentAnalysis);
+  // Index page is now template-based, no variable replacement needed
+  const indexPage = generatedSite.indexPage;
 
   // GitHub Actions ワークフローコンテンツ
   const workflowContent = generateWorkflowContent();
 
-  // .gitlyte.json 雛形生成（存在しない場合のみ）
+  // sharedコンポーネントを追加
+  const sharedComponents = addSharedComponents(designStrategy.layout);
+
+  // Template-based files generation
   const files: FileChange[] = [
     { path: "docs/package.json", content: packageJson },
     { path: "docs/astro.config.mjs", content: astroConfig },
-    { path: "docs/src/layouts/Layout.astro", content: layoutContent },
-    { path: "docs/src/components/Hero.astro", content: heroComponent },
-    { path: "docs/src/components/Features.astro", content: featuresComponent },
     { path: "docs/src/pages/index.astro", content: indexPage },
-    { path: "docs/public/styles/global.css", content: globalStyles },
+    { path: "docs/src/styles/global.css", content: globalStyles },
     { path: ".github/workflows/deploy-astro.yml", content: workflowContent },
+    ...sharedComponents,
   ];
+
+  // Add docs page if generated
+  if (generatedSite.docsPage) {
+    files.push({
+      path: "docs/src/pages/docs.astro",
+      content: generatedSite.docsPage,
+    });
+  }
 
   // .gitlyte.json の処理（新規生成 or 既存更新）
   const configResult = await loadGitLyteConfig(data);

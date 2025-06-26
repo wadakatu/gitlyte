@@ -443,6 +443,45 @@ async function generateDocsPageContent(
   }
 }
 
+async function generateHeroFocusedDocsPageContent(
+  repoData: RepoData,
+  structure: DocumentStructure,
+  _design: EnhancedDesignStrategy,
+  logoResult?: { hasLogo: boolean; logoUrl?: string; faviconUrl?: string }
+): Promise<string> {
+  const processedContent = await processMarkdownContent(structure, repoData);
+
+  return `---
+import BaseLayout from '../components/Layout/BaseLayout.astro';
+import HeroFocusedDocs from '../components/Docs/HeroFocusedDocs.astro';
+
+const repoData = ${JSON.stringify(repoData)};
+const structure = ${JSON.stringify(structure)};
+
+const title = repoData.repo?.name || "Repository";
+const description = repoData.repo?.description || "Documentation";
+const githubUrl = repoData.repo?.html_url || "#";
+---
+
+<BaseLayout title={\`\${title} Documentation\`} description={description} layoutType="hero-focused">
+  <HeroFocusedDocs 
+    title={title}
+    description={description}
+    githubUrl={githubUrl}
+    currentPage="docs"
+    content={\`${processedContent.replace(/`/g, "\\`")}\`}
+    tableOfContents={structure.tableOfContents}
+    readingTime={structure.metadata.estimatedReadTime}
+    lastUpdated={new Date().toLocaleDateString()}
+    hasLogo={${logoResult?.hasLogo || false}}
+    logoUrl="${logoResult?.logoUrl || ""}"
+    homeUrl="../"
+    docsUrl="./"
+  />
+</BaseLayout>
+`;
+}
+
 async function generateMinimalDocsPageContent(
   repoData: RepoData,
   structure: DocumentStructure,
@@ -757,10 +796,20 @@ const repoUrl = repoData?.repo?.html_url || "#";
 async function generateDefaultDocsPageContent(
   repoData: RepoData,
   structure: DocumentStructure,
-  _design: EnhancedDesignStrategy,
+  design: EnhancedDesignStrategy,
   logoResult?: { hasLogo: boolean; logoUrl?: string; faviconUrl?: string }
 ): Promise<string> {
   const processedContent = await processMarkdownContent(structure, repoData);
+
+  // hero-focusedレイアウトの場合はsharedコンポーネントを使用
+  if (design.layout === "hero-focused") {
+    return generateHeroFocusedDocsPageContent(
+      repoData,
+      structure,
+      design,
+      logoResult
+    );
+  }
 
   return `---
 import Layout from '../layouts/Layout.astro';
