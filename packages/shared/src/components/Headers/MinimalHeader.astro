@@ -103,9 +103,49 @@ const { title, currentPage = 'home', githubUrl = 'https://github.com/wadakatu/gi
 </style>
 
 <script>
+  // Wait for global functions to be available and override if needed
+  document.addEventListener('DOMContentLoaded', () => {
+    const currentPath = window.location.pathname;
+    const isMainDemoPage = currentPath === '/' || currentPath === '/index.html' || currentPath === '/gitlyte/' || currentPath === '/gitlyte/index.html';
+    
+    if (isMainDemoPage) {
+      console.log('[MinimalHeader] On main demo page, waiting for global functions');
+      
+      // Wait a bit for global functions to be available
+      setTimeout(() => {
+        const hasGlobalFunctions = typeof (window as any).showDemo === 'function' && typeof (window as any).showDocs === 'function';
+        console.log('[MinimalHeader] Global functions available?', hasGlobalFunctions);
+        
+        if (hasGlobalFunctions) {
+          console.log('[MinimalHeader] Global functions found, overriding local functions');
+          // Override local functions to use global ones
+          window.showDemo = (window as any).showDemo;
+          window.showDocs = (window as any).showDocs;
+        }
+      }, 100);
+    }
+  });
+
   // Navigation functionality for demo pages
   function showDemo() {
+    // Check if we're in demo mode (main demo page)
     const currentPath = window.location.pathname;
+    const isMainDemoPage = currentPath === '/' || currentPath === '/index.html' || currentPath === '/gitlyte/' || currentPath === '/gitlyte/index.html';
+    
+    console.log('[MinimalHeader] showDemo called', { currentPath, isMainDemoPage, hasGlobalShowDemo: typeof (window as any).showDemo === 'function' });
+    
+    if (isMainDemoPage) {
+      // Always check for global function first
+      const globalFunction = (window as any).showDemo;
+      if (typeof globalFunction === 'function' && globalFunction !== showDemo) {
+        console.log('[MinimalHeader] Calling global showDemo');
+        globalFunction();
+        return; // Prevent further execution
+      }
+    }
+    
+    // In individual pages, navigate to home
+    console.log('[MinimalHeader] Navigating to home page');
     const isDemoPage = !currentPath.includes('/docs');
     if (!isDemoPage) {
       window.location.href = window.location.pathname.replace('/docs', '');
@@ -113,7 +153,24 @@ const { title, currentPage = 'home', githubUrl = 'https://github.com/wadakatu/gi
   }
 
   function showDocs() {
+    // Check if we're in demo mode (main demo page)
     const currentPath = window.location.pathname;
+    const isMainDemoPage = currentPath === '/' || currentPath === '/index.html' || currentPath === '/gitlyte/' || currentPath === '/gitlyte/index.html';
+    
+    console.log('[MinimalHeader] showDocs called', { currentPath, isMainDemoPage, hasGlobalShowDocs: typeof (window as any).showDocs === 'function' });
+    
+    if (isMainDemoPage) {
+      // Always check for global function first
+      const globalFunction = (window as any).showDocs;
+      if (typeof globalFunction === 'function' && globalFunction !== showDocs) {
+        console.log('[MinimalHeader] Calling global showDocs');
+        globalFunction();
+        return; // Prevent further execution
+      }
+    }
+    
+    // In individual pages, navigate to docs
+    console.log('[MinimalHeader] Navigating to docs page');
     const isDocsPage = currentPath.includes('/docs');
     if (!isDocsPage) {
       window.location.href = window.location.pathname + '/docs';
