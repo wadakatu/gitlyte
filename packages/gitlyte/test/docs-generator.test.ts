@@ -204,15 +204,15 @@ This project is licensed under the MIT License.`,
 
       expect(result.docsPage).toContain("https://github.com/user/test-repo");
       // 新しいコンポーネント構造ではgithubUrlが変数として定義される
-      expect(result.docsPage).toContain('githubUrl = repoData.repo?.html_url');
+      expect(result.docsPage).toContain("githubUrl = repoData.repo?.html_url");
     });
 
     it("should include responsive design", async () => {
       const result = await generateDocsPage(mockRepoData, mockDesignStrategy);
 
       // 新しいコンポーネント構造ではコンポーネントを使用
-      expect(result.docsPage).toContain('HeroFocusedDocs');
-      expect(result.docsPage).toContain('BaseLayout');
+      expect(result.docsPage).toContain("HeroFocusedDocs");
+      expect(result.docsPage).toContain("BaseLayout");
     });
   });
 
@@ -271,10 +271,10 @@ Description here.`;
 
       // 新しいコンポーネント構造では、画像URLがコンテンツ内に含まれる
       expect(result.docsPage).toContain(
-        'https://img.shields.io/badge/license-MIT-blue.svg'
+        "https://img.shields.io/badge/license-MIT-blue.svg"
       );
       expect(result.docsPage).toContain(
-        'https://github.com/user/test-repo/raw/main/./assets/screenshot.png'
+        "https://github.com/user/test-repo/raw/main/./assets/screenshot.png"
       );
     });
 
@@ -372,8 +372,10 @@ Description here.`;
       );
 
       // 新しいコンポーネント構造ではhasLogoとlogoUrlがPropsとして渡される
-      expect(result.docsPage).toContain('hasLogo={true}');
-      expect(result.docsPage).toContain('logoUrl="https://github.com/user/test-repo/raw/main/assets/logo.png"');
+      expect(result.docsPage).toContain("hasLogo={true}");
+      expect(result.docsPage).toContain(
+        'logoUrl="https://github.com/user/test-repo/raw/main/assets/logo.png"'
+      );
     });
 
     it("should fallback to text header when no logo found", async () => {
@@ -396,7 +398,7 @@ Description here.`;
       );
 
       // ロゴが見つからない場合はhasLogoがfalse
-      expect(result.docsPage).toContain('hasLogo={false}');
+      expect(result.docsPage).toContain("hasLogo={false}");
       expect(result.docsPage).toContain('logoUrl=""');
     });
   });
