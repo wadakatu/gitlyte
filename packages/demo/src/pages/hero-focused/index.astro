@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import HeroFocused from '../../components/layouts/HeroFocused.astro';
+import HeroFocusedDocs from '../../components/HeroFocusedDocs.astro';
 import HeroFocusedDemoHeader from '../../components/headers/HeroFocusedDemoHeader.astro';
 
 const sampleData = {
@@ -57,6 +58,27 @@ const sampleData = {
     />
   </main>
 
+  <!-- Docs Section (hidden by default) -->
+  <section class="docs-intro" style="display: none;">
+    <div class="container">
+      <div class="intro-content">
+        <h2>📚 Hero Focused Documentation</h2>
+        <p>
+          Hero Focusedレイアウト専用のドキュメントページです。
+          実際のレイアウト内でのドキュメント表示を体験できます。
+        </p>
+        <div class="navigation-links">
+          <button class="nav-link" onclick="showDemo()">🏠 Hero Focused Home</button>
+          <a href="/docs" class="nav-link secondary">📖 All Documentation</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="docs-content" style="display: none;">
+    <HeroFocusedDocs />
+  </main>
+
   <!-- フッター -->
   <footer class="demo-footer">
     <div class="container">
@@ -73,7 +95,7 @@ const sampleData = {
     padding: 0 20px;
   }
 
-  .layout-intro {
+  .layout-intro, .docs-intro {
     background: #f8fafc;
     padding: 3rem 0;
     border-bottom: 1px solid #e2e8f0;
@@ -136,9 +158,13 @@ const sampleData = {
     background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     text-decoration: none;
+    border: none;
     border-radius: 8px;
     font-weight: 500;
     transition: all 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
   }
 
   .nav-link:hover {
@@ -154,12 +180,16 @@ const sampleData = {
     box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
   }
 
-  .demo-content {
+  .demo-content, .docs-content {
     border: 3px dashed #e2e8f0;
     margin: 2rem;
     border-radius: 12px;
     overflow: hidden;
     background: white;
+  }
+  
+  .docs-content {
+    min-height: 600px;
   }
 
   .demo-footer {
@@ -193,8 +223,22 @@ const sampleData = {
       align-items: center;
     }
 
-    .demo-content {
+    .demo-content, .docs-content {
       margin: 1rem;
     }
   }
 </style>
+
+<script>
+  // Initialize page based on URL and hash
+  document.addEventListener('DOMContentLoaded', () => {
+    const currentPath = window.location.pathname;
+    const currentHash = window.location.hash;
+    
+    if (currentPath.includes('/docs') || currentHash === '#docs') {
+      window.showDocs();
+    } else {
+      window.showDemo();
+    }
+  });
+</script>
