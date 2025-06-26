@@ -14,9 +14,10 @@ export interface Props {
   repoData?: RepoData;
   currentPage?: 'home' | 'docs' | string;
   githubUrl?: string;
+  isDemo?: boolean;
 }
 
-const { title, description, stats, repoData, currentPage = 'home', githubUrl } = Astro.props;
+const { title, description, stats, repoData, currentPage = 'home', githubUrl, isDemo = false } = Astro.props;
 
 // Hero-focused layout specific design tokens - keeping default design system
 const heroTokens = {};
@@ -35,7 +36,7 @@ const docsPath = isProd ? '/gitlyte/docs' : '/docs';
 >
   <section class="hero-focused-layout">
     <!-- Navigation -->
-    <HeroFocusedHeader title={title} currentPage={currentPage} githubUrl={githubUrl} />
+    <HeroFocusedHeader title={title} currentPage={currentPage} githubUrl={githubUrl} isDemo={isDemo} />
 
     <!-- Main Hero Section -->
     <section class="hero">
