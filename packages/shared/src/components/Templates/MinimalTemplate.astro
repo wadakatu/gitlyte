@@ -1,0 +1,377 @@
+---
+import BaseLayout from '../Layout/BaseLayout.astro';
+import MinimalHeader from '../Headers/MinimalHeader.astro';
+import type { TemplateProps } from '../../types/index.js';
+
+export interface Props extends TemplateProps {
+  title?: string;
+  description?: string;
+}
+
+const { content, repoData, designTokens, customization, title, description } = Astro.props;
+
+// Use content data or fallback to props/repoData
+const siteTitle = title || content.metadata.title || repoData.title;
+const siteDescription = description || content.metadata.description || repoData.description || '';
+
+// Minimal layout specific design tokens
+const minimalTokens = designTokens || {};
+
+// Theme-based CSS variables
+const themeClasses = `theme-${content.metadata.theme.colorScheme} style-${content.metadata.theme.style}`;
+---
+
+<BaseLayout 
+  title={siteTitle} 
+  description={siteDescription} 
+  repoData={repoData}
+  layoutType="minimal"
+  customTokens={minimalTokens}
+>
+  <section class={`minimal-layout ${themeClasses}`}>
+    <!-- Navigation -->
+    <MinimalHeader 
+      title={siteTitle} 
+      currentPage="home" 
+      githubUrl={content.metadata.githubUrl || repoData.repoUrl} 
+    />
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Hero Section -->
+      <section class="hero">
+        <div class="container">
+          <div class="hero-content">
+            {content.hero.badge && (
+              <div class="badge">
+                {content.hero.badge.emoji} {content.hero.badge.text}
+              </div>
+            )}
+            <h1 class="hero-title">{content.hero.title}</h1>
+            <p class="subtitle">{content.hero.subtitle}</p>
+            <p class="description">{content.hero.description}</p>
+            
+            <div class="cta-section">
+              {content.hero.ctaButtons.map((cta) => (
+                <a 
+                  href={cta.url} 
+                  class={`cta-${cta.type}`}
+                  target={cta.url.startsWith('http') ? '_blank' : undefined}
+                  rel={cta.url.startsWith('http') ? 'noopener' : undefined}
+                >
+                  {cta.emoji} {cta.text}
+                </a>
+              ))}
+            </div>
+            
+            {customization?.showGithubStats !== false && (
+              <div class="stats">
+                {content.stats.stats.map((stat) => (
+                  <div class="stat">
+                    <span class="stat-number">{stat.value}</span>
+                    <span class="stat-label">{stat.emoji} {stat.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <!-- Features Section -->
+      <section id="features" class="features">
+        <div class="container">
+          <div class="section-header">
+            <h2>{content.features.sectionTitle}</h2>
+            <p class="section-subtitle">{content.features.sectionSubtitle}</p>
+          </div>
+          
+          <div class="features-grid">
+            {content.features.features.map((feature) => (
+              <div class="feature-card">
+                <div class="feature-icon">{feature.icon}</div>
+                <h3>{feature.title}</h3>
+                <p>{feature.description}</p>
+                {feature.highlight && (
+                  <div class="feature-highlight">{feature.highlight}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  </section>
+</BaseLayout>
+
+<style>
+  .minimal-layout {
+    min-height: 100vh;
+    background: var(--color-background);
+  }
+
+  .main-content {
+    padding-top: var(--space-4xl);
+  }
+
+  .hero {
+    padding: var(--space-5xl) 0;
+    text-align: center;
+    background: var(--color-background);
+  }
+
+  .hero-content {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .badge {
+    display: inline-block;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-xl);
+    border: 1px solid var(--color-border);
+  }
+
+  .hero-title {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    margin-bottom: var(--space-lg);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    font-size: var(--text-xl);
+    margin-bottom: var(--space-md);
+    color: var(--color-text-primary);
+    line-height: 1.5;
+    font-weight: 600;
+  }
+
+  .description {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-4xl);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .cta-section {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: center;
+    margin-bottom: var(--space-4xl);
+    flex-wrap: wrap;
+  }
+
+  .cta-primary {
+    background: var(--color-primary);
+    color: white;
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    border: 2px solid var(--color-primary);
+  }
+
+  .cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    background: var(--color-secondary);
+    border-color: var(--color-secondary);
+  }
+
+  .cta-secondary {
+    background: transparent;
+    color: var(--color-text-primary);
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    font-weight: 600;
+    border: 2px solid var(--color-border);
+    transition: all 0.3s ease;
+  }
+
+  .cta-secondary:hover {
+    background: var(--color-surface);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--space-lg);
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .stat {
+    background: var(--color-surface);
+    padding: var(--space-lg) var(--space-md);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    transition: all 0.3s ease;
+  }
+
+  .stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+    border-color: var(--color-primary);
+  }
+
+  .stat-number {
+    display: block;
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    margin-bottom: var(--space-sm);
+    color: var(--color-text-primary);
+  }
+
+  .stat-label {
+    display: block;
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .features {
+    padding: var(--space-5xl) 0;
+    background: var(--color-surface);
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: var(--space-5xl);
+  }
+
+  .section-header h2 {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    margin-bottom: var(--space-md);
+    color: var(--color-text-primary);
+  }
+
+  .section-subtitle {
+    font-size: var(--text-lg);
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-xl);
+  }
+
+  .feature-card {
+    background: var(--color-background);
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+  }
+
+  .feature-icon {
+    font-size: var(--text-3xl);
+    margin-bottom: var(--space-md);
+    color: var(--color-primary);
+  }
+
+  .feature-card h3 {
+    font-size: var(--text-xl);
+    margin-bottom: var(--space-md);
+    color: var(--color-text-primary);
+  }
+
+  .feature-card p {
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin-bottom: var(--space-md);
+  }
+
+  .feature-highlight {
+    background: var(--color-primary);
+    color: white;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    display: inline-block;
+  }
+
+  /* Theme Variations */
+  .theme-secondary .cta-primary {
+    background: var(--color-secondary);
+    border-color: var(--color-secondary);
+  }
+
+  .theme-secondary .cta-primary:hover {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .theme-accent .cta-primary {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .theme-accent .cta-primary:hover {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  /* Style Variations */
+  .style-glassmorphism .feature-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .style-modern .hero-title {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  @media (max-width: 768px) {
+    .main-content {
+      padding-top: var(--space-3xl);
+    }
+
+    .hero {
+      padding: var(--space-4xl) 0;
+    }
+    
+    .cta-section {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .stats {
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: var(--space-md);
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+    }
+  }
+</style>
