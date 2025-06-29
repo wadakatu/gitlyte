@@ -1,74 +1,132 @@
 ---
-import type { RepoData } from '../../types/index.js';
-import { designTokens, generateCSSVariables } from '../../styles/design-tokens.js';
-
 export interface Props {
   title: string;
   description?: string;
-  repoData?: RepoData;
+  repoData?: any;
   layoutType?: string;
-  customTokens?: Partial<typeof designTokens>;
+  customTokens?: any;
 }
 
-const { title, description, repoData, layoutType = 'default', customTokens } = Astro.props;
-
-// Merge custom tokens with default design tokens
-const tokens = customTokens ? { ...designTokens, ...customTokens } : designTokens;
-const cssVariables = generateCSSVariables(tokens);
+const { title, description = '', repoData, layoutType = 'default', customTokens = {} } = Astro.props;
 ---
 
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="description" content={description || "GitLyte - AI-powered repository websites"} />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title}</title>
-    
-    <!-- Preload fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    
-    <!-- Design System CSS Variables -->
-    <style set:html={cssVariables}></style>
-  </head>
-  <body class={`layout-${layoutType}`}>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <meta name="description" content={description}>
+  <link rel="icon" href="/favicon.ico">
+  
+  <!-- Custom CSS Variables -->
+  <style define:vars={customTokens}></style>
+</head>
+<body>
+  <main>
     <slot />
-  </body>
+  </main>
+  
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-info">
+          <h3>{repoData?.title || title}</h3>
+          <p>{repoData?.description || description}</p>
+        </div>
+        
+        <div class="footer-links">
+          {repoData?.repoUrl && (
+            <a href={repoData.repoUrl} target="_blank" rel="noopener">
+              📂 View on GitHub
+            </a>
+          )}
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; {new Date().getFullYear()} Generated with GitLyte</p>
+      </div>
+    </div>
+  </footer>
+</body>
 </html>
 
 <style>
-  html {
-    font-family: var(--font-body);
-    color: var(--color-text-primary);
-    background-color: var(--color-background);
-  }
-  
-  body {
+  * {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: system-ui, sans-serif;
+  }
+
+  body {
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
-  
-  .layout-minimal {
-    background: linear-gradient(135deg, var(--color-background) 0%, var(--color-surface) 100%);
+
+  main {
+    flex: 1;
   }
-  
-  .layout-hero-focused {
-    background: var(--color-background);
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
   }
-  
-  .layout-grid {
-    background: var(--color-surface);
+
+  .site-footer {
+    background: #1a1a1a;
+    color: white;
+    padding: 2rem 0 1rem;
+    margin-top: auto;
   }
-  
-  .layout-sidebar {
-    background: var(--color-background);
+
+  .footer-content {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    align-items: start;
   }
-  
-  .layout-content-heavy {
-    background: var(--color-background);
+
+  .footer-info h3 {
+    margin-bottom: 0.5rem;
+    color: #60a5fa;
+  }
+
+  .footer-info p {
+    opacity: 0.8;
+    line-height: 1.5;
+  }
+
+  .footer-links a {
+    color: #60a5fa;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .footer-links a:hover {
+    text-decoration: underline;
+  }
+
+  .footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1rem;
+    text-align: center;
+    opacity: 0.7;
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 768px) {
+    .footer-content {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
   }
 </style>

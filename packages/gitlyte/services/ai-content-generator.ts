@@ -1,9 +1,24 @@
+import OpenAI from "openai";
 import type { RepoData } from "../types.js";
 import type { DesignStrategy, RepoAnalysis } from "./ai-analyzer.js";
 import {
   analyzeRepositoryContent,
   type ContentAnalysis,
 } from "./content-analyzer.js";
+
+// OpenAI クライアント初期化
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY environment variable is required");
+    }
+    openai = new OpenAI({ apiKey });
+  }
+  return openai;
+}
 
 // Define types locally for now (will be moved to shared package later)
 export interface AIGeneratedContent {
@@ -168,9 +183,31 @@ Return JSON format:
 }`;
 
   try {
-    // Simulate AI call - replace with actual OpenAI API call
-    const response = await simulateAIResponse(prompt);
-    return JSON.parse(response);
+    const client = getOpenAIClient();
+    const completion = await client.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert at creating compelling website content. Always respond with valid JSON format only, no markdown or additional text."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1500
+    });
+
+    const response = completion.choices[0]?.message?.content?.trim();
+    if (!response) {
+      throw new Error("Empty response from OpenAI");
+    }
+    
+    // Clean response from potential markdown code blocks
+    const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    return JSON.parse(cleanedResponse);
   } catch (error) {
     console.error("Failed to generate hero content:", error);
     return getFallbackHeroContent(repoData);
@@ -219,8 +256,31 @@ Return JSON format:
 }`;
 
   try {
-    const response = await simulateAIResponse(prompt);
-    return JSON.parse(response);
+    const client = getOpenAIClient();
+    const completion = await client.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system", 
+          content: "You are an expert at creating compelling website content. Always respond with valid JSON format only, no markdown or additional text."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1500
+    });
+
+    const response = completion.choices[0]?.message?.content?.trim();
+    if (!response) {
+      throw new Error("Empty response from OpenAI");
+    }
+    
+    // Clean response from potential markdown code blocks
+    const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    return JSON.parse(cleanedResponse);
   } catch (error) {
     console.error("Failed to generate features content:", error);
     return getFallbackFeaturesContent(repoData, analysis);
@@ -302,8 +362,8 @@ function generateIndexPageTemplate(
       : "HeroFocusedTemplate";
 
   return `---
-import ${layoutComponent} from '@gitlyte/shared/components/Templates/${layoutComponent}.astro';
-import type { AIGeneratedContent } from '@gitlyte/shared';
+import ${layoutComponent} from '../components/Templates/${layoutComponent}.astro';
+import type { AIGeneratedContent } from '../types/index.js';
 
 // Generated content data
 const content: AIGeneratedContent = ${JSON.stringify(content, null, 2)};
@@ -344,8 +404,8 @@ function generateDocsPageTemplate(
   repoData: RepoData
 ): string {
   return `---
-import BaseLayout from '@gitlyte/shared/components/Layout/BaseLayout.astro';
-import HeroFocusedDocs from '@gitlyte/shared/components/Docs/HeroFocusedDocs.astro';
+import BaseLayout from '../components/Layout/BaseLayout.astro';
+import HeroFocusedDocs from '../components/Docs/HeroFocusedDocs.astro';
 
 const repoData = {
   title: "${repoData.repo.name}",
@@ -369,6 +429,13 @@ const repoData = {
     title={repoData.title}
     description={repoData.description}
     githubUrl={repoData.repoUrl}
+    content="<h2>Getting Started</h2><p>Welcome to the documentation for this project.</p><h2>Installation</h2><p>Follow these steps to get started...</p>"
+    tableOfContents={[
+      { id: "getting-started", title: "Getting Started", level: 2, anchor: "#getting-started" },
+      { id: "installation", title: "Installation", level: 2, anchor: "#installation" }
+    ]}
+    readingTime={3}
+    currentPage="docs"
   />
 </BaseLayout>`;
 }
@@ -399,9 +466,9 @@ function generateAstroConfig(): string {
   return `import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  site: 'https://your-username.github.io',
-  base: '/your-repo-name',
-  outDir: './docs',
+  site: 'https://{{OWNER}}.github.io',
+  base: '/{{REPO_NAME}}',
+  outDir: './dist',
   build: {
     assets: 'assets'
   }
@@ -501,81 +568,3 @@ function getFallbackFeaturesContent(
   };
 }
 
-// Placeholder for AI simulation - replace with actual OpenAI API
-async function simulateAIResponse(prompt: string): Promise<string> {
-  // This would be replaced with actual OpenAI API call
-  // For now, return structured fallback based on prompt analysis
-
-  if (prompt.includes("hero section")) {
-    return JSON.stringify({
-      title: "Next-Generation Development Tool",
-      subtitle: "Build faster, deploy easier, scale infinitely",
-      description:
-        "A comprehensive solution that streamlines your development workflow with powerful automation, intelligent insights, and seamless integrations.",
-      badge: {
-        text: "Latest Release v2.0",
-        emoji: "🚀",
-      },
-      ctaButtons: [
-        {
-          text: "Get Started",
-          url: "#features",
-          type: "primary",
-          emoji: "🚀",
-        },
-        {
-          text: "Documentation",
-          url: "#docs",
-          type: "secondary",
-          emoji: "📖",
-        },
-        {
-          text: "GitHub",
-          url: "#github",
-          type: "secondary",
-          emoji: "🔗",
-        },
-      ],
-    });
-  }
-
-  if (prompt.includes("features section")) {
-    return JSON.stringify({
-      sectionTitle: "Powerful Features Built for Developers",
-      sectionSubtitle:
-        "Everything you need to build, deploy, and scale your applications",
-      features: [
-        {
-          title: "Lightning Fast Performance",
-          description:
-            "Optimized algorithms and smart caching deliver blazing fast results",
-          icon: "⚡",
-          highlight: "10x faster",
-        },
-        {
-          title: "Developer Experience",
-          description:
-            "Intuitive APIs, excellent documentation, and helpful tooling",
-          icon: "🛠️",
-          highlight: "5-min setup",
-        },
-        {
-          title: "Enterprise Ready",
-          description:
-            "Built for scale with security, reliability, and enterprise features",
-          icon: "🏢",
-          highlight: "99.9% uptime",
-        },
-        {
-          title: "Open Source",
-          description:
-            "Fully open source with an active community and transparent development",
-          icon: "🌟",
-          highlight: "MIT License",
-        },
-      ],
-    });
-  }
-
-  throw new Error("Simulation not implemented for this prompt type");
-}
