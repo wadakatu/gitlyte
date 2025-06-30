@@ -131,6 +131,79 @@ export class TriggerController {
   }
 
   /**
+   * Pushトリガーの判定
+   */
+  async shouldGenerateOnPush(
+    branchName: string,
+    defaultBranch: string,
+    commits: Array<{ added: string[]; modified: string[]; removed: string[] }>,
+    config: GitLyteConfig
+  ): Promise<TriggerResult> {
+    const generationConfig = config.generation;
+    const pushConfig = generationConfig?.push;
+
+    // Push機能が無効の場合
+    if (!pushConfig?.enabled) {
+      return {
+        shouldGenerate: false,
+        triggerType: "auto",
+        generationType: "full",
+        reason: "Push trigger disabled",
+      };
+    }
+
+    // ブランチチェック
+    const targetBranches = pushConfig.branches || [defaultBranch];
+    if (!targetBranches.includes(branchName)) {
+      return {
+        shouldGenerate: false,
+        triggerType: "auto",
+        generationType: "full",
+        reason: `Branch ${branchName} not in target branches: ${targetBranches.join(", ")}`,
+      };
+    }
+
+    // 除外パスチェック
+    if (pushConfig.ignorePaths && pushConfig.ignorePaths.length > 0) {
+      const changedFiles = commits.flatMap(commit => 
+        [...commit.added, ...commit.modified, ...commit.removed]
+      );
+
+      // ファイルが変更されていない場合は生成を続行
+      if (changedFiles.length === 0) {
+        return {
+          shouldGenerate: true,
+          triggerType: "auto",
+          generationType: "full",
+          reason: "Push trigger activated",
+        };
+      }
+
+      const shouldIgnore = changedFiles.every(file => 
+        pushConfig.ignorePaths!.some(ignorePath => 
+          file.startsWith(ignorePath)
+        )
+      );
+
+      if (shouldIgnore) {
+        return {
+          shouldGenerate: false,
+          triggerType: "auto",
+          generationType: "full",
+          reason: `All changes in ignored paths: ${pushConfig.ignorePaths.join(", ")}`,
+        };
+      }
+    }
+
+    return {
+      shouldGenerate: true,
+      triggerType: "auto",
+      generationType: "full",
+      reason: "Push trigger activated",
+    };
+  }
+
+  /**
    * コメントトリガーの判定
    */
   async shouldGenerateOnComment(

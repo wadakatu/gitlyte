@@ -110,17 +110,24 @@ export interface SEOConfig {
 
 export interface GenerationConfig {
   /** サイト生成のトリガータイプ */
-  trigger?: "auto" | "manual" | "label";
+  trigger?: "auto" | "manual";
   /** 生成対象ブランチ（空の場合は全ブランチ） */
   branches?: string[];
   /** 生成に必要なラベル（空の場合は制限なし） */
   labels?: string[];
-  /** 生成をスキップするラベル */
-  skipLabels?: string[];
   /** プレビュー生成の設定 */
   preview?: {
     enabled?: boolean;
     path?: string;
+  };
+  /** Push時の自動生成設定 */
+  push?: {
+    /** Push時の自動生成を有効にするか */
+    enabled?: boolean;
+    /** 対象ブランチ（空の場合はdefaultブランチのみ） */
+    branches?: string[];
+    /** 除外するパス（これらが変更された場合は生成しない） */
+    ignorePaths?: string[];
   };
 }
 
