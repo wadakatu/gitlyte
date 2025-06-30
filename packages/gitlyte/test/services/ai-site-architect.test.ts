@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { RepoAnalysis } from "../../services/ai-analyzer.js";
+import type { RepositoryAnalysis } from "../../types/repository.js";
 import {
   designSiteArchitecture,
   generateComponentSpecs,
@@ -123,15 +123,51 @@ describe("AI Site Architect", () => {
     fileStructure: [],
   };
 
-  const mockAnalysis: RepoAnalysis = {
-    projectType: "tool",
-    techStack: ["TypeScript", "Node.js"],
-    primaryLanguage: "TypeScript",
-    activity: "medium",
-    audience: "developer",
-    purpose: "Testing AI site generation",
-    tone: "professional",
-    complexity: "moderate",
+  const mockAnalysis: RepositoryAnalysis = {
+    basicInfo: {
+      name: "test-repo",
+      description: "A test repository",
+      topics: ["test"],
+      language: "TypeScript",
+      license: "MIT License",
+    },
+    codeAnalysis: {
+      languages: { TypeScript: 80, JavaScript: 20 },
+      hasTests: true,
+      testCoverage: 85,
+      hasDocumentation: true,
+      codeComplexity: "moderate",
+    },
+    contentAnalysis: {
+      readme: {
+        exists: true,
+        content: "# Test Repo\nThis is a test repository for AI generation.",
+        sections: ["Installation", "Usage", "API"],
+        hasInstallation: true,
+        hasUsage: true,
+        hasExamples: true,
+      },
+      hasChangelog: false,
+      hasContributing: false,
+      hasLicense: true,
+      hasExamples: true,
+    },
+    projectCharacteristics: {
+      type: "tool",
+      industry: "devtools",
+      audience: "developers",
+      maturity: "stable",
+    },
+    technicalStack: {
+      frontend: ["TypeScript", "Node.js"],
+      backend: [],
+      database: [],
+      deployment: [],
+      testing: ["Jest"],
+    },
+    uniqueFeatures: ["Testing AI site generation", "Easy to use"],
+    competitiveAdvantages: ["AI-powered", "Automated"],
+    suggestedUseCases: ["Testing AI site generation", "Development tools"],
   };
 
   beforeEach(() => {

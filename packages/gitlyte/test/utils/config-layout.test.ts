@@ -6,32 +6,12 @@ import type { GitLyteConfig } from "../../types/config.js";
 import type { RepoData } from "../../types/repository.js";
 import { OpenAIClient } from "../../utils/openai-client.js";
 
-interface MockOpenAI {
-  chat: {
-    completions: {
-      create: ReturnType<typeof vi.fn>;
-    };
-  };
-}
-
-// OpenAI mockを作成
-const createMockOpenAI = (): MockOpenAI => ({
-  chat: {
-    completions: {
-      create: vi.fn(),
-    },
-  },
-});
-
 describe("Layout Configuration Override", () => {
-  let mockOpenAI: MockOpenAI;
   let configLoader: ConfigurationLoader;
   let repositoryAnalyzer: RepositoryAnalyzer;
   let siteGenerator: SiteGenerator;
 
   beforeEach(() => {
-    mockOpenAI = createMockOpenAI();
-
     // Mock the OpenAI environment variable
     vi.stubEnv("OPENAI_API_KEY", "test-key");
 
@@ -132,7 +112,7 @@ describe("Layout Configuration Override", () => {
     it("should reject invalid layout values", () => {
       const config: GitLyteConfig = {
         site: {
-          layout: "invalid-layout" as any,
+          layout: "invalid-layout" as "minimal",
         },
       };
 

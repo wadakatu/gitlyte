@@ -3,23 +3,6 @@ import { RepositoryAnalyzer } from "../../services/repository-analyzer.js";
 import type { RepoData } from "../../types/repository.js";
 import { OpenAIClient } from "../../utils/openai-client.js";
 
-interface MockOpenAI {
-  chat: {
-    completions: {
-      create: ReturnType<typeof vi.fn>;
-    };
-  };
-}
-
-// OpenAI mockを作成
-const createMockOpenAI = (): MockOpenAI => ({
-  chat: {
-    completions: {
-      create: vi.fn(),
-    },
-  },
-});
-
 describe("Repository Analyzer", () => {
   let repositoryAnalyzer: RepositoryAnalyzer;
 
