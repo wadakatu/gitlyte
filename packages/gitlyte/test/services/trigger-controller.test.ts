@@ -154,10 +154,10 @@ describe("TriggerController", () => {
   describe("parseCommentCommand", () => {
     it("should parse generate command", () => {
       const command =
-        triggerController.parseCommentCommand("/gitlyte generate");
+        triggerController.parseCommentCommand("@gitlyte generate");
 
       expect(command).toEqual({
-        command: "/gitlyte generate",
+        command: "@gitlyte generate",
         action: "generate",
         options: {},
       });
@@ -165,11 +165,11 @@ describe("TriggerController", () => {
 
     it("should parse generate command with options", () => {
       const command = triggerController.parseCommentCommand(
-        "/gitlyte generate --force --layout=minimal"
+        "@gitlyte generate --force --layout=minimal"
       );
 
       expect(command).toEqual({
-        command: "/gitlyte generate",
+        command: "@gitlyte generate",
         action: "generate",
         options: {
           force: "true",
@@ -179,30 +179,30 @@ describe("TriggerController", () => {
     });
 
     it("should parse preview command", () => {
-      const command = triggerController.parseCommentCommand("/gitlyte preview");
+      const command = triggerController.parseCommentCommand("@gitlyte preview");
 
       expect(command).toEqual({
-        command: "/gitlyte preview",
+        command: "@gitlyte preview",
         action: "preview",
         options: {},
       });
     });
 
     it("should parse help command", () => {
-      const command = triggerController.parseCommentCommand("/gitlyte help");
+      const command = triggerController.parseCommentCommand("@gitlyte help");
 
       expect(command).toEqual({
-        command: "/gitlyte help",
+        command: "@gitlyte help",
         action: "help",
         options: {},
       });
     });
 
     it("should parse config command", () => {
-      const command = triggerController.parseCommentCommand("/gitlyte config");
+      const command = triggerController.parseCommentCommand("@gitlyte config");
 
       expect(command).toEqual({
-        command: "/gitlyte config",
+        command: "@gitlyte config",
         action: "config",
         options: {},
       });
@@ -215,7 +215,7 @@ describe("TriggerController", () => {
     });
 
     it("should return null for partial commands", () => {
-      const command = triggerController.parseCommentCommand("/gitlyte");
+      const command = triggerController.parseCommentCommand("@gitlyte");
 
       expect(command).toBeNull();
     });
@@ -224,43 +224,43 @@ describe("TriggerController", () => {
   describe("shouldGenerateOnComment", () => {
     it("should generate on generate command", async () => {
       const result = await triggerController.shouldGenerateOnComment(
-        "/gitlyte generate",
+        "@gitlyte generate",
         mockConfig
       );
 
       expect(result.shouldGenerate).toBe(true);
       expect(result.triggerType).toBe("comment");
       expect(result.generationType).toBe("full");
-      expect(result.reason).toBe("Comment command: /gitlyte generate");
+      expect(result.reason).toBe("Comment command: @gitlyte generate");
     });
 
     it("should force generate with force option", async () => {
       const result = await triggerController.shouldGenerateOnComment(
-        "/gitlyte generate --force",
+        "@gitlyte generate --force",
         mockConfig
       );
 
       expect(result.shouldGenerate).toBe(true);
       expect(result.triggerType).toBe("comment");
       expect(result.generationType).toBe("force");
-      expect(result.reason).toBe("Comment command: /gitlyte generate");
+      expect(result.reason).toBe("Comment command: @gitlyte generate");
     });
 
     it("should generate preview on preview command", async () => {
       const result = await triggerController.shouldGenerateOnComment(
-        "/gitlyte preview",
+        "@gitlyte preview",
         mockConfig
       );
 
       expect(result.shouldGenerate).toBe(true);
       expect(result.triggerType).toBe("comment");
       expect(result.generationType).toBe("preview");
-      expect(result.reason).toBe("Preview command: /gitlyte preview");
+      expect(result.reason).toBe("Preview command: @gitlyte preview");
     });
 
     it("should not generate on config command", async () => {
       const result = await triggerController.shouldGenerateOnComment(
-        "/gitlyte config",
+        "@gitlyte config",
         mockConfig
       );
 
@@ -272,7 +272,7 @@ describe("TriggerController", () => {
 
     it("should not generate on help command", async () => {
       const result = await triggerController.shouldGenerateOnComment(
-        "/gitlyte help",
+        "@gitlyte help",
         mockConfig
       );
 
@@ -300,10 +300,10 @@ describe("TriggerController", () => {
       const helpMessage = triggerController.generateHelpMessage();
 
       expect(helpMessage).toContain("GitLyte コマンド一覧");
-      expect(helpMessage).toContain("/gitlyte generate");
-      expect(helpMessage).toContain("/gitlyte preview");
-      expect(helpMessage).toContain("/gitlyte config");
-      expect(helpMessage).toContain("/gitlyte help");
+      expect(helpMessage).toContain("@gitlyte generate");
+      expect(helpMessage).toContain("@gitlyte preview");
+      expect(helpMessage).toContain("@gitlyte config");
+      expect(helpMessage).toContain("@gitlyte help");
       expect(helpMessage).toContain("gitlyte:auto");
       expect(helpMessage).toContain("gitlyte:generate");
       expect(helpMessage).toContain("gitlyte:preview");

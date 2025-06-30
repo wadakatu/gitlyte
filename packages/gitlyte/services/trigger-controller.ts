@@ -12,10 +12,10 @@ export const GENERATION_LABELS = {
 } as const;
 
 export const COMMENT_COMMANDS = {
-  GENERATE: "/gitlyte generate",
-  PREVIEW: "/gitlyte preview",
-  CONFIG: "/gitlyte config",
-  HELP: "/gitlyte help",
+  GENERATE: "@gitlyte generate",
+  PREVIEW: "@gitlyte preview",
+  CONFIG: "@gitlyte config",
+  HELP: "@gitlyte help",
 } as const;
 
 /** トリガータイプ */
