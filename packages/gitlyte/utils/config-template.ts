@@ -1,4 +1,5 @@
-import type { DesignStrategy, RepoAnalysis } from "../services/ai-analyzer.js";
+import type { RepositoryAnalysis } from "../types/repository.js";
+import type { DesignSystem } from "../types/generated-site.js";
 import type { GitLyteConfig } from "../types/config.js";
 import type { RepoData } from "../types/repository.js";
 
@@ -8,16 +9,18 @@ import type { RepoData } from "../types/repository.js";
  */
 export function generateConfigTemplate(
   repoData: RepoData,
-  analysis: RepoAnalysis,
-  designStrategy: DesignStrategy
+  analysis: RepositoryAnalysis,
+  designStrategy: DesignSystem & { layout?: string }
 ): GitLyteConfig {
   const { basicInfo: repo } = repoData;
 
   // プロジェクトタイプに基づくロゴパスの推奨
-  const recommendedLogoPaths = getRecommendedLogoPaths(analysis.projectType);
+  const recommendedLogoPaths = getRecommendedLogoPaths(
+    analysis.projectCharacteristics.type
+  );
 
   // 推奨ロゴ形式を取得
-  const logoFormat = getRecommendedLogoFormat(analysis.techStack);
+  const logoFormat = getRecommendedLogoFormat(analysis.technicalStack.frontend);
 
   // ロゴパスのファイル拡張子を調整
   const adjustedLogoPath = recommendedLogoPaths.logo.replace(
@@ -27,10 +30,23 @@ export function generateConfigTemplate(
 
   // 対象ユーザーとトーンに基づいて色を調整
   const adjustedColors = adjustColorsForAudience(
-    designStrategy.colorScheme,
-    analysis.audience,
-    analysis.tone
+    {
+      primary: designStrategy.colors.primary,
+      secondary: designStrategy.colors.secondary,
+      accent: designStrategy.colors.accent,
+    },
+    analysis.projectCharacteristics.audience,
+    "professional" // default tone
   );
+
+  // デザイン戦略からレイアウトを取得、なければデフォルト
+  const layout =
+    (designStrategy.layout as
+      | "minimal"
+      | "grid"
+      | "sidebar"
+      | "hero-focused"
+      | "content-heavy") || "hero-focused";
 
   return {
     logo: {
@@ -41,7 +57,7 @@ export function generateConfigTemplate(
       path: recommendedLogoPaths.favicon,
     },
     site: {
-      layout: designStrategy.layout,
+      layout,
       theme: {
         primary: adjustedColors.primary,
         secondary: adjustedColors.secondary,
@@ -128,8 +144,8 @@ export function adjustColorsForAudience(
   audience: string,
   tone: string
 ): { primary: string; secondary: string; accent: string } {
-  // ビジネス向けの場合はより保守的な色に調整
-  if (audience === "business" && tone === "professional") {
+  // エンタープライズ向けの場合はより保守的な色に調整
+  if (audience === "enterprise" && tone === "professional") {
     return {
       primary: adjustBrightnessForProfessional(colors.primary),
       secondary: adjustBrightnessForProfessional(colors.secondary),
@@ -137,7 +153,25 @@ export function adjustColorsForAudience(
     };
   }
 
-  // アカデミック向けの場合は信頼性を重視
+  // 研究者向けの場合は信頼性を重視
+  if (audience === "researchers") {
+    return {
+      primary: adjustForAcademic(colors.primary),
+      secondary: adjustForAcademic(colors.secondary),
+      accent: adjustForAcademic(colors.accent),
+    };
+  }
+
+  // ビジネス向けの場合もプロフェッショナル調整を適用
+  if (audience === "business") {
+    return {
+      primary: adjustBrightnessForProfessional(colors.primary),
+      secondary: adjustBrightnessForProfessional(colors.secondary),
+      accent: adjustBrightnessForProfessional(colors.accent),
+    };
+  }
+
+  // アカデミック向けの場合も信頼性重視
   if (audience === "academic") {
     return {
       primary: adjustForAcademic(colors.primary),
