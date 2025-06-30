@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  TriggerController,
-  GENERATION_LABELS,
-} from "../../services/trigger-controller.js";
+import { TriggerController } from "../../services/trigger-controller.js";
 import type { GitLyteConfig } from "../../types/config.js";
 import type { PullRequest } from "../../types/repository.js";
 
@@ -26,72 +23,9 @@ describe("TriggerController", () => {
   };
 
   describe("shouldGenerateOnPRMerge", () => {
-    it("should skip generation when skip label is present", async () => {
-      const pr = {
-        ...mockPR,
-        labels: [{ name: GENERATION_LABELS.SKIP }],
-      };
 
-      const result = await triggerController.shouldGenerateOnPRMerge(
-        pr,
-        mockConfig
-      );
 
-      expect(result.shouldGenerate).toBe(false);
-      expect(result.triggerType).toBe("skip");
-      expect(result.reason).toBe("Skip label found");
-    });
 
-    it("should force generation when force label is present", async () => {
-      const pr = {
-        ...mockPR,
-        labels: [{ name: GENERATION_LABELS.FORCE }],
-      };
-
-      const result = await triggerController.shouldGenerateOnPRMerge(
-        pr,
-        mockConfig
-      );
-
-      expect(result.shouldGenerate).toBe(true);
-      expect(result.triggerType).toBe("label");
-      expect(result.generationType).toBe("force");
-      expect(result.reason).toBe("Force generation label found");
-    });
-
-    it("should generate when manual label is present", async () => {
-      const pr = {
-        ...mockPR,
-        labels: [{ name: GENERATION_LABELS.MANUAL }],
-      };
-
-      const result = await triggerController.shouldGenerateOnPRMerge(
-        pr,
-        mockConfig
-      );
-
-      expect(result.shouldGenerate).toBe(true);
-      expect(result.triggerType).toBe("label");
-      expect(result.generationType).toBe("full");
-      expect(result.reason).toBe("Manual generation label found");
-    });
-
-    it("should generate preview when preview label is present", async () => {
-      const pr = {
-        ...mockPR,
-        labels: [{ name: GENERATION_LABELS.PREVIEW }],
-      };
-
-      const result = await triggerController.shouldGenerateOnPRMerge(
-        pr,
-        mockConfig
-      );
-
-      expect(result.shouldGenerate).toBe(true);
-      expect(result.triggerType).toBe("label");
-      expect(result.generationType).toBe("preview");
-      expect(result.reason).toBe("Preview generation label found");
-    });
 
     it("should auto-generate for enhancement labels", async () => {
       const pr = {
@@ -304,11 +238,6 @@ describe("TriggerController", () => {
       expect(helpMessage).toContain("@gitlyte preview");
       expect(helpMessage).toContain("@gitlyte config");
       expect(helpMessage).toContain("@gitlyte help");
-      expect(helpMessage).toContain("gitlyte:auto");
-      expect(helpMessage).toContain("gitlyte:generate");
-      expect(helpMessage).toContain("gitlyte:preview");
-      expect(helpMessage).toContain("gitlyte:force");
-      expect(helpMessage).toContain("gitlyte:skip");
     });
   });
 

@@ -3,13 +3,6 @@ import type { GitLyteConfig } from "../types/config.js";
 import type { PullRequest } from "../types/repository.js";
 
 /** トリガー制御のための定数 */
-export const GENERATION_LABELS = {
-  AUTO: "gitlyte:auto",
-  MANUAL: "gitlyte:generate",
-  PREVIEW: "gitlyte:preview",
-  FORCE: "gitlyte:force",
-  SKIP: "gitlyte:skip",
-} as const;
 
 export const COMMENT_COMMANDS = {
   GENERATE: "@gitlyte generate",
@@ -52,45 +45,6 @@ export class TriggerController {
   ): Promise<TriggerResult> {
     const labels = pr.labels.map((l) => l.name);
 
-    // スキップラベルがある場合は生成しない
-    if (labels.includes(GENERATION_LABELS.SKIP)) {
-      return {
-        shouldGenerate: false,
-        triggerType: "skip",
-        generationType: "full",
-        reason: "Skip label found",
-      };
-    }
-
-    // 強制生成ラベル
-    if (labels.includes(GENERATION_LABELS.FORCE)) {
-      return {
-        shouldGenerate: true,
-        triggerType: "label",
-        generationType: "force",
-        reason: "Force generation label found",
-      };
-    }
-
-    // 手動生成ラベル
-    if (labels.includes(GENERATION_LABELS.MANUAL)) {
-      return {
-        shouldGenerate: true,
-        triggerType: "label",
-        generationType: "full",
-        reason: "Manual generation label found",
-      };
-    }
-
-    // プレビュー生成ラベル
-    if (labels.includes(GENERATION_LABELS.PREVIEW)) {
-      return {
-        shouldGenerate: true,
-        triggerType: "label",
-        generationType: "preview",
-        reason: "Preview generation label found",
-      };
-    }
 
     // 設定ファイルベースの判定
     const configTrigger = this.checkConfigTrigger(pr, config);
@@ -108,11 +62,8 @@ export class TriggerController {
       };
     }
 
-    // 自動生成ラベルまたはデフォルトの自動生成
-    if (
-      labels.includes(GENERATION_LABELS.AUTO) ||
-      this.shouldAutoGenerate(pr, config)
-    ) {
+    // デフォルトの自動生成
+    if (this.shouldAutoGenerate(pr, config)) {
       return {
         shouldGenerate: true,
         triggerType: "auto",
@@ -316,13 +267,6 @@ export class TriggerController {
 - \`${COMMENT_COMMANDS.CONFIG}\` - 現在の設定を表示
 - \`${COMMENT_COMMANDS.HELP}\` - このヘルプを表示
 
-### 🏷️ ラベル制御
-以下のラベルをPRに付けることでも制御できます：
-- \`${GENERATION_LABELS.AUTO}\` - 自動生成を有効化
-- \`${GENERATION_LABELS.MANUAL}\` - 手動生成を実行
-- \`${GENERATION_LABELS.PREVIEW}\` - プレビュー生成
-- \`${GENERATION_LABELS.FORCE}\` - 強制再生成
-- \`${GENERATION_LABELS.SKIP}\` - 生成をスキップ
 
 ### ⚙️ オプション
 コマンドには以下のオプションが使用できます：
