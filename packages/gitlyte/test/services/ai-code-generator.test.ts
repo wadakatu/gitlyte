@@ -14,60 +14,66 @@ describe("Site Generation Pipeline", () => {
 
   beforeEach(() => {
     // Mock the OpenAI environment variable
-    vi.stubEnv('OPENAI_API_KEY', 'test-key');
-    
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+
     configLoader = new ConfigurationLoader();
     repositoryAnalyzer = new RepositoryAnalyzer();
     siteGenerator = new SiteGenerator();
     deployer = new StaticFileDeployer();
 
     // Mock OpenAI client
-    vi.spyOn(OpenAIClient.prototype, 'analyzeRepository').mockImplementation(async () => ({
-      projectType: "application",
-      industry: "web",
-      audience: "developers",
-      features: ["feature1", "feature2"]
-    }));
+    vi.spyOn(OpenAIClient.prototype, "analyzeRepository").mockImplementation(
+      async () => ({
+        projectType: "application",
+        industry: "web",
+        audience: "developers",
+        features: ["feature1", "feature2"],
+      })
+    );
 
-    vi.spyOn(OpenAIClient.prototype, 'generateDesign').mockImplementation(async () => ({
-      colors: {
-        primary: "#007acc",
-        secondary: "#005999",
-        accent: "#ff6b35",
-        background: "#ffffff",
-        text: "#1f2937",
-        surface: "#f9fafb",
-        border: "#e5e7eb",
-      },
-      typography: {
-        headings: "Inter, sans-serif",
-        body: "System UI, sans-serif",
-        mono: "JetBrains Mono, monospace",
-      },
-      effects: {
-        borderRadius: "8px",
-        shadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-        transition: "0.2s ease",
-      },
-      spacing: {
-        unit: "rem",
-        scale: {
-          xs: "0.25rem",
-          sm: "0.5rem",
-          md: "1rem",
-          lg: "1.5rem",
-          xl: "2rem",
+    vi.spyOn(OpenAIClient.prototype, "generateDesign").mockImplementation(
+      async () => ({
+        colors: {
+          primary: "#007acc",
+          secondary: "#005999",
+          accent: "#ff6b35",
+          background: "#ffffff",
+          text: "#1f2937",
+          surface: "#f9fafb",
+          border: "#e5e7eb",
         },
-      },
-    }));
+        typography: {
+          headings: "Inter, sans-serif",
+          body: "System UI, sans-serif",
+          mono: "JetBrains Mono, monospace",
+        },
+        effects: {
+          borderRadius: "8px",
+          shadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+          transition: "0.2s ease",
+        },
+        spacing: {
+          unit: "rem",
+          scale: {
+            xs: "0.25rem",
+            sm: "0.5rem",
+            md: "1rem",
+            lg: "1.5rem",
+            xl: "2rem",
+          },
+        },
+      })
+    );
 
-    vi.spyOn(OpenAIClient.prototype, 'generateContent').mockImplementation(async () => ({
-      hero: {
-        title: "Test Repository",
-        subtitle: "A test project",
-        description: "This is a test description"
-      }
-    }));
+    vi.spyOn(OpenAIClient.prototype, "generateContent").mockImplementation(
+      async () => ({
+        hero: {
+          title: "Test Repository",
+          subtitle: "A test project",
+          description: "This is a test description",
+        },
+      })
+    );
   });
 
   const mockRepoData: RepoData = {
@@ -107,12 +113,16 @@ describe("Site Generation Pipeline", () => {
       expect(configResult.config).toBeDefined();
 
       // 2. Analyze repository
-      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
       expect(analysis).toBeDefined();
       expect(analysis.basicInfo.name).toBe("test-repo");
 
       // 3. Generate site
-      const site = await siteGenerator.generateSite(analysis, configResult.config);
+      const site = await siteGenerator.generateSite(
+        analysis,
+        configResult.config
+      );
       expect(site).toBeDefined();
       expect(site.pages["index.html"]).toBeDefined();
       expect(site.assets["style.css"]).toBeDefined();
@@ -125,8 +135,12 @@ describe("Site Generation Pipeline", () => {
 
     it("should generate valid HTML pages", async () => {
       const configResult = await configLoader.loadConfiguration();
-      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
-      const site = await siteGenerator.generateSite(analysis, configResult.config);
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(
+        analysis,
+        configResult.config
+      );
 
       const indexPage = site.pages["index.html"];
       expect(indexPage).toContain("<!DOCTYPE html>");
@@ -138,8 +152,12 @@ describe("Site Generation Pipeline", () => {
 
     it("should generate CSS assets", async () => {
       const configResult = await configLoader.loadConfiguration();
-      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
-      const site = await siteGenerator.generateSite(analysis, configResult.config);
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(
+        analysis,
+        configResult.config
+      );
 
       const css = site.assets["style.css"];
       expect(css).toContain(":root");
@@ -150,8 +168,12 @@ describe("Site Generation Pipeline", () => {
 
     it("should generate navigation JavaScript", async () => {
       const configResult = await configLoader.loadConfiguration();
-      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
-      const site = await siteGenerator.generateSite(analysis, configResult.config);
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(
+        analysis,
+        configResult.config
+      );
 
       const js = site.assets["navigation.js"];
       expect(js).toContain("document.addEventListener");
@@ -161,8 +183,12 @@ describe("Site Generation Pipeline", () => {
 
     it("should generate meta files", async () => {
       const configResult = await configLoader.loadConfiguration();
-      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
-      const site = await siteGenerator.generateSite(analysis, configResult.config);
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(
+        analysis,
+        configResult.config
+      );
 
       expect(site.meta.sitemap).toContain("<?xml");
       expect(site.meta.sitemap).toContain("urlset");

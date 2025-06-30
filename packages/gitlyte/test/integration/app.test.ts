@@ -109,10 +109,16 @@ describe("GitLyte App Integration", () => {
   describe("Component Integration", () => {
     it("should have all required service modules", async () => {
       // 必要なサービスモジュールが存在することを確認
-      const repositoryAnalyzer = await import("../../services/repository-analyzer.js");
+      const repositoryAnalyzer = await import(
+        "../../services/repository-analyzer.js"
+      );
       const siteGenerator = await import("../../services/site-generator.js");
-      const configurationLoader = await import("../../services/configuration-loader.js");
-      const staticFileDeployer = await import("../../services/static-file-deployer.js");
+      const configurationLoader = await import(
+        "../../services/configuration-loader.js"
+      );
+      const staticFileDeployer = await import(
+        "../../services/static-file-deployer.js"
+      );
       const githubUtils = await import("../../utils/github.js");
       const batchCommit = await import("../../utils/batch-commit.js");
 

@@ -31,21 +31,23 @@ describe("Layout Configuration Override", () => {
 
   beforeEach(() => {
     mockOpenAI = createMockOpenAI();
-    
+
     // Mock the OpenAI environment variable
-    vi.stubEnv('OPENAI_API_KEY', 'test-key');
-    
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+
     configLoader = new ConfigurationLoader();
     repositoryAnalyzer = new RepositoryAnalyzer();
     siteGenerator = new SiteGenerator();
-    
+
     // Mock OpenAI client
-    vi.spyOn(OpenAIClient.prototype, 'analyzeRepository').mockImplementation(async () => ({
-      projectType: "application",
-      industry: "web",
-      audience: "developers",
-      features: ["feature1", "feature2"]
-    }));
+    vi.spyOn(OpenAIClient.prototype, "analyzeRepository").mockImplementation(
+      async () => ({
+        projectType: "application",
+        industry: "web",
+        audience: "developers",
+        features: ["feature1", "feature2"],
+      })
+    );
   });
 
   afterEach(() => {
@@ -143,7 +145,8 @@ describe("Layout Configuration Override", () => {
 
   describe("Repository Analyzer integration", () => {
     it("should analyze repository data successfully", async () => {
-      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
       expect(analysis).toBeDefined();
       expect(analysis.basicInfo).toBeDefined();
@@ -160,7 +163,8 @@ describe("Layout Configuration Override", () => {
         },
       };
 
-      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
       const site = await siteGenerator.generateSite(analysis, config);
 
       expect(site).toBeDefined();

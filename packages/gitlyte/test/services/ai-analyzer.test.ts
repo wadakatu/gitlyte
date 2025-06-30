@@ -25,17 +25,19 @@ describe("Repository Analyzer", () => {
 
   beforeEach(() => {
     // Mock the OpenAI environment variable
-    vi.stubEnv('OPENAI_API_KEY', 'test-key');
-    
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+
     repositoryAnalyzer = new RepositoryAnalyzer();
-    
+
     // Mock OpenAI client methods
-    vi.spyOn(OpenAIClient.prototype, 'analyzeRepository').mockImplementation(async () => ({
-      projectType: "application",
-      industry: "web",
-      audience: "developers",
-      features: ["feature1", "feature2"]
-    }));
+    vi.spyOn(OpenAIClient.prototype, "analyzeRepository").mockImplementation(
+      async () => ({
+        projectType: "application",
+        industry: "web",
+        audience: "developers",
+        features: ["feature1", "feature2"],
+      })
+    );
   });
 
   afterEach(() => {
@@ -88,7 +90,8 @@ describe("Repository Analyzer", () => {
     };
 
     it("should analyze repository data successfully", async () => {
-      const result = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const result =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
       expect(result).toBeDefined();
       expect(result.basicInfo).toBeDefined();
@@ -102,7 +105,8 @@ describe("Repository Analyzer", () => {
     });
 
     it("should extract basic info correctly", async () => {
-      const result = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const result =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
       expect(result.basicInfo.name).toBe("test-repo");
       expect(result.basicInfo.description).toBe("A test repository");
@@ -111,7 +115,8 @@ describe("Repository Analyzer", () => {
     });
 
     it("should analyze code structure", async () => {
-      const result = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const result =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
       expect(result.codeAnalysis.hasTests).toBe(false);
       expect(result.codeAnalysis.testCoverage).toBe(0);
@@ -119,7 +124,8 @@ describe("Repository Analyzer", () => {
     });
 
     it("should analyze content", async () => {
-      const result = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const result =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
       expect(result.contentAnalysis.readme.exists).toBe(true);
       expect(result.contentAnalysis.readme.content).toContain("Test Repo");
@@ -127,15 +133,20 @@ describe("Repository Analyzer", () => {
     });
 
     it("should determine project maturity", async () => {
-      const result = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const result =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
       expect(result.projectCharacteristics.maturity).toBe("alpha"); // 10 stars, has license but no tests
     });
 
     it("should handle error gracefully", async () => {
-      vi.spyOn(OpenAIClient.prototype, 'analyzeRepository').mockRejectedValue(new Error("API Error"));
+      vi.spyOn(OpenAIClient.prototype, "analyzeRepository").mockRejectedValue(
+        new Error("API Error")
+      );
 
-      await expect(repositoryAnalyzer.analyzeRepositoryData(mockRepoData)).rejects.toThrow("Failed to analyze repository");
+      await expect(
+        repositoryAnalyzer.analyzeRepositoryData(mockRepoData)
+      ).rejects.toThrow("Failed to analyze repository");
     });
   });
 });

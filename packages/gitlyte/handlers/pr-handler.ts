@@ -51,7 +51,9 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
       );
 
       if (!deploymentResult.success) {
-        throw new Error(`Deployment failed: ${deploymentResult.errors.join(", ")}`);
+        throw new Error(
+          `Deployment failed: ${deploymentResult.errors.join(", ")}`
+        );
       }
 
       return deploymentResult;
