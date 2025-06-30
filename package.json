@@ -21,8 +21,7 @@
     "format:fix": "pnpm -r run format:fix",
     "check": "pnpm -r run check",
     "check:fix": "pnpm -r run check:fix",
-    "ci:check": "pnpm --filter @gitlyte/core ci:check",
-    "dev:demo": "pnpm --filter @gitlyte/demo dev"
+    "ci:check": "pnpm --filter @gitlyte/core ci:check"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
