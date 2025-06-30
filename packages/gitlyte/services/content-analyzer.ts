@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import type { RepoData } from "../types/repository.js";
-import type { RepoAnalysis } from "./ai-analyzer.js";
+import type { RepositoryAnalysis } from "../types/repository.js";
 
 /** セクションコンテンツの型定義 */
 export interface SectionContent {
@@ -666,7 +666,7 @@ async function callOpenAIWithRetry(
 
 export async function analyzeRepositoryContent(
   repoData: RepoData,
-  analysis: RepoAnalysis
+  analysis: RepositoryAnalysis
 ): Promise<ContentAnalysis> {
   const prompt = `
 あなたはテクニカルライティングとマーケティングの専門家です。以下のリポジトリ情報を詳細に分析し、このプロジェクトの魅力を最大限に伝えるコンテンツ戦略を立案してください。
@@ -683,10 +683,10 @@ export async function analyzeRepositoryContent(
 ${repoData.readme.slice(0, 3000)}
 
 ## プロジェクト分析
-- タイプ: ${analysis.projectType}
-- 技術スタック: ${analysis.techStack.join(", ")}
-- 対象ユーザー: ${analysis.audience}
-- 複雑度: ${analysis.complexity}
+- タイプ: ${analysis.projectCharacteristics.type}
+- 技術スタック: ${analysis.technicalStack.frontend.join(", ")}
+- 対象ユーザー: ${analysis.projectCharacteristics.audience}
+- 複雑度: ${analysis.codeAnalysis.codeComplexity}
 
 ## 最近のPR（参考）
 ${repoData.prs
@@ -911,18 +911,22 @@ ${repoData.prs
 
     // フォールバック: プロジェクト特性に基づいた詳細なコンテンツ分析
     const projectTypeContent = getProjectTypeContent(
-      analysis.projectType,
+      analysis.projectCharacteristics.type,
       repoData.basicInfo.name
     );
     return {
       appeal: {
         uniqueValue: projectTypeContent.uniqueValue,
         keyBenefits: projectTypeContent.keyBenefits,
-        targetUsers: [analysis.audience, "developers", "engineers"],
+        targetUsers: [
+          analysis.projectCharacteristics.audience,
+          "developers",
+          "engineers",
+        ],
         problemSolving: projectTypeContent.problemSolving,
         dynamicCards: generateFallbackCards(
-          analysis.projectType,
-          analysis.techStack
+          analysis.projectCharacteristics.type,
+          analysis.technicalStack.frontend
         ),
       },
       usage: {
@@ -968,8 +972,8 @@ ${repoData.prs
           },
         ],
         whyChoose: generateWhyChooseCards(
-          analysis.projectType,
-          analysis.techStack
+          analysis.projectCharacteristics.type,
+          analysis.technicalStack.frontend
         ),
       },
       achievements: {

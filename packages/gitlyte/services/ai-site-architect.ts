@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import type { RepoData } from "../types/repository.js";
-import type { RepoAnalysis } from "./ai-analyzer.js";
+import type { RepositoryAnalysis } from "../types/repository.js";
 
 // OpenAI クライアント初期化
 let openai: OpenAI | null = null;
@@ -125,7 +125,7 @@ export interface ComponentSpec {
 /** Step 1: リポジトリ分析からサイト全体の設計を生成 */
 export async function designSiteArchitecture(
   repoData: RepoData,
-  analysis: RepoAnalysis
+  analysis: RepositoryAnalysis
 ): Promise<SiteArchitecture> {
   const prompt = `
 あなたは世界最高レベルのWebデザインアーキテクトです。GitHubリポジトリの特性を分析し、そのプロジェクトに最適化された完全オリジナルのWebサイト設計を作成してください。
@@ -139,12 +139,12 @@ export async function designSiteArchitecture(
 - PRs: ${repoData.prs.length}
 
 ## プロジェクト分析結果
-- タイプ: ${analysis.projectType}
-- 技術スタック: ${analysis.techStack.join(", ")}
-- 対象ユーザー: ${analysis.audience}
-- トーン: ${analysis.tone}
-- 複雑度: ${analysis.complexity}
-- 目的: ${analysis.purpose}
+- タイプ: ${analysis.projectCharacteristics.type}
+- 技術スタック: ${analysis.technicalStack.frontend.join(", ")}
+- 対象ユーザー: ${analysis.projectCharacteristics.audience}
+- トーン: professional
+- 複雑度: ${analysis.codeAnalysis.codeComplexity}
+- 目的: ${analysis.basicInfo.description}
 
 ## 設計要求
 1. このプロジェクトの特性に完璧にマッチするユニークなコンセプトを考案
