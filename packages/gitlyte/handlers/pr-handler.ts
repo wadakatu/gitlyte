@@ -3,6 +3,7 @@ import { ConfigurationLoader } from "../services/configuration-loader.js";
 import { RepositoryAnalyzer } from "../services/repository-analyzer.js";
 import { SiteGenerator } from "../services/site-generator.js";
 import { StaticFileDeployer } from "../services/static-file-deployer.js";
+import { TriggerController } from "../services/trigger-controller.js";
 import type { PullRequest } from "../types/repository.js";
 import { safeGenerateWithDeploymentGuard } from "../utils/deployment-guard.js";
 import { collectRepoData, ensurePages } from "../utils/github.js";
@@ -10,8 +11,31 @@ import { collectRepoData, ensurePages } from "../utils/github.js";
 /** Feature PR ハンドラ */
 export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
   try {
-    ctx.log.info(`🚀 Starting site generation for PR: ${pr.title}`);
+    ctx.log.info(`🚀 Starting site generation evaluation for PR: ${pr.title}`);
     ctx.log.info(`📋 PR Labels: ${pr.labels.map((l) => l.name).join(", ")}`);
+
+    // 設定をロード
+    const configLoader = new ConfigurationLoader();
+    const configResult = await configLoader.loadConfiguration();
+    const config = configResult.config;
+
+    // トリガー判定
+    const triggerController = new TriggerController();
+    const triggerResult = await triggerController.shouldGenerateOnPRMerge(
+      pr,
+      config
+    );
+
+    ctx.log.info(`🎯 Trigger evaluation: ${triggerResult.reason}`);
+
+    if (!triggerResult.shouldGenerate) {
+      ctx.log.info(`⏭️ Skipping site generation: ${triggerResult.reason}`);
+      return;
+    }
+
+    ctx.log.info(
+      `🚀 Starting ${triggerResult.generationType} site generation for PR: ${pr.title}`
+    );
 
     // PRマージ直後のGitHub API同期待ち（特に設定ファイル読み込みのため）
     ctx.log.info("⏳ Waiting for GitHub API sync after PR merge...");
@@ -26,14 +50,9 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
     // デプロイメント競合を防ぐためのガード付きサイト生成
     await safeGenerateWithDeploymentGuard(ctx, async () => {
       // 新しいアーキテクチャでのサイト生成
-      const configLoader = new ConfigurationLoader();
       const repositoryAnalyzer = new RepositoryAnalyzer();
       const siteGenerator = new SiteGenerator();
       const deployer = new StaticFileDeployer();
-
-      // 設定をロード
-      const configResult = await configLoader.loadConfiguration();
-      const config = configResult.config;
 
       // リポジトリを分析
       const analysis = await repositoryAnalyzer.analyzeRepositoryData(repoData);
@@ -41,13 +60,16 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
       // サイトを生成
       const generatedSite = await siteGenerator.generateSite(analysis, config);
 
-      // ファイルをデプロイ（docsディレクトリへ）
-      const outputPath = "docs";
+      // ファイルをデプロイ（プレビューまたはフル生成に応じてパスを変更）
+      const outputPath =
+        triggerResult.generationType === "preview" ? "preview" : "docs";
+      const optimize = triggerResult.generationType !== "preview";
+
       const deploymentResult = await deployer.deployToDirectory(
         generatedSite,
         outputPath,
         config,
-        { clean: true, optimize: true }
+        { clean: true, optimize }
       );
 
       if (!deploymentResult.success) {
@@ -59,7 +81,9 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
       return deploymentResult;
     });
 
-    ctx.log.info(`✅ AI-generated Astro site created for PR: ${pr.title}`);
+    ctx.log.info(
+      `✅ ${triggerResult.generationType} site generated for PR: ${pr.title} (${triggerResult.triggerType} trigger)`
+    );
   } catch (error) {
     ctx.log.error(`❌ Failed to handle feature PR: ${pr.title}`, error);
     throw error;
