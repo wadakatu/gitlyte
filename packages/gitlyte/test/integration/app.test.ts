@@ -109,18 +109,17 @@ describe("GitLyte App Integration", () => {
   describe("Component Integration", () => {
     it("should have all required service modules", async () => {
       // 必要なサービスモジュールが存在することを確認
-      const aiAnalyzer = await import("../../services/ai-analyzer.js");
-      const aiCodeGenerator = await import(
-        "../../services/ai-code-generator.js"
-      );
-      const astroGenerator = await import("../../services/astro-generator.js");
+      const repositoryAnalyzer = await import("../../services/repository-analyzer.js");
+      const siteGenerator = await import("../../services/site-generator.js");
+      const configurationLoader = await import("../../services/configuration-loader.js");
+      const staticFileDeployer = await import("../../services/static-file-deployer.js");
       const githubUtils = await import("../../utils/github.js");
       const batchCommit = await import("../../utils/batch-commit.js");
 
-      expect(aiAnalyzer.analyzeRepository).toBeDefined();
-      expect(aiAnalyzer.generateDesignStrategy).toBeDefined();
-      expect(aiCodeGenerator.generateAstroSite).toBeDefined();
-      expect(astroGenerator.generateAIAstroSite).toBeDefined();
+      expect(repositoryAnalyzer.RepositoryAnalyzer).toBeDefined();
+      expect(siteGenerator.SiteGenerator).toBeDefined();
+      expect(configurationLoader.ConfigurationLoader).toBeDefined();
+      expect(staticFileDeployer.StaticFileDeployer).toBeDefined();
       expect(githubUtils.collectRepoData).toBeDefined();
       expect(batchCommit.batchCommitFiles).toBeDefined();
     });

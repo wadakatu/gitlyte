@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RepoData } from "../types.js";
+import type { RepoData } from "../types/repository.js";
 import {
   loadGitLyteConfig,
   resolveFaviconUrl,
@@ -8,9 +8,8 @@ import {
 
 describe("Config Loader", () => {
   const mockRepoData: RepoData = {
-    repo: {
+    basicInfo: {
       name: "test-repo",
-      full_name: "user/test-repo",
       description: "A test repository",
       html_url: "https://github.com/user/test-repo",
       stargazers_count: 100,
@@ -19,14 +18,23 @@ describe("Config Loader", () => {
       topics: ["test"],
       created_at: "2023-01-01T00:00:00Z",
       updated_at: "2023-12-01T00:00:00Z",
-      pushed_at: "2023-12-01T00:00:00Z",
-      size: 1000,
       default_branch: "main",
       license: { key: "mit", name: "MIT License" },
     },
     readme: "",
-    prs: [],
+    packageJson: null,
+    languages: {},
     issues: [],
+    pullRequests: [],
+    prs: [],
+    configFile: null,
+    codeStructure: {
+      files: [],
+      directories: [],
+      hasTests: false,
+      testFiles: [],
+    },
+    fileStructure: [],
   };
 
   describe("loadGitLyteConfig", () => {
@@ -63,7 +71,7 @@ describe("Config Loader", () => {
     it("should load config from package.json gitlyte section", async () => {
       const repoDataWithPackageJson = {
         ...mockRepoData,
-        packageJson: JSON.stringify({
+        packageJson: {
           name: "test-package",
           version: "1.0.0",
           gitlyte: {
@@ -71,7 +79,7 @@ describe("Config Loader", () => {
               path: "./logo.png",
             },
           },
-        }),
+        },
       };
 
       const result = await loadGitLyteConfig(repoDataWithPackageJson);
@@ -87,9 +95,9 @@ describe("Config Loader", () => {
         configFile: JSON.stringify({
           logo: { path: "./gitlyte-logo.svg" },
         }),
-        packageJson: JSON.stringify({
+        packageJson: {
           gitlyte: { logo: { path: "./package-logo.png" } },
-        }),
+        },
       };
 
       const result = await loadGitLyteConfig(repoDataWithBoth);

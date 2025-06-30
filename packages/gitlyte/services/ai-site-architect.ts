@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { RepoData } from "../types.js";
+import type { RepoData } from "../types/repository.js";
 import type { RepoAnalysis } from "./ai-analyzer.js";
 
 // OpenAI クライアント初期化
@@ -131,10 +131,10 @@ export async function designSiteArchitecture(
 あなたは世界最高レベルのWebデザインアーキテクトです。GitHubリポジトリの特性を分析し、そのプロジェクトに最適化された完全オリジナルのWebサイト設計を作成してください。
 
 ## リポジトリ情報
-- 名前: ${repoData.repo.name}
-- 説明: ${repoData.repo.description || "説明なし"}
-- Stars: ${repoData.repo.stargazers_count}
-- Forks: ${repoData.repo.forks_count}
+- 名前: ${repoData.basicInfo.name}
+- 説明: ${repoData.basicInfo.description || "説明なし"}
+- Stars: ${repoData.basicInfo.stargazers_count}
+- Forks: ${repoData.basicInfo.forks_count}
 - Issues: ${repoData.issues.length}
 - PRs: ${repoData.prs.length}
 
@@ -355,9 +355,9 @@ export async function generateComponentSpecs(
 - ビジュアルスタイル: ${JSON.stringify(architecture.design.visual_style)}
 
 ## 利用可能なデータ
-- リポジトリ名: ${repoData.repo.name}
-- 説明: ${repoData.repo.description}
-- Stars: ${repoData.repo.stargazers_count}
+- リポジトリ名: ${repoData.basicInfo.name}
+- 説明: ${repoData.basicInfo.description}
+- Stars: ${repoData.basicInfo.stargazers_count}
 - PRs数: ${repoData.prs.length}
 
 このセクションのコンセプトを実現する革新的でユニークなコンポーネントを設計してください。既存のパターンにとらわれず、プロジェクトの特性を最大限に活かした創造的なデザインを提案してください。

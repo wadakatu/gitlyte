@@ -1,6 +1,6 @@
 import type { DesignStrategy, RepoAnalysis } from "../services/ai-analyzer.js";
 import type { GitLyteConfig } from "../types/config.js";
-import type { RepoData } from "../types.js";
+import type { RepoData } from "../types/repository.js";
 
 /**
  * .gitlyte.json の雛形を生成
@@ -11,7 +11,7 @@ export function generateConfigTemplate(
   analysis: RepoAnalysis,
   designStrategy: DesignStrategy
 ): GitLyteConfig {
-  const { repo } = repoData;
+  const { basicInfo: repo } = repoData;
 
   // プロジェクトタイプに基づくロゴパスの推奨
   const recommendedLogoPaths = getRecommendedLogoPaths(analysis.projectType);

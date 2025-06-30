@@ -37,8 +37,15 @@ describe("GitHub Utils", () => {
         data: {
           name: "test-repo",
           description: "A test repository",
+          html_url: "https://github.com/test-owner/test-repo",
           stargazers_count: 10,
           forks_count: 5,
+          topics: [],
+          language: "TypeScript",
+          license: null,
+          created_at: "2023-01-01T00:00:00Z",
+          updated_at: "2023-01-01T00:00:00Z",
+          default_branch: "main",
         },
       };
 
@@ -83,10 +90,33 @@ describe("GitHub Utils", () => {
       );
 
       expect(result).toEqual({
-        repo: mockRepo.data,
+        basicInfo: {
+          name: mockRepo.data.name,
+          description: mockRepo.data.description,
+          html_url: mockRepo.data.html_url,
+          stargazers_count: mockRepo.data.stargazers_count,
+          forks_count: mockRepo.data.forks_count,
+          topics: mockRepo.data.topics || [],
+          language: mockRepo.data.language || "Unknown",
+          license: mockRepo.data.license,
+          created_at: mockRepo.data.created_at,
+          updated_at: mockRepo.data.updated_at,
+          default_branch: mockRepo.data.default_branch,
+        },
         readme: "# Test Repo\nThis is a test",
-        prs: mockPRs.data,
+        packageJson: null,
+        languages: {},
         issues: mockIssues.data,
+        pullRequests: mockPRs.data.filter((pr) => pr.merged_at),
+        prs: mockPRs.data.filter((pr) => pr.merged_at),
+        configFile: null,
+        codeStructure: {
+          files: [],
+          directories: [],
+          hasTests: false,
+          testFiles: [],
+        },
+        fileStructure: [],
       });
 
       expect(ctx.octokit.repos.get).toHaveBeenCalledWith({
@@ -100,8 +130,15 @@ describe("GitHub Utils", () => {
         data: {
           name: "test-repo",
           description: "A test repository",
+          html_url: "https://github.com/test-owner/test-repo",
           stargazers_count: 10,
           forks_count: 5,
+          topics: [],
+          language: "TypeScript",
+          license: null,
+          created_at: "2023-01-01T00:00:00Z",
+          updated_at: "2023-01-01T00:00:00Z",
+          default_branch: "main",
         },
       };
 
@@ -116,10 +153,33 @@ describe("GitHub Utils", () => {
       );
 
       expect(result).toEqual({
-        repo: mockRepo.data,
+        basicInfo: {
+          name: mockRepo.data.name,
+          description: mockRepo.data.description,
+          html_url: mockRepo.data.html_url,
+          stargazers_count: mockRepo.data.stargazers_count,
+          forks_count: mockRepo.data.forks_count,
+          topics: mockRepo.data.topics || [],
+          language: mockRepo.data.language || "Unknown",
+          license: mockRepo.data.license,
+          created_at: mockRepo.data.created_at,
+          updated_at: mockRepo.data.updated_at,
+          default_branch: mockRepo.data.default_branch,
+        },
         readme: "",
-        prs: [],
+        packageJson: null,
+        languages: {},
         issues: [],
+        pullRequests: [],
+        prs: [],
+        configFile: null,
+        codeStructure: {
+          files: [],
+          directories: [],
+          hasTests: false,
+          testFiles: [],
+        },
+        fileStructure: [],
       });
 
       expect(ctx.log.warn).toHaveBeenCalledTimes(3);

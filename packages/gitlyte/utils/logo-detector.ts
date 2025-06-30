@@ -1,4 +1,4 @@
-import type { RepoData } from "../types.js";
+import type { RepoData } from "../types/repository.js";
 import {
   loadGitLyteConfig,
   resolveFaviconUrl,

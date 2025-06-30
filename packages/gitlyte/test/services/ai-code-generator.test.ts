@@ -1,175 +1,172 @@
-import { describe, expect, it } from "vitest";
-import type {
-  DesignStrategy,
-  RepoAnalysis,
-} from "../../services/ai-analyzer.js";
-import { generateAstroSite } from "../../services/ai-code-generator.js";
-import type { RepoData } from "../../types.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ConfigurationLoader } from "../../services/configuration-loader.js";
+import { RepositoryAnalyzer } from "../../services/repository-analyzer.js";
+import { SiteGenerator } from "../../services/site-generator.js";
+import { StaticFileDeployer } from "../../services/static-file-deployer.js";
+import type { RepoData } from "../../types/repository.js";
+import { OpenAIClient } from "../../utils/openai-client.js";
 
-describe("AI Code Generator", () => {
+describe("Site Generation Pipeline", () => {
+  let configLoader: ConfigurationLoader;
+  let repositoryAnalyzer: RepositoryAnalyzer;
+  let siteGenerator: SiteGenerator;
+  let deployer: StaticFileDeployer;
+
+  beforeEach(() => {
+    // Mock the OpenAI environment variable
+    vi.stubEnv('OPENAI_API_KEY', 'test-key');
+    
+    configLoader = new ConfigurationLoader();
+    repositoryAnalyzer = new RepositoryAnalyzer();
+    siteGenerator = new SiteGenerator();
+    deployer = new StaticFileDeployer();
+
+    // Mock OpenAI client
+    vi.spyOn(OpenAIClient.prototype, 'analyzeRepository').mockImplementation(async () => ({
+      projectType: "application",
+      industry: "web",
+      audience: "developers",
+      features: ["feature1", "feature2"]
+    }));
+
+    vi.spyOn(OpenAIClient.prototype, 'generateDesign').mockImplementation(async () => ({
+      colors: {
+        primary: "#007acc",
+        secondary: "#005999",
+        accent: "#ff6b35",
+        background: "#ffffff",
+        text: "#1f2937",
+        surface: "#f9fafb",
+        border: "#e5e7eb",
+      },
+      typography: {
+        headings: "Inter, sans-serif",
+        body: "System UI, sans-serif",
+        mono: "JetBrains Mono, monospace",
+      },
+      effects: {
+        borderRadius: "8px",
+        shadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+        transition: "0.2s ease",
+      },
+      spacing: {
+        unit: "rem",
+        scale: {
+          xs: "0.25rem",
+          sm: "0.5rem",
+          md: "1rem",
+          lg: "1.5rem",
+          xl: "2rem",
+        },
+      },
+    }));
+
+    vi.spyOn(OpenAIClient.prototype, 'generateContent').mockImplementation(async () => ({
+      hero: {
+        title: "Test Repository",
+        subtitle: "A test project",
+        description: "This is a test description"
+      }
+    }));
+  });
+
   const mockRepoData: RepoData = {
-    repo: {
+    basicInfo: {
       name: "test-repo",
-      full_name: "test/test-repo",
       description: "A test repository",
       html_url: "https://github.com/test/test-repo",
-      stargazers_count: 15,
-      forks_count: 3,
+      stargazers_count: 10,
+      forks_count: 5,
       language: "TypeScript",
       topics: ["test"],
       created_at: "2023-01-01T00:00:00Z",
       updated_at: "2023-12-01T00:00:00Z",
-      pushed_at: "2023-12-01T00:00:00Z",
-      size: 1000,
       default_branch: "main",
       license: { key: "mit", name: "MIT License" },
     },
-    readme: "# Test Repo\nThis is a test repository.",
-    prs: [
-      {
-        title: "Add feature",
-        user: { login: "testuser" },
-        merged_at: "2023-01-01T00:00:00Z",
-      },
-    ],
-    issues: [
-      {
-        title: "Fix bug",
-        number: 1,
-        state: "open",
-        user: { login: "testuser" },
-        created_at: "2023-01-01T00:00:00Z",
-      },
-    ],
+    readme: "# Test Repo\nThis is a test repository for testing.",
+    packageJson: null,
+    languages: {},
+    issues: [],
+    pullRequests: [],
+    prs: [],
+    configFile: null,
+    codeStructure: {
+      files: [],
+      directories: [],
+      hasTests: false,
+      testFiles: [],
+    },
+    fileStructure: [],
   };
 
-  const mockAnalysis: RepoAnalysis = {
-    projectType: "application",
-    techStack: ["JavaScript", "React"],
-    primaryLanguage: "JavaScript",
-    activity: "high",
-    audience: "developer",
-    purpose: "A web application",
-    tone: "professional",
-    complexity: "moderate",
-  };
+  describe("Full Site Generation Pipeline", () => {
+    it("should complete the full generation pipeline", async () => {
+      // 1. Load configuration
+      const configResult = await configLoader.loadConfiguration();
+      expect(configResult.config).toBeDefined();
 
-  const mockDesign: DesignStrategy = {
-    colorScheme: {
-      primary: "#007acc",
-      secondary: "#005999",
-      accent: "#ff6b35",
-      background: "#ffffff",
-    },
-    typography: {
-      heading: "Inter, sans-serif",
-      body: "system-ui, sans-serif",
-      code: "Fira Code, monospace",
-    },
-    layout: "hero-focused",
-    style: "modern",
-    animations: true,
-    darkMode: false,
-    effects: {
-      blur: true,
-      shadows: "subtle",
-      borders: "rounded",
-      spacing: "normal",
-    },
-  };
+      // 2. Analyze repository
+      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      expect(analysis).toBeDefined();
+      expect(analysis.basicInfo.name).toBe("test-repo");
 
-  describe("generateAstroSite", () => {
-    it("should generate complete Astro site", async () => {
-      const result = await generateAstroSite(
-        mockRepoData,
-        mockAnalysis,
-        mockDesign
-      );
+      // 3. Generate site
+      const site = await siteGenerator.generateSite(analysis, configResult.config);
+      expect(site).toBeDefined();
+      expect(site.pages["index.html"]).toBeDefined();
+      expect(site.assets["style.css"]).toBeDefined();
 
-      // 必要なファイルが全て生成されることを確認
-      expect(result).toHaveProperty("packageJson");
-      expect(result).toHaveProperty("astroConfig");
-      expect(result).toHaveProperty("layout");
-      expect(result).toHaveProperty("heroComponent");
-      expect(result).toHaveProperty("featuresComponent");
-      expect(result).toHaveProperty("indexPage");
-      expect(result).toHaveProperty("globalStyles");
-
-      // package.jsonの内容を確認
-      const packageJson = JSON.parse(result.packageJson);
-      expect(packageJson.name).toBe("test-repo-site");
-      expect(packageJson.type).toBe("module");
-      expect(packageJson.dependencies.astro).toBeDefined();
-      expect(packageJson.scripts.build).toBe("astro build");
-
-      // astro.configにリポジトリ名が含まれることを確認
-      expect(result.astroConfig).toContain("{{REPO_NAME}}");
-      expect(result.astroConfig).toContain("{{OWNER}}");
-
-      // レイアウトがインライン化されていることを確認
-      expect(result.layout).toContain("<!DOCTYPE html>");
-      expect(result.layout).toContain("--color-primary:");
-      expect(result.layout).toContain(mockDesign.colorScheme.primary);
-
-      // Heroコンポーネントに必要な要素が含まれることを確認
-      expect(result.heroComponent).toContain("stats");
-      expect(result.heroComponent).toContain("hero-focused");
-
-      // Featuresコンポーネントにpropsが含まれることを確認
-      expect(result.featuresComponent).toContain("prs");
-      expect(result.featuresComponent).toContain("Why Choose This Project?");
-
-      // インデックスページにデータプレースホルダーが含まれることを確認
-      expect(result.indexPage).toContain("{{REPO_DATA}}");
-      expect(result.indexPage).toContain("Layout");
-      expect(result.indexPage).toContain("Hero");
-      expect(result.indexPage).toContain("Features");
-
-      // グローバルスタイルにデザイン要素が含まれることを確認
-      expect(result.globalStyles).toContain(mockDesign.colorScheme.primary);
-      expect(result.globalStyles).toContain("font-family");
+      // 4. Validate output
+      const validation = deployer.validateOutput(site);
+      expect(validation.valid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
     });
 
-    it("should handle repository with no description", async () => {
-      const repoDataNoDesc = {
-        ...mockRepoData,
-        repo: { ...mockRepoData.repo, description: null },
-      };
+    it("should generate valid HTML pages", async () => {
+      const configResult = await configLoader.loadConfiguration();
+      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(analysis, configResult.config);
 
-      const result = await generateAstroSite(
-        repoDataNoDesc,
-        mockAnalysis,
-        mockDesign
-      );
-
-      expect(result.packageJson).toBeDefined();
-      expect(result.heroComponent).toContain("hero-focused");
+      const indexPage = site.pages["index.html"];
+      expect(indexPage).toContain("<!DOCTYPE html>");
+      expect(indexPage).toContain("<html");
+      expect(indexPage).toContain("<head>");
+      expect(indexPage).toContain("<body>");
+      expect(indexPage).toContain("Test Repository");
     });
 
-    it("should generate responsive CSS", async () => {
-      const result = await generateAstroSite(
-        mockRepoData,
-        mockAnalysis,
-        mockDesign
-      );
+    it("should generate CSS assets", async () => {
+      const configResult = await configLoader.loadConfiguration();
+      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(analysis, configResult.config);
 
-      expect(result.globalStyles).toContain("@media");
-      // Hero component contains responsive CSS
-      expect(result.heroComponent).toContain("@media");
+      const css = site.assets["style.css"];
+      expect(css).toContain(":root");
+      expect(css).toContain("--primary-color");
+      expect(css).toContain(".hero-section");
+      expect(css).toContain(".features-grid");
     });
 
-    it("should include proper CSS custom properties", async () => {
-      const result = await generateAstroSite(
-        mockRepoData,
-        mockAnalysis,
-        mockDesign
-      );
+    it("should generate navigation JavaScript", async () => {
+      const configResult = await configLoader.loadConfiguration();
+      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(analysis, configResult.config);
 
-      // レイアウトがインライン化されCSS変数が含まれることを確認
-      expect(result.layout).toContain("--color-primary:");
-      expect(result.layout).toContain("--color-secondary:");
-      expect(result.layout).toContain(mockDesign.colorScheme.primary);
-      expect(result.layout).toContain(mockDesign.colorScheme.secondary);
+      const js = site.assets["navigation.js"];
+      expect(js).toContain("document.addEventListener");
+      expect(js).toContain("mobile-menu-btn");
+      expect(js).toContain("nav-links");
+    });
+
+    it("should generate meta files", async () => {
+      const configResult = await configLoader.loadConfiguration();
+      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(analysis, configResult.config);
+
+      expect(site.meta.sitemap).toContain("<?xml");
+      expect(site.meta.sitemap).toContain("urlset");
+      expect(site.meta.robotsTxt).toContain("User-agent: *");
     });
   });
 });

@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { RepoData } from "../types.js";
+import type { RepoData } from "../types/repository.js";
 import { detectRepoLogo } from "../utils/logo-detector.js";
 
 describe("Logo Detector", () => {
   const mockRepoData: RepoData = {
-    repo: {
+    basicInfo: {
       name: "test-repo",
-      full_name: "user/test-repo",
       description: "A test repository",
       html_url: "https://github.com/user/test-repo",
       stargazers_count: 100,
@@ -15,14 +14,23 @@ describe("Logo Detector", () => {
       topics: ["test", "logo"],
       created_at: "2023-01-01T00:00:00Z",
       updated_at: "2023-12-01T00:00:00Z",
-      pushed_at: "2023-12-01T00:00:00Z",
-      size: 1000,
       default_branch: "main",
       license: { key: "mit", name: "MIT License" },
     },
-    prs: [],
-    issues: [],
     readme: "",
+    packageJson: null,
+    languages: {},
+    issues: [],
+    pullRequests: [],
+    prs: [],
+    configFile: null,
+    codeStructure: {
+      files: [],
+      directories: [],
+      hasTests: false,
+      testFiles: [],
+    },
+    fileStructure: [],
   };
 
   describe("detectRepoLogo", () => {
@@ -47,12 +55,12 @@ describe("Logo Detector", () => {
     it("should detect logo from package.json gitlyte section", async () => {
       const repoDataWithPackageJson = {
         ...mockRepoData,
-        packageJson: JSON.stringify({
+        packageJson: {
           name: "test-package",
           gitlyte: {
             logo: { path: "./logo.svg" },
           },
-        }),
+        },
       };
 
       const result = await detectRepoLogo(repoDataWithPackageJson);
@@ -70,9 +78,9 @@ describe("Logo Detector", () => {
         configFile: JSON.stringify({
           logo: { path: "./gitlyte-logo.png" },
         }),
-        packageJson: JSON.stringify({
+        packageJson: {
           gitlyte: { logo: { path: "./package-logo.png" } },
-        }),
+        },
       };
 
       const result = await detectRepoLogo(repoDataWithBoth);

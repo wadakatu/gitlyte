@@ -1,13 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  analyzeRepository,
-  type DesignStrategy,
-  generateDesignStrategy,
-  type RepoAnalysis,
-  setOpenAIClient,
-} from "../../services/ai-analyzer.js";
+import { ConfigurationLoader } from "../../services/configuration-loader.js";
+import { RepositoryAnalyzer } from "../../services/repository-analyzer.js";
+import { SiteGenerator } from "../../services/site-generator.js";
 import type { GitLyteConfig } from "../../types/config.js";
-import type { RepoData } from "../../types.js";
+import type { RepoData } from "../../types/repository.js";
+import { OpenAIClient } from "../../utils/openai-client.js";
 
 interface MockOpenAI {
   chat: {
@@ -28,23 +25,36 @@ const createMockOpenAI = (): MockOpenAI => ({
 
 describe("Layout Configuration Override", () => {
   let mockOpenAI: MockOpenAI;
+  let configLoader: ConfigurationLoader;
+  let repositoryAnalyzer: RepositoryAnalyzer;
+  let siteGenerator: SiteGenerator;
 
   beforeEach(() => {
     mockOpenAI = createMockOpenAI();
-    setOpenAIClient(
-      mockOpenAI as unknown as Parameters<typeof setOpenAIClient>[0]
-    );
+    
+    // Mock the OpenAI environment variable
+    vi.stubEnv('OPENAI_API_KEY', 'test-key');
+    
+    configLoader = new ConfigurationLoader();
+    repositoryAnalyzer = new RepositoryAnalyzer();
+    siteGenerator = new SiteGenerator();
+    
+    // Mock OpenAI client
+    vi.spyOn(OpenAIClient.prototype, 'analyzeRepository').mockImplementation(async () => ({
+      projectType: "application",
+      industry: "web",
+      audience: "developers",
+      features: ["feature1", "feature2"]
+    }));
   });
 
   afterEach(() => {
-    setOpenAIClient(null);
     vi.clearAllMocks();
   });
 
   const mockRepoData: RepoData = {
-    repo: {
+    basicInfo: {
       name: "test-repo",
-      full_name: "test/test-repo",
       description: "A test repository",
       html_url: "https://github.com/test/test-repo",
       stargazers_count: 10,
@@ -53,19 +63,12 @@ describe("Layout Configuration Override", () => {
       topics: ["test"],
       created_at: "2023-01-01T00:00:00Z",
       updated_at: "2023-12-01T00:00:00Z",
-      pushed_at: "2023-12-01T00:00:00Z",
-      size: 1000,
       default_branch: "main",
       license: { key: "mit", name: "MIT License" },
     },
     readme: "# Test Repo\nThis is a test repository for testing.",
-    prs: [
-      {
-        title: "Add feature",
-        user: { login: "testuser" },
-        merged_at: "2023-01-01T00:00:00Z",
-      },
-    ],
+    packageJson: null,
+    languages: {},
     issues: [
       {
         title: "Fix bug",
@@ -75,9 +78,25 @@ describe("Layout Configuration Override", () => {
         created_at: "2023-01-01T00:00:00Z",
       },
     ],
+    pullRequests: [],
+    prs: [
+      {
+        title: "Add feature",
+        user: { login: "testuser" },
+        merged_at: "2023-01-01T00:00:00Z",
+      },
+    ],
+    configFile: null,
+    codeStructure: {
+      files: [],
+      directories: [],
+      hasTests: false,
+      testFiles: [],
+    },
+    fileStructure: [],
   };
 
-  describe("analyzeRepository with layout config", () => {
+  describe("Configuration Loader with layout config", () => {
     it("should use configured layout when provided", async () => {
       const config: GitLyteConfig = {
         site: {
@@ -85,201 +104,70 @@ describe("Layout Configuration Override", () => {
         },
       };
 
-      const mockAnalysis: RepoAnalysis = {
-        projectType: "application",
-        techStack: ["JavaScript", "TypeScript"],
-        primaryLanguage: "TypeScript",
-        activity: "medium",
-        audience: "developer",
-        purpose: "A test application",
-        tone: "professional",
-        complexity: "moderate",
-      };
-
-      mockOpenAI.chat.completions.create.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify(mockAnalysis),
-            },
-          },
-        ],
-      });
-
-      const result = await analyzeRepository(mockRepoData, config);
-
-      expect(result.layout).toBe("minimal");
-      expect(result.projectType).toBe("application");
+      const merged = configLoader.mergeWithDefaults(config);
+      expect(merged.site?.layout).toBe("minimal");
     });
 
-    it("should fallback to AI analysis when no layout configured", async () => {
+    it("should use default layout when not configured", async () => {
       const config: GitLyteConfig = {};
 
-      const mockAnalysis: RepoAnalysis = {
-        projectType: "library",
-        techStack: ["TypeScript"],
-        primaryLanguage: "TypeScript",
-        activity: "high",
-        audience: "developer",
-        purpose: "A library",
-        tone: "technical",
-        complexity: "simple",
-      };
-
-      mockOpenAI.chat.completions.create.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify(mockAnalysis),
-            },
-          },
-        ],
-      });
-
-      const result = await analyzeRepository(mockRepoData, config);
-
-      expect(result.layout).toBeUndefined(); // AI didn't return layout
-      expect(result.projectType).toBe("library");
+      const merged = configLoader.mergeWithDefaults(config);
+      expect(merged.site?.layout).toBe("hero-focused"); // default
     });
 
-    it("should use configured layout in fallback scenario", async () => {
-      const config: GitLyteConfig = {
-        site: {
-          layout: "grid",
-        },
-      };
-
-      mockOpenAI.chat.completions.create.mockRejectedValue(
-        new Error("API Error")
-      );
-
-      const result = await analyzeRepository(mockRepoData, config);
-
-      expect(result.layout).toBe("grid");
-      expect(result.projectType).toBe("application"); // fallback value
-    });
-  });
-
-  describe("generateDesignStrategy with layout config", () => {
-    const mockAnalysis: RepoAnalysis = {
-      projectType: "application",
-      techStack: ["JavaScript", "React"],
-      primaryLanguage: "JavaScript",
-      activity: "high",
-      audience: "developer",
-      purpose: "A web application",
-      tone: "professional",
-      complexity: "moderate",
-    };
-
-    it("should override AI-generated layout with config", async () => {
-      const config: GitLyteConfig = {
-        site: {
-          layout: "sidebar",
-        },
-      };
-
-      const mockDesign: DesignStrategy = {
-        colorScheme: {
-          primary: "#007acc",
-          secondary: "#005999",
-          accent: "#ff6b35",
-          background: "#ffffff",
-        },
-        typography: {
-          heading: "Inter, sans-serif",
-          body: "system-ui, sans-serif",
-          code: "Fira Code, monospace",
-        },
-        layout: "hero-focused", // AI suggests hero-focused
-        style: "modern",
-        animations: true,
-        darkMode: false,
-        effects: {
-          blur: true,
-          shadows: "subtle",
-          borders: "rounded",
-          spacing: "normal",
-        },
-      };
-
-      mockOpenAI.chat.completions.create.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify(mockDesign),
-            },
-          },
-        ],
-      });
-
-      const result = await generateDesignStrategy(mockAnalysis, config);
-
-      expect(result.layout).toBe("sidebar"); // config overrides AI
-      expect(result.style).toBe("modern");
-    });
-
-    it("should use analysis layout in fallback when available", async () => {
-      const config: GitLyteConfig = {};
-      const analysisWithLayout: RepoAnalysis = {
-        ...mockAnalysis,
-        layout: "content-heavy",
-      };
-
-      mockOpenAI.chat.completions.create.mockRejectedValue(
-        new Error("API Error")
-      );
-
-      const result = await generateDesignStrategy(analysisWithLayout, config);
-
-      expect(result.layout).toBe("content-heavy");
-    });
-
-    it("should prioritize config over analysis layout in fallback", async () => {
+    it("should validate layout configuration", () => {
       const config: GitLyteConfig = {
         site: {
           layout: "minimal",
         },
       };
-      const analysisWithLayout: RepoAnalysis = {
-        ...mockAnalysis,
-        layout: "content-heavy",
+
+      const validation = configLoader.validateConfiguration(config);
+      expect(validation.valid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
+    });
+
+    it("should reject invalid layout values", () => {
+      const config: GitLyteConfig = {
+        site: {
+          layout: "invalid-layout" as any,
+        },
       };
 
-      mockOpenAI.chat.completions.create.mockRejectedValue(
-        new Error("API Error")
-      );
-
-      const result = await generateDesignStrategy(analysisWithLayout, config);
-
-      expect(result.layout).toBe("minimal"); // config wins over analysis
+      const validation = configLoader.validateConfiguration(config);
+      expect(validation.valid).toBe(false);
+      expect(validation.errors.length).toBeGreaterThan(0);
+      expect(validation.errors[0]).toContain("Invalid layout value");
     });
   });
 
-  describe("layout validation", () => {
-    it("should only accept valid layout values", async () => {
-      const validLayouts = [
-        "minimal",
-        "grid",
-        "sidebar",
-        "hero-focused",
-        "content-heavy",
-      ] as const;
+  describe("Repository Analyzer integration", () => {
+    it("should analyze repository data successfully", async () => {
+      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
-      for (const layout of validLayouts) {
-        const config: GitLyteConfig = {
-          site: {
-            layout: layout,
-          },
-        };
+      expect(analysis).toBeDefined();
+      expect(analysis.basicInfo).toBeDefined();
+      expect(analysis.basicInfo.name).toBe("test-repo");
+      expect(analysis.projectCharacteristics).toBeDefined();
+    });
+  });
 
-        mockOpenAI.chat.completions.create.mockRejectedValue(
-          new Error("Use fallback")
-        );
+  describe("Site Generator with layout config", () => {
+    it("should generate site with configured layout", async () => {
+      const config: GitLyteConfig = {
+        site: {
+          layout: "minimal",
+        },
+      };
 
-        const result = await analyzeRepository(mockRepoData, config);
-        expect(result.layout).toBe(layout);
-      }
+      const analysis = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(analysis, config);
+
+      expect(site).toBeDefined();
+      expect(site.pages).toBeDefined();
+      expect(site.pages["index.html"]).toBeDefined();
+      expect(site.assets).toBeDefined();
+      expect(site.meta).toBeDefined();
     });
   });
 });

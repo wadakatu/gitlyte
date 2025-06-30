@@ -5,7 +5,7 @@ import {
   generateComponentSpecs,
   setOpenAIClient,
 } from "../../services/ai-site-architect.js";
-import type { RepoData } from "../../types.js";
+import type { RepoData } from "../../types/repository.js";
 
 // Mock OpenAI client
 const mockOpenAI = {
@@ -94,9 +94,8 @@ const mockOpenAI = {
 
 describe("AI Site Architect", () => {
   const mockRepoData: RepoData = {
-    repo: {
+    basicInfo: {
       name: "test-repo",
-      full_name: "test/test-repo",
       description: "A test repository",
       html_url: "https://github.com/test/test-repo",
       stargazers_count: 42,
@@ -105,14 +104,23 @@ describe("AI Site Architect", () => {
       topics: ["test"],
       created_at: "2023-01-01T00:00:00Z",
       updated_at: "2023-12-01T00:00:00Z",
-      pushed_at: "2023-12-01T00:00:00Z",
-      size: 1000,
       default_branch: "main",
       license: { key: "mit", name: "MIT License" },
     },
-    issues: [],
-    prs: [],
     readme: "# Test Repo\nThis is a test repository for AI generation.",
+    packageJson: null,
+    languages: {},
+    issues: [],
+    pullRequests: [],
+    prs: [],
+    configFile: null,
+    codeStructure: {
+      files: [],
+      directories: [],
+      hasTests: false,
+      testFiles: [],
+    },
+    fileStructure: [],
   };
 
   const mockAnalysis: RepoAnalysis = {

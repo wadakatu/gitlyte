@@ -1,5 +1,5 @@
 import type { Context } from "probot";
-import type { RepoData } from "../types.js";
+import type { RepoData } from "../types/repository.js";
 
 /** 404 は null を返し、それ以外は例外を再スロー */
 export async function safeGetContent(ctx: Context, path: string) {
@@ -126,12 +126,33 @@ export async function collectRepoData(ctx: Context): Promise<RepoData> {
   );
 
   return {
-    repo: repoInfo.data,
+    basicInfo: {
+      name: repoInfo.data.name,
+      description: repoInfo.data.description || "",
+      html_url: repoInfo.data.html_url,
+      stargazers_count: repoInfo.data.stargazers_count,
+      forks_count: repoInfo.data.forks_count,
+      topics: repoInfo.data.topics || [],
+      language: repoInfo.data.language || "Unknown",
+      license: repoInfo.data.license,
+      created_at: repoInfo.data.created_at,
+      updated_at: repoInfo.data.updated_at,
+      default_branch: repoInfo.data.default_branch,
+    },
     readme,
-    configFile,
-    packageJson,
-    prs: prs,
+    packageJson: packageJson ? JSON.parse(packageJson) : null,
+    languages: {}, // TODO: Fetch languages from GitHub API
     issues: issues,
+    pullRequests: prs,
+    prs: prs,
+    configFile: configFile ? JSON.parse(configFile) : null,
+    codeStructure: {
+      files: [],
+      directories: [],
+      hasTests: false,
+      testFiles: [],
+    },
+    fileStructure: [],
   };
 }
 

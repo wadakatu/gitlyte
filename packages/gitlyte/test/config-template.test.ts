@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DesignStrategy, RepoAnalysis } from "../services/ai-analyzer.js";
-import type { RepoData } from "../types.js";
+import type { RepoData } from "../types/repository.js";
 import {
   adjustColorsForAudience,
   generateConfigDocumentation,
@@ -11,9 +11,8 @@ import {
 
 describe("Config Template Generator", () => {
   const mockRepoData: RepoData = {
-    repo: {
+    basicInfo: {
       name: "test-project",
-      full_name: "user/test-project",
       description: "A test project",
       html_url: "https://github.com/user/test-project",
       stargazers_count: 100,
@@ -22,14 +21,23 @@ describe("Config Template Generator", () => {
       topics: ["test", "config"],
       created_at: "2023-01-01T00:00:00Z",
       updated_at: "2023-12-01T00:00:00Z",
-      pushed_at: "2023-12-01T00:00:00Z",
-      size: 1000,
       default_branch: "main",
       license: { key: "mit", name: "MIT License" },
     },
-    prs: [],
-    issues: [],
     readme: "# Test Project",
+    packageJson: null,
+    languages: {},
+    issues: [],
+    pullRequests: [],
+    prs: [],
+    configFile: null,
+    codeStructure: {
+      files: [],
+      directories: [],
+      hasTests: false,
+      testFiles: [],
+    },
+    fileStructure: [],
   };
 
   const mockAnalysis: RepoAnalysis = {
@@ -284,7 +292,7 @@ describe("Config Template Generator", () => {
       );
       const result = generateConfigDocumentation(
         config,
-        mockRepoData.repo.name
+        mockRepoData.basicInfo.name
       );
 
       expect(result).toContain("GitLyte Configuration");
@@ -302,7 +310,7 @@ describe("Config Template Generator", () => {
       );
       const result = generateConfigDocumentation(
         config,
-        mockRepoData.repo.name
+        mockRepoData.basicInfo.name
       );
 
       expect(result).toContain("設定項目");

@@ -1,12 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  analyzeRepository,
-  type DesignStrategy,
-  generateDesignStrategy,
-  type RepoAnalysis,
-  setOpenAIClient,
-} from "../../services/ai-analyzer.js";
-import type { RepoData } from "../../types.js";
+import { RepositoryAnalyzer } from "../../services/repository-analyzer.js";
+import type { RepoData } from "../../types/repository.js";
+import { OpenAIClient } from "../../utils/openai-client.js";
 
 interface MockOpenAI {
   chat: {
@@ -25,26 +20,32 @@ const createMockOpenAI = (): MockOpenAI => ({
   },
 });
 
-describe("AI Analyzer", () => {
-  let mockOpenAI: MockOpenAI;
+describe("Repository Analyzer", () => {
+  let repositoryAnalyzer: RepositoryAnalyzer;
 
   beforeEach(() => {
-    mockOpenAI = createMockOpenAI();
-    setOpenAIClient(
-      mockOpenAI as unknown as Parameters<typeof setOpenAIClient>[0]
-    );
+    // Mock the OpenAI environment variable
+    vi.stubEnv('OPENAI_API_KEY', 'test-key');
+    
+    repositoryAnalyzer = new RepositoryAnalyzer();
+    
+    // Mock OpenAI client methods
+    vi.spyOn(OpenAIClient.prototype, 'analyzeRepository').mockImplementation(async () => ({
+      projectType: "application",
+      industry: "web",
+      audience: "developers",
+      features: ["feature1", "feature2"]
+    }));
   });
 
   afterEach(() => {
-    setOpenAIClient(null);
     vi.clearAllMocks();
   });
 
-  describe("analyzeRepository", () => {
+  describe("analyzeRepositoryData", () => {
     const mockRepoData: RepoData = {
-      repo: {
+      basicInfo: {
         name: "test-repo",
-        full_name: "test/test-repo",
         description: "A test repository",
         html_url: "https://github.com/test/test-repo",
         stargazers_count: 10,
@@ -53,19 +54,12 @@ describe("AI Analyzer", () => {
         topics: ["test"],
         created_at: "2023-01-01T00:00:00Z",
         updated_at: "2023-12-01T00:00:00Z",
-        pushed_at: "2023-12-01T00:00:00Z",
-        size: 1000,
         default_branch: "main",
         license: { key: "mit", name: "MIT License" },
       },
       readme: "# Test Repo\nThis is a test repository for testing.",
-      prs: [
-        {
-          title: "Add feature",
-          user: { login: "testuser" },
-          merged_at: "2023-01-01T00:00:00Z",
-        },
-      ],
+      packageJson: null,
+      languages: {},
       issues: [
         {
           title: "Fix bug",
@@ -75,205 +69,73 @@ describe("AI Analyzer", () => {
           created_at: "2023-01-01T00:00:00Z",
         },
       ],
+      pullRequests: [],
+      prs: [
+        {
+          title: "Add feature",
+          user: { login: "testuser" },
+          merged_at: "2023-01-01T00:00:00Z",
+        },
+      ],
+      configFile: null,
+      codeStructure: {
+        files: [],
+        directories: [],
+        hasTests: false,
+        testFiles: [],
+      },
+      fileStructure: [],
     };
 
-    it("should analyze repository and return analysis", async () => {
-      const mockAnalysis: RepoAnalysis = {
-        projectType: "application",
-        techStack: ["JavaScript", "TypeScript"],
-        primaryLanguage: "TypeScript",
-        activity: "medium",
-        audience: "developer",
-        purpose: "A test application",
-        tone: "professional",
-        complexity: "moderate",
-      };
+    it("should analyze repository data successfully", async () => {
+      const result = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
-      mockOpenAI.chat.completions.create.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify(mockAnalysis),
-            },
-          },
-        ],
-      });
-
-      const result = await analyzeRepository(mockRepoData);
-
-      expect(result).toEqual(mockAnalysis);
-      expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith(
-        {
-          model: "gpt-4o",
-          messages: [
-            { role: "user", content: expect.stringContaining("test-repo") },
-          ],
-          temperature: 0.3,
-        },
-        {
-          timeout: 60000,
-        }
-      );
+      expect(result).toBeDefined();
+      expect(result.basicInfo).toBeDefined();
+      expect(result.basicInfo.name).toBe("test-repo");
+      expect(result.basicInfo.description).toBe("A test repository");
+      expect(result.basicInfo.language).toBe("TypeScript");
+      expect(result.projectCharacteristics).toBeDefined();
+      expect(result.projectCharacteristics.type).toBe("application");
+      expect(result.codeAnalysis).toBeDefined();
+      expect(result.contentAnalysis).toBeDefined();
     });
 
-    it("should handle JSON with code blocks", async () => {
-      const mockAnalysis: RepoAnalysis = {
-        projectType: "library",
-        techStack: ["JavaScript"],
-        primaryLanguage: "JavaScript",
-        activity: "high",
-        audience: "developer",
-        purpose: "A library",
-        tone: "technical",
-        complexity: "simple",
-      };
+    it("should extract basic info correctly", async () => {
+      const result = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
-      mockOpenAI.chat.completions.create.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: `\`\`\`json\n${JSON.stringify(mockAnalysis)}\n\`\`\``,
-            },
-          },
-        ],
-      });
-
-      const result = await analyzeRepository(mockRepoData);
-
-      expect(result).toEqual(mockAnalysis);
+      expect(result.basicInfo.name).toBe("test-repo");
+      expect(result.basicInfo.description).toBe("A test repository");
+      expect(result.basicInfo.language).toBe("TypeScript");
+      expect(result.basicInfo.license).toBe("mit");
     });
 
-    it("should return fallback analysis on error", async () => {
-      mockOpenAI.chat.completions.create.mockRejectedValue(
-        new Error("API Error")
-      );
+    it("should analyze code structure", async () => {
+      const result = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
-      const result = await analyzeRepository(mockRepoData);
-
-      expect(result).toEqual({
-        projectType: "application",
-        techStack: ["JavaScript"],
-        primaryLanguage: "JavaScript",
-        activity: "medium",
-        audience: "developer",
-        purpose: "A software project",
-        tone: "professional",
-        complexity: "moderate",
-      });
+      expect(result.codeAnalysis.hasTests).toBe(false);
+      expect(result.codeAnalysis.testCoverage).toBe(0);
+      expect(result.codeAnalysis.hasDocumentation).toBe(true); // has README
     });
 
-    it("should handle empty response", async () => {
-      mockOpenAI.chat.completions.create.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: null,
-            },
-          },
-        ],
-      });
+    it("should analyze content", async () => {
+      const result = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
-      const result = await analyzeRepository(mockRepoData);
-
-      expect(result.projectType).toBe("application");
-    });
-  });
-
-  describe("generateDesignStrategy", () => {
-    const mockAnalysis: RepoAnalysis = {
-      projectType: "application",
-      techStack: ["JavaScript", "React"],
-      primaryLanguage: "JavaScript",
-      activity: "high",
-      audience: "developer",
-      purpose: "A web application",
-      tone: "professional",
-      complexity: "moderate",
-    };
-
-    it("should generate design strategy", async () => {
-      const mockDesign: DesignStrategy = {
-        colorScheme: {
-          primary: "#007acc",
-          secondary: "#005999",
-          accent: "#ff6b35",
-          background: "#ffffff",
-        },
-        typography: {
-          heading: "Inter, sans-serif",
-          body: "system-ui, sans-serif",
-          code: "Fira Code, monospace",
-        },
-        layout: "hero-focused",
-        style: "modern",
-        animations: true,
-        darkMode: false,
-        effects: {
-          blur: true,
-          shadows: "subtle",
-          borders: "rounded",
-          spacing: "normal",
-        },
-      };
-
-      mockOpenAI.chat.completions.create.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify(mockDesign),
-            },
-          },
-        ],
-      });
-
-      const result = await generateDesignStrategy(mockAnalysis);
-
-      expect(result).toEqual(mockDesign);
-      expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith(
-        {
-          model: "gpt-4o",
-          messages: [
-            { role: "user", content: expect.stringContaining("application") },
-          ],
-          temperature: 0.7,
-          max_tokens: 800,
-        },
-        {
-          timeout: 60000,
-        }
-      );
+      expect(result.contentAnalysis.readme.exists).toBe(true);
+      expect(result.contentAnalysis.readme.content).toContain("Test Repo");
+      expect(result.contentAnalysis.hasLicense).toBe(true);
     });
 
-    it("should return fallback design on error", async () => {
-      mockOpenAI.chat.completions.create.mockRejectedValue(
-        new Error("API Error")
-      );
+    it("should determine project maturity", async () => {
+      const result = await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
 
-      const result = await generateDesignStrategy(mockAnalysis);
+      expect(result.projectCharacteristics.maturity).toBe("alpha"); // 10 stars, has license but no tests
+    });
 
-      expect(result).toEqual({
-        colorScheme: {
-          primary: "#7c3aed",
-          secondary: "#5b21b6",
-          accent: "#a855f7",
-          background: "#fafafa",
-        },
-        typography: {
-          heading: "Inter, system-ui, sans-serif",
-          body: "system-ui, -apple-system, sans-serif",
-          code: "JetBrains Mono, Fira Code, monospace",
-        },
-        layout: "hero-focused",
-        style: "modern",
-        animations: true,
-        darkMode: false,
-        effects: {
-          blur: true,
-          shadows: "subtle",
-          borders: "rounded",
-          spacing: "normal",
-        },
-      });
+    it("should handle error gracefully", async () => {
+      vi.spyOn(OpenAIClient.prototype, 'analyzeRepository').mockRejectedValue(new Error("API Error"));
+
+      await expect(repositoryAnalyzer.analyzeRepositoryData(mockRepoData)).rejects.toThrow("Failed to analyze repository");
     });
   });
 });
