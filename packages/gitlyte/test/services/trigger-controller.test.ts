@@ -27,7 +27,7 @@ describe("TriggerController", () => {
 
 
 
-    it("should auto-generate for enhancement labels", async () => {
+    it("should auto-generate for configured labels only", async () => {
       const pr = {
         ...mockPR,
         labels: [{ name: "enhancement" }],
@@ -68,7 +68,7 @@ describe("TriggerController", () => {
       expect(result.reason).toBe("Manual trigger configured");
     });
 
-    it("should not generate when required labels are missing", async () => {
+    it("should not generate when required labels are missing (PR-based generation disabled by default)", async () => {
       const pr = {
         ...mockPR,
         labels: [{ name: "documentation" }],

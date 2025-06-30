@@ -120,9 +120,9 @@ export interface GenerationConfig {
     enabled?: boolean;
     path?: string;
   };
-  /** Push時の自動生成設定 */
+  /** Push時の自動生成設定（デフォルト有効） */
   push?: {
-    /** Push時の自動生成を有効にするか */
+    /** Push時の自動生成を有効にするか（デフォルト: true） */
     enabled?: boolean;
     /** 対象ブランチ（空の場合はdefaultブランチのみ） */
     branches?: string[];

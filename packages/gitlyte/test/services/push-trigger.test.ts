@@ -43,7 +43,7 @@ describe("TriggerController - Push Trigger", () => {
       expect(result.reason).toBe("Push trigger activated");
     });
 
-    it("should not generate when push trigger is disabled", async () => {
+    it("should not generate when push trigger is explicitly disabled", async () => {
       const config = {
         ...mockConfig,
         generation: {
@@ -158,7 +158,7 @@ describe("TriggerController - Push Trigger", () => {
       expect(result.reason).toBe("Push trigger activated");
     });
 
-    it("should handle missing push config", async () => {
+    it("should default to enabled when push config is missing", async () => {
       const configWithoutPush = {
         generation: {
           trigger: "auto" as const,
@@ -172,8 +172,8 @@ describe("TriggerController - Push Trigger", () => {
         configWithoutPush
       );
 
-      expect(result.shouldGenerate).toBe(false);
-      expect(result.reason).toBe("Push trigger disabled");
+      expect(result.shouldGenerate).toBe(true);
+      expect(result.reason).toBe("Push trigger activated");
     });
 
     it("should work with multiple target branches", async () => {

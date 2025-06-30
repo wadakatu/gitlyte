@@ -142,8 +142,8 @@ export class TriggerController {
     const generationConfig = config.generation;
     const pushConfig = generationConfig?.push;
 
-    // Push機能が無効の場合
-    if (!pushConfig?.enabled) {
+    // Push機能が明示的に無効化されている場合のみ無効
+    if (pushConfig?.enabled === false) {
       return {
         shouldGenerate: false,
         triggerType: "auto",
@@ -152,8 +152,11 @@ export class TriggerController {
       };
     }
 
+    // 設定がない場合はデフォルトで有効
+    const isEnabled = pushConfig?.enabled !== false;
+
     // ブランチチェック
-    const targetBranches = pushConfig.branches || [defaultBranch];
+    const targetBranches = pushConfig?.branches || [defaultBranch];
     if (!targetBranches.includes(branchName)) {
       return {
         shouldGenerate: false,
@@ -164,7 +167,7 @@ export class TriggerController {
     }
 
     // 除外パスチェック
-    if (pushConfig.ignorePaths && pushConfig.ignorePaths.length > 0) {
+    if (pushConfig?.ignorePaths && pushConfig.ignorePaths.length > 0) {
       const changedFiles = commits.flatMap(commit => 
         [...commit.added, ...commit.modified, ...commit.removed]
       );
@@ -315,14 +318,11 @@ export class TriggerController {
   }
 
   /**
-   * デフォルトの自動生成判定
+   * デフォルトの自動生成判定 (廃止: Push時トリガーがデフォルト)
    */
-  private shouldAutoGenerate(pr: PullRequest, _config: GitLyteConfig): boolean {
-    const labels = pr.labels.map((l) => l.name);
-
-    // デフォルトの自動生成ラベル
-    const defaultAutoLabels = ["enhancement", "feat", "feature"];
-    return defaultAutoLabels.some((label) => labels.includes(label));
+  private shouldAutoGenerate(_pr: PullRequest, _config: GitLyteConfig): boolean {
+    // PRベースの自動生成は廃止、Push時トリガーがデフォルト
+    return false;
   }
 
   /**
