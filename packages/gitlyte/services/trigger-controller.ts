@@ -46,37 +46,18 @@ export class TriggerController {
     const labels = pr.labels.map((l) => l.name);
 
 
-    // 設定ファイルベースの判定
+    // 設定ファイルベースの判定（ラベル制限など）
     const configTrigger = this.checkConfigTrigger(pr, config);
     if (configTrigger.shouldGenerate) {
       return configTrigger;
     }
 
-    // 設定で明示的にmanualが設定されている場合は、ここで処理を停止
-    if (config.generation?.trigger === "manual") {
-      return {
-        shouldGenerate: false,
-        triggerType: "manual",
-        generationType: "full",
-        reason: "Manual trigger configured",
-      };
-    }
-
-    // デフォルトの自動生成
-    if (this.shouldAutoGenerate(pr, config)) {
-      return {
-        shouldGenerate: true,
-        triggerType: "auto",
-        generationType: "full",
-        reason: "Auto generation triggered",
-      };
-    }
-
+    // PRベースの生成は基本的に無効（Push時生成がデフォルト）
     return {
       shouldGenerate: false,
       triggerType: "manual",
       generationType: "full",
-      reason: "No trigger conditions met",
+      reason: "PR-based generation disabled (use push or comment triggers)",
     };
   }
 
@@ -252,7 +233,7 @@ export class TriggerController {
   }
 
   /**
-   * 設定ファイルベースの判定
+   * 設定ファイルベースの判定（ラベル制限のみ）
    */
   private checkConfigTrigger(
     pr: PullRequest,
@@ -268,52 +249,28 @@ export class TriggerController {
       };
     }
 
-    // トリガータイプ判定
-    if (generationConfig.trigger === "manual") {
-      return {
-        shouldGenerate: false,
-        triggerType: "manual",
-        generationType: "full",
-        reason: "Manual trigger configured",
-      };
-    }
-
-    // ブランチ制限チェック
-    if (generationConfig.branches && generationConfig.branches.length > 0) {
-      // PRの場合、ベースブランチをチェック（実際の実装では context から取得）
-      const targetBranch = "main"; // TODO: 実際のベースブランチを取得
-      if (!generationConfig.branches.includes(targetBranch)) {
-        return {
-          shouldGenerate: false,
-          triggerType: "auto",
-          generationType: "full",
-          reason: `Branch ${targetBranch} not in allowed branches`,
-        };
-      }
-    }
-
-    // ラベル制限チェック
+    // ラベル制限チェック（明示的に設定されている場合のみ）
     if (generationConfig.labels && generationConfig.labels.length > 0) {
       const prLabels = pr.labels.map((l) => l.name);
       const hasRequiredLabel = generationConfig.labels.some((label) =>
         prLabels.includes(label)
       );
 
-      if (!hasRequiredLabel) {
+      if (hasRequiredLabel) {
         return {
-          shouldGenerate: false,
+          shouldGenerate: true,
           triggerType: "auto",
           generationType: "full",
-          reason: `PR doesn't have required labels: ${generationConfig.labels.join(", ")}`,
+          reason: "Config-based label generation",
         };
       }
     }
 
     return {
-      shouldGenerate: true,
+      shouldGenerate: false,
       triggerType: "auto",
       generationType: "full",
-      reason: "Config-based auto generation",
+      reason: "No trigger conditions met",
     };
   }
 
@@ -363,9 +320,12 @@ ${COMMENT_COMMANDS.PREVIEW} --layout=hero-focused
     return `
 ## ⚙️ 現在の GitLyte 設定
 
-### 生成設定
-- **トリガー**: ${generation.trigger || "auto"}
-- **対象ブランチ**: ${generation.branches?.join(", ") || "すべて"}
+### Push生成設定
+- **有効状態**: ${generation.push?.enabled !== false ? "有効" : "無効"}
+- **対象ブランチ**: ${generation.push?.branches?.join(", ") || "デフォルトブランチ"}
+- **除外パス**: ${generation.push?.ignorePaths?.join(", ") || "なし"}
+
+### PR生成設定
 - **必要ラベル**: ${generation.labels?.join(", ") || "なし"}
 
 ### サイト設定

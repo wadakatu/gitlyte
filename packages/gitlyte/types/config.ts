@@ -109,8 +109,6 @@ export interface SEOConfig {
 }
 
 export interface GenerationConfig {
-  /** サイト生成のトリガータイプ */
-  trigger?: "auto" | "manual";
   /** 生成対象ブランチ（空の場合は全ブランチ） */
   branches?: string[];
   /** 生成に必要なラベル（空の場合は制限なし） */

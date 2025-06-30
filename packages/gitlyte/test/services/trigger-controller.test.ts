@@ -16,7 +16,6 @@ describe("TriggerController", () => {
 
   const mockConfig: GitLyteConfig = {
     generation: {
-      trigger: "auto",
       branches: ["main"],
       labels: ["enhancement", "feat"],
     },
@@ -41,20 +40,18 @@ describe("TriggerController", () => {
       expect(result.shouldGenerate).toBe(true);
       expect(result.triggerType).toBe("auto");
       expect(result.generationType).toBe("full");
-      expect(result.reason).toBe("Config-based auto generation");
+      expect(result.reason).toBe("Config-based label generation");
     });
 
-    it("should not generate when manual config is set", async () => {
+    it("should not generate when no labels are configured", async () => {
       const pr = {
         ...mockPR,
         labels: [{ name: "enhancement" }],
       };
 
       const config = {
-        ...mockConfig,
         generation: {
-          ...mockConfig.generation!,
-          trigger: "manual" as const,
+          // labels 設定なし
         },
       };
 
@@ -65,7 +62,7 @@ describe("TriggerController", () => {
 
       expect(result.shouldGenerate).toBe(false);
       expect(result.triggerType).toBe("manual");
-      expect(result.reason).toBe("Manual trigger configured");
+      expect(result.reason).toBe("PR-based generation disabled (use push or comment triggers)");
     });
 
     it("should not generate when required labels are missing (PR-based generation disabled by default)", async () => {
@@ -81,7 +78,7 @@ describe("TriggerController", () => {
 
       expect(result.shouldGenerate).toBe(false);
       expect(result.triggerType).toBe("manual");
-      expect(result.reason).toBe("No trigger conditions met");
+      expect(result.reason).toBe("PR-based generation disabled (use push or comment triggers)");
     });
   });
 
@@ -246,8 +243,7 @@ describe("TriggerController", () => {
       const configMessage = triggerController.generateConfigMessage(mockConfig);
 
       expect(configMessage).toContain("現在の GitLyte 設定");
-      expect(configMessage).toContain("auto");
-      expect(configMessage).toContain("main");
+      expect(configMessage).toContain("有効");
       expect(configMessage).toContain("enhancement, feat");
       expect(configMessage).toContain("hero-focused");
       expect(configMessage).toContain("professional");
@@ -258,9 +254,9 @@ describe("TriggerController", () => {
       const configMessage = triggerController.generateConfigMessage(config);
 
       expect(configMessage).toContain("現在の GitLyte 設定");
-      expect(configMessage).toContain("auto"); // default
-      expect(configMessage).toContain("すべて"); // default for branches
-      expect(configMessage).toContain("なし"); // default for labels
+      expect(configMessage).toContain("有効"); // default for push.enabled
+      expect(configMessage).toContain("デフォルトブランチ"); // default for push.branches
+      expect(configMessage).toContain("なし"); // default for labels and ignorePaths
       expect(configMessage).toContain("minimal");
     });
   });
