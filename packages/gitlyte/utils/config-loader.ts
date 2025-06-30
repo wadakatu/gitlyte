@@ -1,5 +1,5 @@
 import type { ConfigLoadResult, GitLyteConfig } from "../types/config.js";
-import type { RepoData } from "../types.js";
+import type { RepoData } from "../types/repository.js";
 
 /**
  * GitLyte設定ファイルを読み込み
@@ -75,7 +75,10 @@ async function loadConfigFromPackageJson(
       return { found: false, config: {} };
     }
 
-    const packageJson = JSON.parse(packageJsonContent);
+    const packageJson =
+      typeof packageJsonContent === "string"
+        ? JSON.parse(packageJsonContent)
+        : packageJsonContent;
     const gitlyteConfig = packageJson.gitlyte as GitLyteConfig | undefined;
 
     if (!gitlyteConfig) {
@@ -248,7 +251,7 @@ export function resolveLogoUrl(
 
   // 相対パスの場合はGitHubの絶対パスに変換
   const cleanPath = logoPath.startsWith("./") ? logoPath.slice(2) : logoPath;
-  return `${repoData.repo.html_url}/raw/main/${cleanPath}`;
+  return `${repoData.basicInfo.html_url}/raw/main/${cleanPath}`;
 }
 
 /**
@@ -273,5 +276,5 @@ export function resolveFaviconUrl(
   const cleanPath = faviconPath.startsWith("./")
     ? faviconPath.slice(2)
     : faviconPath;
-  return `${repoData.repo.html_url}/raw/main/${cleanPath}`;
+  return `${repoData.basicInfo.html_url}/raw/main/${cleanPath}`;
 }

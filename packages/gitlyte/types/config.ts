@@ -1,31 +1,124 @@
 /** GitLyte設定ファイルの型定義 */
 export interface GitLyteConfig {
-  /** ロゴ設定 */
+  version?: string;
+  site?: SiteConfig;
+  design?: DesignConfig;
+  content?: ContentConfig;
+  pages?: PagesConfig;
+  integrations?: IntegrationsConfig;
+  seo?: SEOConfig;
+
+  // Legacy support for backward compatibility
+  /** @deprecated Use site.logo instead */
   logo?: {
-    /** ロゴ画像のパス（相対パスまたは絶対URL） */
     path: string;
-    /** ロゴのalt属性 */
     alt?: string;
   };
-  /** favicon設定 */
+  /** @deprecated Use site.favicon instead */
   favicon?: {
-    /** faviconのパス（相対パスまたは絶対URL） */
     path: string;
   };
-  /** サイト設定 */
-  site?: {
-    /** レイアウト設定 */
-    layout?: "minimal" | "grid" | "sidebar" | "hero-focused" | "content-heavy";
-    /** テーマ設定 */
-    theme?: {
-      /** プライマリカラー */
-      primary?: string;
-      /** セカンダリカラー */
-      secondary?: string;
-      /** アクセントカラー */
-      accent?: string;
+}
+
+export interface SiteConfig {
+  title?: string;
+  description?: string;
+  logo?: string;
+  favicon?: string;
+  url?: string;
+  /** レイアウト設定 */
+  layout?: "minimal" | "grid" | "sidebar" | "hero-focused" | "content-heavy";
+  /** @deprecated Use design.colors instead */
+  theme?: {
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+  };
+}
+
+export interface DesignConfig {
+  theme?: "professional" | "creative" | "minimal" | "custom";
+  colors?: {
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+    background?: string;
+    text?: string;
+  };
+  typography?: {
+    headings?: string;
+    body?: string;
+  };
+  layout?: "hero-focused" | "documentation" | "product-showcase" | "minimal";
+}
+
+export interface ContentConfig {
+  hero?: {
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    cta?: {
+      primary?: { text: string; url: string };
+      secondary?: { text: string; url: string };
     };
   };
+  features?: Array<{
+    title: string;
+    description: string;
+    icon?: string;
+    highlight?: string;
+  }>;
+  sections?: string[];
+  footer?: {
+    links?: Array<{ text: string; url: string }>;
+    copyright?: string;
+  };
+}
+
+export interface PagesConfig {
+  generate?: ("index" | "docs" | "api" | "examples" | "changelog")[];
+  docs?: {
+    source?: string;
+    toc?: boolean;
+    search?: boolean;
+  };
+  api?: {
+    enabled?: boolean;
+    source?: "auto" | "custom";
+    customPath?: string;
+  };
+}
+
+export interface IntegrationsConfig {
+  analytics?: {
+    google?: string;
+    plausible?: string;
+  };
+  social?: {
+    twitter?: string;
+    linkedin?: string;
+  };
+  demo?: string;
+}
+
+export interface SEOConfig {
+  keywords?: string[];
+  author?: string;
+  ogImage?: string;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  suggestions: Suggestion[];
+}
+
+export interface Suggestion {
+  type: "accessibility" | "content" | "design" | "seo";
+  message: string;
+  suggestion: string;
+  priority: "low" | "medium" | "high";
 }
 
 /** 設定ファイル読み込み結果 */

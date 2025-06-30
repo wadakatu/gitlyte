@@ -1,223 +1,217 @@
-import { describe, expect, it } from "vitest";
-import type {
-  DesignStrategy,
-  RepoAnalysis,
-} from "../../services/ai-analyzer.js";
-import { generateAstroSite } from "../../services/ai-code-generator.js";
-import type { RepoData } from "../../types.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ConfigurationLoader } from "../../services/configuration-loader.js";
+import { RepositoryAnalyzer } from "../../services/repository-analyzer.js";
+import { SiteGenerator } from "../../services/site-generator.js";
+import type { RepoData } from "../../types/repository.js";
+import { OpenAIClient } from "../../utils/openai-client.js";
 
 describe("CSS Transparency Prevention", () => {
+  let configLoader: ConfigurationLoader;
+  let repositoryAnalyzer: RepositoryAnalyzer;
+  let siteGenerator: SiteGenerator;
+
+  beforeEach(() => {
+    // Mock the OpenAI environment variable
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+
+    configLoader = new ConfigurationLoader();
+    repositoryAnalyzer = new RepositoryAnalyzer();
+    siteGenerator = new SiteGenerator();
+
+    // Mock OpenAI client
+    vi.spyOn(OpenAIClient.prototype, "analyzeRepository").mockImplementation(
+      async () => ({
+        projectType: "application",
+        industry: "web",
+        audience: "developers",
+        features: ["feature1", "feature2"],
+      })
+    );
+
+    vi.spyOn(OpenAIClient.prototype, "generateDesign").mockImplementation(
+      async () => ({
+        colors: {
+          primary: "#007acc",
+          secondary: "#005999",
+          accent: "#ff6b35",
+          background: "#ffffff",
+          text: "#1f2937",
+          surface: "#f9fafb",
+          border: "#e5e7eb",
+        },
+        typography: {
+          headings: "Inter, sans-serif",
+          body: "System UI, sans-serif",
+          mono: "JetBrains Mono, monospace",
+        },
+        effects: {
+          borderRadius: "8px",
+          shadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+          transition: "0.2s ease",
+        },
+        spacing: {
+          unit: "rem",
+          scale: {
+            xs: "0.25rem",
+            sm: "0.5rem",
+            md: "1rem",
+            lg: "1.5rem",
+            xl: "2rem",
+          },
+        },
+      })
+    );
+
+    vi.spyOn(OpenAIClient.prototype, "generateContent").mockImplementation(
+      async () => ({
+        hero: {
+          title: "Test Repository",
+          subtitle: "A test project",
+          description: "This is a test description",
+        },
+      })
+    );
+  });
+
   const mockRepoData: RepoData = {
-    repo: {
+    basicInfo: {
       name: "test-repo",
-      full_name: "test/test-repo",
       description: "A test repository",
       html_url: "https://github.com/test/test-repo",
-      stargazers_count: 100,
-      forks_count: 50,
+      stargazers_count: 10,
+      forks_count: 5,
       language: "TypeScript",
-      updated_at: "2024-01-01T00:00:00Z",
+      topics: ["test"],
       created_at: "2023-01-01T00:00:00Z",
-      pushed_at: "2024-01-01T00:00:00Z",
-      size: 1000,
+      updated_at: "2023-12-01T00:00:00Z",
       default_branch: "main",
-      license: null,
-      topics: [],
+      license: { key: "mit", name: "MIT License" },
     },
-    prs: [],
+    readme: "# Test Repo\nThis is a test repository for testing.",
+    packageJson: null,
+    languages: {},
     issues: [],
-    readme: "# Test Repository\n\nThis is a test repository.",
+    pullRequests: [],
+    prs: [],
+    configFile: null,
+    codeStructure: {
+      files: [],
+      directories: [],
+      hasTests: false,
+      testFiles: [],
+    },
+    fileStructure: [],
   };
 
-  const mockAnalysis: RepoAnalysis = {
-    projectType: "library",
-    techStack: ["TypeScript", "React"],
-    primaryLanguage: "TypeScript",
-    activity: "high",
-    audience: "developer",
-    purpose: "Testing AI code generation",
-    tone: "professional",
-    complexity: "moderate",
-  };
-
-  const mockDesign: DesignStrategy = {
-    colorScheme: {
-      primary: "#2563eb",
-      secondary: "#1e40af",
-      accent: "#3b82f6",
-      background: "#ffffff",
-    },
-    typography: {
-      heading: "Inter, sans-serif",
-      body: "system-ui, sans-serif",
-      code: "JetBrains Mono, monospace",
-    },
-    layout: "hero-focused",
-    style: "modern",
-    animations: true,
-    darkMode: false,
-    effects: {
-      blur: true,
-      shadows: "subtle",
-      borders: "rounded",
-      spacing: "normal",
-    },
-  };
-
-  it("should not have transparent text due to webkit-text-fill-color with CSS variables", async () => {
-    const result = await generateAstroSite(
-      mockRepoData,
-      mockAnalysis,
-      mockDesign
-    );
-
-    // Check that -webkit-text-fill-color: transparent is only used with actual color values, not CSS variables
-    const transparentWebkitPatterns = [
-      /-webkit-text-fill-color:\s*transparent/g,
-    ];
-
-    transparentWebkitPatterns.forEach((pattern) => {
-      const matches = result.heroComponent.match(pattern);
-      if (matches) {
-        matches.forEach((match) => {
-          // Find the surrounding context of each match
-          const matchIndex = result.heroComponent.indexOf(match);
-          const contextStart = Math.max(0, matchIndex - 200);
-          const contextEnd = Math.min(
-            result.heroComponent.length,
-            matchIndex + 200
-          );
-          const context = result.heroComponent.slice(contextStart, contextEnd);
-
-          // Check that the context contains actual color values (hex colors) not CSS variables
-          const hasHexColors = /#[0-9a-fA-F]{3,8}/.test(context);
-          const hasCssVariables = /var\(--[^)]+\)/.test(context);
-
-          // If using webkit-text-fill-color: transparent, ensure it's with hex colors not CSS variables
-          if (hasCssVariables && !hasHexColors) {
-            throw new Error(
-              `Found webkit-text-fill-color: transparent with CSS variables instead of actual color values in context: ${context}`
-            );
-          }
-        });
-      }
-    });
-  });
-
-  it("should have fallback colors for gradient text effects", async () => {
-    const result = await generateAstroSite(
-      mockRepoData,
-      mockAnalysis,
-      mockDesign
-    );
-
-    // Check that gradient text effects have proper fallback colors
-    const gradientTextPattern = /-webkit-text-fill-color:\s*transparent/g;
-    const matches = result.heroComponent.match(gradientTextPattern);
-
-    if (matches) {
-      matches.forEach((match) => {
-        const matchIndex = result.heroComponent.indexOf(match);
-        const contextStart = Math.max(0, matchIndex - 300);
-        const contextEnd = Math.min(
-          result.heroComponent.length,
-          matchIndex + 300
-        );
-        const context = result.heroComponent.slice(contextStart, contextEnd);
-
-        // Check that there's a fallback color defined before the transparent fill
-        const hasFallbackColor = /color:\s*#[0-9a-fA-F]{3,8}/.test(context);
-        const hasSupportsRule =
-          /@supports\s+not\s+\(-webkit-background-clip:\s*text\)/.test(context);
-
-        expect(
-          hasFallbackColor,
-          `Gradient text with webkit-text-fill-color: transparent should have a fallback color. Context: ${context}`
-        ).toBe(true);
-
-        expect(
-          hasSupportsRule,
-          `Gradient text should have @supports rule for browser compatibility. Context: ${context}`
-        ).toBe(true);
-      });
-    }
-  });
-
-  it("should use actual design color values instead of CSS variables in critical styles", async () => {
-    const result = await generateAstroSite(
-      mockRepoData,
-      mockAnalysis,
-      mockDesign
-    );
-
-    // Check that primary design colors are used directly instead of CSS variables
-    const expectedPrimaryColor = mockDesign.colorScheme.primary; // "#2563eb"
-    const expectedSecondaryColor = mockDesign.colorScheme.secondary; // "#1e40af"
-
-    expect(result.heroComponent).toContain(expectedPrimaryColor);
-    expect(result.heroComponent).toContain(expectedSecondaryColor);
-
-    // Check that gradient backgrounds use actual color values
-    const gradientPattern = /background:\s*linear-gradient\([^)]+\)/g;
-    const gradientMatches = result.heroComponent.match(gradientPattern);
-
-    if (gradientMatches) {
-      gradientMatches.forEach((gradient) => {
-        // Should contain hex colors, not CSS variables
-        const hasHexColors = /#[0-9a-fA-F]{3,8}/.test(gradient);
-        const hasCssVariables = /var\(--[^)]+\)/.test(gradient);
-
-        if (hasCssVariables && !hasHexColors) {
-          throw new Error(
-            `Gradient should use actual color values, not CSS variables: ${gradient}`
-          );
-        }
-      });
-    }
-  });
-
-  it("should prevent text visibility issues in all layout types", async () => {
-    const layoutTypes = [
-      "minimal",
-      "grid",
-      "sidebar",
-      "hero-focused",
-      "content-heavy",
-    ] as const;
-
-    for (const layout of layoutTypes) {
-      const designWithLayout = { ...mockDesign, layout };
-      const result = await generateAstroSite(
-        mockRepoData,
-        mockAnalysis,
-        designWithLayout
+  describe("Generated CSS transparency handling", () => {
+    it("should not use fully transparent colors in generated CSS", async () => {
+      const configResult = await configLoader.loadConfiguration();
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(
+        analysis,
+        configResult.config
       );
 
-      // Check that section headers and titles are visible
-      const transparentTextPattern = /-webkit-text-fill-color:\s*transparent/g;
-      const matches = result.heroComponent.match(transparentTextPattern) || [];
+      const css = site.assets["style.css"];
 
-      for (const match of matches) {
-        const matchIndex = result.heroComponent.indexOf(match);
-        const contextStart = Math.max(0, matchIndex - 200);
-        const contextEnd = Math.min(
-          result.heroComponent.length,
-          matchIndex + 200
-        );
-        const context = result.heroComponent.slice(contextStart, contextEnd);
+      // Check that transparent colors are not used for main UI elements
+      expect(css).not.toMatch(/background.*:.*transparent[^;]*;/);
+      expect(css).not.toMatch(/color.*:.*transparent[^;]*;/);
+      expect(css).not.toMatch(/border.*:.*transparent[^;]*;/);
 
-        // Ensure there's either a background gradient with real colors or a fallback color
-        const hasRealGradient =
-          /background:\s*linear-gradient\([^)]*#[0-9a-fA-F]{3,8}[^)]*\)/.test(
-            context
-          );
-        const hasFallbackColor = /color:\s*#[0-9a-fA-F]{3,8}/.test(context);
+      // Check that alpha channel is not 0 for important elements
+      expect(css).not.toMatch(/rgba\([^)]*,\s*0\)/);
+      expect(css).not.toMatch(/hsla\([^)]*,\s*0\)/);
+    });
 
-        expect(
-          hasRealGradient || hasFallbackColor,
-          `Layout ${layout}: Transparent text must have either real gradient or fallback color. Context: ${context}`
-        ).toBe(true);
+    it("should use solid background colors for text readability", async () => {
+      const configResult = await configLoader.loadConfiguration();
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(
+        analysis,
+        configResult.config
+      );
+
+      const css = site.assets["style.css"];
+
+      // Check that body and main text areas have solid background colors
+      expect(css).toMatch(/background-color:\s*var\(--background-color\)/);
+      expect(css).toMatch(/--background-color:\s*#[a-fA-F0-9]{6}/);
+      expect(css).toMatch(/--text-color:\s*#[a-fA-F0-9]{6}/);
+    });
+
+    it("should ensure sufficient opacity for interactive elements", async () => {
+      const configResult = await configLoader.loadConfiguration();
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(
+        analysis,
+        configResult.config
+      );
+
+      const css = site.assets["style.css"];
+
+      // Check that buttons and interactive elements are not too transparent
+      const opacityMatches = css.match(/opacity:\s*(0\.[0-9]+)/g) || [];
+
+      for (const match of opacityMatches) {
+        const opacityValue = Number.parseFloat(match.split(":")[1].trim());
+        // Opacity should be at least 0.7 for interactive elements
+        expect(opacityValue).toBeGreaterThanOrEqual(0.7);
       }
-    }
+    });
+
+    it("should use proper contrast ratios", async () => {
+      const configResult = await configLoader.loadConfiguration();
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(
+        analysis,
+        configResult.config
+      );
+
+      const css = site.assets["style.css"];
+
+      // Check that we have defined proper color variables
+      expect(css).toMatch(/--primary-color:\s*#[a-fA-F0-9]{6}/);
+      expect(css).toMatch(/--secondary-color:\s*#[a-fA-F0-9]{6}/);
+      expect(css).toMatch(/--background-color:\s*#[a-fA-F0-9]{6}/);
+      expect(css).toMatch(/--text-color:\s*#[a-fA-F0-9]{6}/);
+
+      // Ensure colors are different enough (not the same)
+      const primaryMatch = css.match(/--primary-color:\s*(#[a-fA-F0-9]{6})/);
+      const backgroundMatch = css.match(
+        /--background-color:\s*(#[a-fA-F0-9]{6})/
+      );
+      const textMatch = css.match(/--text-color:\s*(#[a-fA-F0-9]{6})/);
+
+      if (primaryMatch && backgroundMatch) {
+        expect(primaryMatch[1]).not.toBe(backgroundMatch[1]);
+      }
+
+      if (textMatch && backgroundMatch) {
+        expect(textMatch[1]).not.toBe(backgroundMatch[1]);
+      }
+    });
+
+    it("should avoid problematic transparent overlays", async () => {
+      const configResult = await configLoader.loadConfiguration();
+      const analysis =
+        await repositoryAnalyzer.analyzeRepositoryData(mockRepoData);
+      const site = await siteGenerator.generateSite(
+        analysis,
+        configResult.config
+      );
+
+      const css = site.assets["style.css"];
+
+      // Check that we don't have multiple transparent layers that could cause readability issues
+      const transparentOverlays = css.match(/rgba\([^)]*,\s*0\.[0-3]\)/g) || [];
+
+      // Should not have more than 2 very transparent elements
+      expect(transparentOverlays.length).toBeLessThanOrEqual(2);
+    });
   });
 });

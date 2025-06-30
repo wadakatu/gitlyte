@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import type { RepoData } from "../types.js";
-import type { RepoAnalysis } from "./ai-analyzer.js";
+import type { RepoData } from "../types/repository.js";
+import type { RepositoryAnalysis } from "../types/repository.js";
 
 /** セクションコンテンツの型定義 */
 export interface SectionContent {
@@ -666,16 +666,16 @@ async function callOpenAIWithRetry(
 
 export async function analyzeRepositoryContent(
   repoData: RepoData,
-  analysis: RepoAnalysis
+  analysis: RepositoryAnalysis
 ): Promise<ContentAnalysis> {
   const prompt = `
 あなたはテクニカルライティングとマーケティングの専門家です。以下のリポジトリ情報を詳細に分析し、このプロジェクトの魅力を最大限に伝えるコンテンツ戦略を立案してください。
 
 ## リポジトリ情報
-- 名前: ${repoData.repo.name}
-- 説明: ${repoData.repo.description || "説明なし"}
-- Stars: ${repoData.repo.stargazers_count}
-- Forks: ${repoData.repo.forks_count}
+- 名前: ${repoData.basicInfo.name}
+- 説明: ${repoData.basicInfo.description || "説明なし"}
+- Stars: ${repoData.basicInfo.stargazers_count}
+- Forks: ${repoData.basicInfo.forks_count}
 - Issues: ${repoData.issues.length}
 - PRs: ${repoData.prs.length}
 
@@ -683,10 +683,10 @@ export async function analyzeRepositoryContent(
 ${repoData.readme.slice(0, 3000)}
 
 ## プロジェクト分析
-- タイプ: ${analysis.projectType}
-- 技術スタック: ${analysis.techStack.join(", ")}
-- 対象ユーザー: ${analysis.audience}
-- 複雑度: ${analysis.complexity}
+- タイプ: ${analysis.projectCharacteristics.type}
+- 技術スタック: ${analysis.technicalStack.frontend.join(", ")}
+- 対象ユーザー: ${analysis.projectCharacteristics.audience}
+- 複雑度: ${analysis.codeAnalysis.codeComplexity}
 
 ## 最近のPR（参考）
 ${repoData.prs
@@ -780,8 +780,8 @@ ${repoData.prs
   },
   "achievements": {
     "metrics": {
-      "stars": ${repoData.repo.stargazers_count},
-      "forks": ${repoData.repo.forks_count},
+      "stars": ${repoData.basicInfo.stargazers_count},
+      "forks": ${repoData.basicInfo.forks_count},
       "contributors": 10,
       "releases": 5
     },
@@ -911,24 +911,28 @@ ${repoData.prs
 
     // フォールバック: プロジェクト特性に基づいた詳細なコンテンツ分析
     const projectTypeContent = getProjectTypeContent(
-      analysis.projectType,
-      repoData.repo.name
+      analysis.projectCharacteristics.type,
+      repoData.basicInfo.name
     );
     return {
       appeal: {
         uniqueValue: projectTypeContent.uniqueValue,
         keyBenefits: projectTypeContent.keyBenefits,
-        targetUsers: [analysis.audience, "developers", "engineers"],
+        targetUsers: [
+          analysis.projectCharacteristics.audience,
+          "developers",
+          "engineers",
+        ],
         problemSolving: projectTypeContent.problemSolving,
         dynamicCards: generateFallbackCards(
-          analysis.projectType,
-          analysis.techStack
+          analysis.projectCharacteristics.type,
+          analysis.technicalStack.frontend
         ),
       },
       usage: {
         installation: {
           method: "npm",
-          command: `npm install ${repoData.repo.name}`,
+          command: `npm install ${repoData.basicInfo.name}`,
           requirements: ["Node.js", "npm"],
         },
         quickStart: {
@@ -937,7 +941,7 @@ ${repoData.prs
             "Import in your project",
             "Follow the basic usage examples",
           ],
-          codeExample: `\`\`\`javascript\nimport ${repoData.repo.name} from '${repoData.repo.name}';\n\n// Basic usage\nconst result = ${repoData.repo.name}.run();\nconsole.log(result);\n\`\`\``,
+          codeExample: `\`\`\`javascript\nimport ${repoData.basicInfo.name} from '${repoData.basicInfo.name}';\n\n// Basic usage\nconst result = ${repoData.basicInfo.name}.run();\nconsole.log(result);\n\`\`\``,
         },
         advanced: {
           features: [
@@ -968,14 +972,14 @@ ${repoData.prs
           },
         ],
         whyChoose: generateWhyChooseCards(
-          analysis.projectType,
-          analysis.techStack
+          analysis.projectCharacteristics.type,
+          analysis.technicalStack.frontend
         ),
       },
       achievements: {
         metrics: {
-          stars: repoData.repo.stargazers_count,
-          forks: repoData.repo.forks_count,
+          stars: repoData.basicInfo.stargazers_count,
+          forks: repoData.basicInfo.forks_count,
           contributors: 10,
           releases: 5,
         },
@@ -991,8 +995,8 @@ ${repoData.prs
           title: "Hero Section",
           type: "hero",
           content: {
-            title: repoData.repo.name,
-            subtitle: repoData.repo.description || "An amazing project",
+            title: repoData.basicInfo.name,
+            subtitle: repoData.basicInfo.description || "An amazing project",
             cta: "Get Started",
           },
           priority: 1,

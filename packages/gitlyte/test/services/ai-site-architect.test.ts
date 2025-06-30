@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { RepoAnalysis } from "../../services/ai-analyzer.js";
+import type { RepositoryAnalysis } from "../../types/repository.js";
 import {
   designSiteArchitecture,
   generateComponentSpecs,
   setOpenAIClient,
 } from "../../services/ai-site-architect.js";
-import type { RepoData } from "../../types.js";
+import type { RepoData } from "../../types/repository.js";
 
 // Mock OpenAI client
 const mockOpenAI = {
@@ -94,9 +94,8 @@ const mockOpenAI = {
 
 describe("AI Site Architect", () => {
   const mockRepoData: RepoData = {
-    repo: {
+    basicInfo: {
       name: "test-repo",
-      full_name: "test/test-repo",
       description: "A test repository",
       html_url: "https://github.com/test/test-repo",
       stargazers_count: 42,
@@ -105,25 +104,70 @@ describe("AI Site Architect", () => {
       topics: ["test"],
       created_at: "2023-01-01T00:00:00Z",
       updated_at: "2023-12-01T00:00:00Z",
-      pushed_at: "2023-12-01T00:00:00Z",
-      size: 1000,
       default_branch: "main",
       license: { key: "mit", name: "MIT License" },
     },
-    issues: [],
-    prs: [],
     readme: "# Test Repo\nThis is a test repository for AI generation.",
+    packageJson: null,
+    languages: {},
+    issues: [],
+    pullRequests: [],
+    prs: [],
+    configFile: null,
+    codeStructure: {
+      files: [],
+      directories: [],
+      hasTests: false,
+      testFiles: [],
+    },
+    fileStructure: [],
   };
 
-  const mockAnalysis: RepoAnalysis = {
-    projectType: "tool",
-    techStack: ["TypeScript", "Node.js"],
-    primaryLanguage: "TypeScript",
-    activity: "medium",
-    audience: "developer",
-    purpose: "Testing AI site generation",
-    tone: "professional",
-    complexity: "moderate",
+  const mockAnalysis: RepositoryAnalysis = {
+    basicInfo: {
+      name: "test-repo",
+      description: "A test repository",
+      topics: ["test"],
+      language: "TypeScript",
+      license: "MIT License",
+    },
+    codeAnalysis: {
+      languages: { TypeScript: 80, JavaScript: 20 },
+      hasTests: true,
+      testCoverage: 85,
+      hasDocumentation: true,
+      codeComplexity: "moderate",
+    },
+    contentAnalysis: {
+      readme: {
+        exists: true,
+        content: "# Test Repo\nThis is a test repository for AI generation.",
+        sections: ["Installation", "Usage", "API"],
+        hasInstallation: true,
+        hasUsage: true,
+        hasExamples: true,
+      },
+      hasChangelog: false,
+      hasContributing: false,
+      hasLicense: true,
+      hasExamples: true,
+    },
+    projectCharacteristics: {
+      type: "tool",
+      industry: "devtools",
+      audience: "developers",
+      maturity: "stable",
+    },
+    technicalStack: {
+      frontend: ["TypeScript", "Node.js"],
+      backend: [],
+      database: [],
+      deployment: [],
+      testing: ["Jest"],
+    },
+    uniqueFeatures: ["Testing AI site generation", "Easy to use"],
+    competitiveAdvantages: ["AI-powered", "Automated"],
+    suggestedUseCases: ["Testing AI site generation", "Development tools"],
   };
 
   beforeEach(() => {

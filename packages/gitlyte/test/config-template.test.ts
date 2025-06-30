@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { DesignStrategy, RepoAnalysis } from "../services/ai-analyzer.js";
-import type { RepoData } from "../types.js";
+import type { RepositoryAnalysis } from "../types/repository.js";
+import type { DesignSystem } from "../types/generated-site.js";
+import type { RepoData } from "../types/repository.js";
 import {
   adjustColorsForAudience,
   generateConfigDocumentation,
@@ -11,9 +12,8 @@ import {
 
 describe("Config Template Generator", () => {
   const mockRepoData: RepoData = {
-    repo: {
+    basicInfo: {
       name: "test-project",
-      full_name: "user/test-project",
       description: "A test project",
       html_url: "https://github.com/user/test-project",
       stargazers_count: 100,
@@ -22,48 +22,102 @@ describe("Config Template Generator", () => {
       topics: ["test", "config"],
       created_at: "2023-01-01T00:00:00Z",
       updated_at: "2023-12-01T00:00:00Z",
-      pushed_at: "2023-12-01T00:00:00Z",
-      size: 1000,
       default_branch: "main",
       license: { key: "mit", name: "MIT License" },
     },
-    prs: [],
-    issues: [],
     readme: "# Test Project",
+    packageJson: null,
+    languages: {},
+    issues: [],
+    pullRequests: [],
+    prs: [],
+    configFile: null,
+    codeStructure: {
+      files: [],
+      directories: [],
+      hasTests: false,
+      testFiles: [],
+    },
+    fileStructure: [],
   };
 
-  const mockAnalysis: RepoAnalysis = {
-    projectType: "library",
-    techStack: ["TypeScript", "React"],
-    primaryLanguage: "TypeScript",
-    activity: "high",
-    audience: "developer",
-    purpose: "A testing library for developers",
-    tone: "professional",
-    complexity: "moderate",
+  const mockAnalysis: RepositoryAnalysis = {
+    basicInfo: {
+      name: "test-project",
+      description: "A test project",
+      topics: ["test", "config"],
+      language: "TypeScript",
+      license: "MIT License",
+    },
+    codeAnalysis: {
+      languages: { TypeScript: 90, JavaScript: 10 },
+      hasTests: true,
+      testCoverage: 85,
+      hasDocumentation: true,
+      codeComplexity: "moderate",
+    },
+    contentAnalysis: {
+      readme: {
+        exists: true,
+        content: "# Test Project",
+        sections: ["Installation", "Usage", "API"],
+        hasInstallation: true,
+        hasUsage: true,
+        hasExamples: true,
+      },
+      hasChangelog: false,
+      hasContributing: false,
+      hasLicense: true,
+      hasExamples: true,
+    },
+    projectCharacteristics: {
+      type: "library",
+      industry: "devtools",
+      audience: "developers",
+      maturity: "stable",
+    },
+    technicalStack: {
+      frontend: ["TypeScript", "React"],
+      backend: [],
+      database: [],
+      deployment: [],
+      testing: ["Jest"],
+    },
+    uniqueFeatures: ["High performance", "Easy to use"],
+    competitiveAdvantages: ["Battle-tested", "Well documented"],
+    suggestedUseCases: ["Development tools", "Testing utilities"],
   };
 
-  const mockDesignStrategy: DesignStrategy = {
-    colorScheme: {
+  const mockDesignStrategy: DesignSystem = {
+    colors: {
       primary: "#667eea",
       secondary: "#764ba2",
       accent: "#f093fb",
       background: "#ffffff",
+      text: "#2d3748",
+      surface: "#f8fafc",
+      border: "#e2e8f0",
     },
     typography: {
-      heading: "Inter, sans-serif",
+      headings: "Inter, sans-serif",
       body: "system-ui, sans-serif",
-      code: "JetBrains Mono, monospace",
+      mono: "JetBrains Mono, monospace",
     },
-    layout: "hero-focused",
-    style: "modern",
-    animations: true,
-    darkMode: false,
     effects: {
-      blur: true,
-      shadows: "subtle",
-      borders: "rounded",
-      spacing: "normal",
+      borderRadius: "8px",
+      shadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+      transition: "all 0.3s ease",
+      blur: "8px",
+    },
+    spacing: {
+      unit: "rem",
+      scale: {
+        xs: "0.5rem",
+        sm: "1rem",
+        md: "1.5rem",
+        lg: "2rem",
+        xl: "3rem",
+      },
     },
   };
 
@@ -87,8 +141,14 @@ describe("Config Template Generator", () => {
     it("should adjust logo format based on tech stack", () => {
       const gameAnalysis = {
         ...mockAnalysis,
-        projectType: "game" as const,
-        techStack: ["Unity", "C#"],
+        projectCharacteristics: {
+          ...mockAnalysis.projectCharacteristics,
+          type: "game" as const,
+        },
+        technicalStack: {
+          ...mockAnalysis.technicalStack,
+          frontend: ["Unity", "C#"],
+        },
       };
 
       const result = generateConfigTemplate(
@@ -103,8 +163,10 @@ describe("Config Template Generator", () => {
     it("should adjust colors for business audience", () => {
       const businessAnalysis = {
         ...mockAnalysis,
-        audience: "business" as const,
-        tone: "professional" as const,
+        projectCharacteristics: {
+          ...mockAnalysis.projectCharacteristics,
+          audience: "enterprise" as const,
+        },
       };
 
       const result = generateConfigTemplate(
@@ -115,14 +177,17 @@ describe("Config Template Generator", () => {
 
       // プロフェッショナル向けに調整された色になっているか確認
       expect(result.site?.theme?.primary).not.toBe(
-        mockDesignStrategy.colorScheme.primary
+        mockDesignStrategy.colors.primary
       );
     });
 
     it("should adjust colors for academic audience", () => {
       const academicAnalysis = {
         ...mockAnalysis,
-        audience: "academic" as const,
+        projectCharacteristics: {
+          ...mockAnalysis.projectCharacteristics,
+          audience: "researchers" as const,
+        },
       };
 
       const result = generateConfigTemplate(
@@ -133,14 +198,17 @@ describe("Config Template Generator", () => {
 
       // アカデミック向けに調整された色になっているか確認
       expect(result.site?.theme?.primary).not.toBe(
-        mockDesignStrategy.colorScheme.primary
+        mockDesignStrategy.colors.primary
       );
     });
 
     it("should use different paths for different project types", () => {
       const applicationAnalysis = {
         ...mockAnalysis,
-        projectType: "application" as const,
+        projectCharacteristics: {
+          ...mockAnalysis.projectCharacteristics,
+          type: "application" as const,
+        },
       };
 
       const result = generateConfigTemplate(
@@ -284,7 +352,7 @@ describe("Config Template Generator", () => {
       );
       const result = generateConfigDocumentation(
         config,
-        mockRepoData.repo.name
+        mockRepoData.basicInfo.name
       );
 
       expect(result).toContain("GitLyte Configuration");
@@ -302,7 +370,7 @@ describe("Config Template Generator", () => {
       );
       const result = generateConfigDocumentation(
         config,
-        mockRepoData.repo.name
+        mockRepoData.basicInfo.name
       );
 
       expect(result).toContain("設定項目");
@@ -320,11 +388,17 @@ describe("Config Template Generator", () => {
         "tool",
         "website",
         "game",
-        "documentation",
+        "framework",
       ] as const;
 
       for (const projectType of projectTypes) {
-        const analysis = { ...mockAnalysis, projectType };
+        const analysis = {
+          ...mockAnalysis,
+          projectCharacteristics: {
+            ...mockAnalysis.projectCharacteristics,
+            type: projectType,
+          },
+        };
         const config = generateConfigTemplate(
           mockRepoData,
           analysis,
