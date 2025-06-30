@@ -23,18 +23,12 @@ importers:
 
   packages/demo:
     dependencies:
-      '@gitlyte/shared':
-        specifier: workspace:*
-        version: link:../shared
       astro:
         specifier: ^4.0.0
         version: 4.16.18(@types/node@20.19.1)(rollup@4.44.0)(typescript@5.8.3)
 
   packages/gitlyte:
     dependencies:
-      '@gitlyte/shared':
-        specifier: workspace:*
-        version: link:../shared
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -63,19 +57,6 @@ importers:
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.1)
-
-  packages/shared:
-    dependencies:
-      astro:
-        specifier: ^4.0.0
-        version: 4.16.18(@types/node@20.19.1)(rollup@4.44.0)(typescript@5.8.3)
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.1
-      typescript:
-        specifier: ^5.0.0
-        version: 5.8.3
 
 packages:
 
