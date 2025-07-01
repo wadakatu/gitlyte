@@ -270,7 +270,6 @@ export class TriggerController {
     };
   }
 
-
   /**
    * ヘルプメッセージの生成
    */
