@@ -15,74 +15,29 @@ A GitHub App built with [Probot](https://github.com/probot/probot) that automati
 - 💬 **Comment Commands**: Generate sites on-demand with PR comments  
 - 🏷️ **Label Control**: Fine-grained control with GitHub labels
 
-## 🚀 Setup
+## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 20.18.0+ (managed via mise)
-- pnpm 10.12.1+ (managed via mise)
-- OpenAI API key for AI-powered design generation
+1. **Install the GitLyte GitHub App** on your repository
+2. **Push to your main branch** → Your site is automatically generated!
+3. **Enable GitHub Pages** → Go to Settings > Pages > Source: Deploy from a branch → Branch: main → Folder: /docs
 
-### Environment Setup
+That's it! GitLyte works out of the box with zero configuration.
 
-```sh
-# Trust mise configuration
-mise trust
+### Want to customize?
+Create a `.gitlyte.json` file in your repository (see Configuration section below).
 
-# Install specified Node.js and pnpm versions
-mise install
-```
-
-### Installation
-
-```sh
-# Install dependencies
-pnpm install
-
-# Copy environment template
-cp .env.example .env
-
-# Add your OpenAI API key to .env
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Run the bot
-pnpm start
-```
-
-### GitHub App Configuration
-
-Required permissions:
-- **Contents**: Write
-- **Issues**: Read
-- **Metadata**: Read
-- **Pages**: Write
-- **Pull requests**: Read
-- **Actions**: Write
-
-Subscribe to events:
-- **Pull request**
-- **Issue comment**
-
-## 🐳 Docker
-
-```sh
-# 1. Build container
-docker build -t gitlyte .
-
-# 2. Start container
-docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> -e OPENAI_API_KEY=<openai-key> gitlyte
-```
 
 ## 🎯 How It Works
 
-GitLyte offers multiple ways to generate your site:
+GitLyte uses AI to analyze your repository and create a custom website:
+
+1. **Analyzes** your repository (tech stack, purpose, audience)
+2. **Generates** a custom design strategy with AI
+3. **Creates** Astro components with unique styling  
+4. **Deploys** to GitHub Pages automatically
 
 ### 📤 Push-Based Generation (Default)
-Automatically generate sites when you push to the default branch:
-
-1. **Install the GitHub App** on your repository
-2. **Push to main branch** - GitLyte automatically generates your site
-
-No configuration needed! Works out of the box.
+Automatically generate sites when you push to the default branch - **no configuration needed!**
 
 ### 💬 Comment Commands (On-Demand)
 Use these commands in any PR comment to control generation:
@@ -99,54 +54,6 @@ Use these commands in any PR comment to control generation:
 @gitlyte generate --force           # Force regeneration 
 @gitlyte preview --layout=minimal   # Preview with specific layout
 ```
-
-### ⚙️ Advanced Push Configuration (Optional)
-Customize push-based generation behavior:
-
-```json
-{
-  "generation": {
-    "push": {
-      "enabled": true,
-      "branches": ["main", "production"],
-      "ignorePaths": ["docs/", ".github/", "test/"]
-    }
-  }
-}
-```
-
-**Advanced Options:**
-- **branches**: Target specific branches (default: repository default branch)
-- **ignorePaths**: Skip generation when only these paths change
-- **enabled**: Disable push generation if needed (default: true)
-
-### ⚙️ Configuration-Based Control
-Control generation behavior with `.gitlyte.json`:
-
-```json
-{
-  "generation": {
-    "labels": ["enhancement", "feat"],
-    "push": {
-      "enabled": true,
-      "branches": ["main"],
-      "ignorePaths": ["docs/", "test/"]
-    }
-  }
-}
-```
-
-**Configuration Options:**
-- **labels**: Required labels for PR-based generation
-- **push.enabled**: Enable/disable push-based generation (default: true)
-- **push.branches**: Target branches for push generation (defaults to repository default branch)
-- **push.ignorePaths**: Paths to ignore for push generation
-
-**When GitLyte generates your site, it:**
-- Analyzes your repository (tech stack, purpose, audience)
-- Generates a custom design strategy with AI
-- Creates Astro components with unique styling  
-- Deploys to GitHub Pages via Actions
 
 ## ⚙️ Configuration
 
@@ -252,79 +159,19 @@ Then use:
 }
 ```
 
-### Skip Generation
+### View Configuration
 ```bash
 # In PR comment:
-@gitlyte help  # Shows current settings without generating
+@gitlyte help    # Shows current settings without generating
+@gitlyte config  # Display current configuration
 ```
 
-## 🛠 Architecture
-
-```
-GitHub Events → AI Analysis → Custom Site Generation → GitHub Pages Deploy
-     ↓             ↓              ↓                    ↓
-  PR/Issue      OpenAI API     Astro Components    Static Site
-  Content       Design AI      Custom CSS/JS       Auto-Deploy
-```
-
-## 📁 Project Structure
-
-```
-packages/
-└── gitlyte/                 # Main GitHub App
-    ├── handlers/               # Event handlers
-    │   ├── pr-handler.ts          # PR merge events
-    │   └── comment-handler.ts     # Comment command processing
-    ├── services/               # Core services  
-    │   ├── trigger-controller.ts  # Generation trigger logic
-    │   ├── repository-analyzer.ts # Repository analysis AI
-    │   ├── site-generator.ts      # Site generation orchestration  
-    │   └── static-file-deployer.ts # File deployment
-    ├── utils/                  # Utilities
-    │   ├── github-api.ts          # GitHub API interactions
-    │   └── deployment-guard.ts    # Deployment conflict prevention
-    ├── test/                   # Comprehensive test suites
-    ├── templates/              # HTML/CSS generation templates
-    └── types/                  # TypeScript definitions
-```
-
-## 🛠 Development
-
-### Workspace Commands
-
-```sh
-# Build all packages
-pnpm run build
-
-# Run main GitLyte app
-pnpm start
-
-# Test the trigger system
-pnpm exec vitest run test/services/trigger-controller.test.ts
-
-# Run all tests
-pnpm test
-
-# Lint and format all packages
-pnpm run lint:fix
-pnpm run format:fix
-
-# Run CI checks
-pnpm run ci:check
-```
-
-### Key Features in Development
-
-- **Trigger System**: Multiple generation triggers (auto, manual, comment, label)
-- **AI Integration**: OpenAI-powered repository analysis and design generation  
-- **Static Generation**: Pure HTML/CSS output (no framework dependencies)
-- **Comprehensive Testing**: 392+ tests covering all functionality
 
 ## 🤝 Contributing
 
-If you have suggestions for how GitLyte could be improved, or want to report a bug, open an issue! We'd love all and any contributions.
+We'd love your help! Check out our [Contributing Guide](CONTRIBUTING.md) to get started.
 
-For more, check out the [Contributing Guide](CONTRIBUTING.md).
+For technical details, see the [Architecture Documentation](docs/ARCHITECTURE.md).
 
 ## 📄 License
 
