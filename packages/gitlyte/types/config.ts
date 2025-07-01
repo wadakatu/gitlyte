@@ -113,6 +113,8 @@ export interface GenerationConfig {
   branches?: string[];
   /** 生成に必要なラベル（空の場合は制限なし） */
   labels?: string[];
+  /** 出力ディレクトリ（デフォルト: "docs"） */
+  outputDirectory?: string;
   /** プレビュー生成の設定 */
   preview?: {
     enabled?: boolean;
