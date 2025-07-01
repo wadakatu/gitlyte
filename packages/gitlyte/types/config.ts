@@ -7,6 +7,7 @@ export interface GitLyteConfig {
   pages?: PagesConfig;
   integrations?: IntegrationsConfig;
   seo?: SEOConfig;
+  generation?: GenerationConfig;
 
   // Legacy support for backward compatibility
   /** @deprecated Use site.logo instead */
@@ -105,6 +106,27 @@ export interface SEOConfig {
   keywords?: string[];
   author?: string;
   ogImage?: string;
+}
+
+export interface GenerationConfig {
+  /** 生成対象ブランチ（空の場合は全ブランチ） */
+  branches?: string[];
+  /** 生成に必要なラベル（空の場合は制限なし） */
+  labels?: string[];
+  /** プレビュー生成の設定 */
+  preview?: {
+    enabled?: boolean;
+    path?: string;
+  };
+  /** Push時の自動生成設定（デフォルト有効） */
+  push?: {
+    /** Push時の自動生成を有効にするか（デフォルト: true） */
+    enabled?: boolean;
+    /** 対象ブランチ（空の場合はdefaultブランチのみ） */
+    branches?: string[];
+    /** 除外するパス（これらが変更された場合は生成しない） */
+    ignorePaths?: string[];
+  };
 }
 
 export interface ValidationResult {

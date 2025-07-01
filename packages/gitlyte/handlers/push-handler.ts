@@ -4,15 +4,28 @@ import { RepositoryAnalyzer } from "../services/repository-analyzer.js";
 import { SiteGenerator } from "../services/site-generator.js";
 import { StaticFileDeployer } from "../services/static-file-deployer.js";
 import { TriggerController } from "../services/trigger-controller.js";
-import type { PullRequest } from "../types/repository.js";
 import { safeGenerateWithDeploymentGuard } from "../utils/deployment-guard.js";
 import { collectRepoData, ensurePages } from "../utils/github.js";
 
-/** Feature PR ハンドラ */
-export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
+/** Push イベントハンドラー */
+export async function handlePush(ctx: Context) {
   try {
-    ctx.log.info(`🚀 Starting site generation evaluation for PR: ${pr.title}`);
-    ctx.log.info(`📋 PR Labels: ${pr.labels.map((l) => l.name).join(", ")}`);
+    const { ref, commits, repository } = ctx.payload as {
+      ref: string;
+      commits: Array<{
+        added: string[];
+        modified: string[];
+        removed: string[];
+      }>;
+      repository: { default_branch: string };
+    };
+
+    // ブランチ名を取得（refs/heads/main → main）
+    const branchName = ref.replace("refs/heads/", "");
+
+    ctx.log.info(
+      `📥 Push event received: branch=${branchName}, commits=${commits.length}`
+    );
 
     // 設定をロード
     const configLoader = new ConfigurationLoader();
@@ -21,12 +34,14 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
 
     // トリガー判定
     const triggerController = new TriggerController();
-    const triggerResult = await triggerController.shouldGenerateOnPRMerge(
-      pr,
+    const triggerResult = await triggerController.shouldGenerateOnPush(
+      branchName,
+      repository.default_branch,
+      commits,
       config
     );
 
-    ctx.log.info(`🎯 Trigger evaluation: ${triggerResult.reason}`);
+    ctx.log.info(`🎯 Push trigger evaluation: ${triggerResult.reason}`);
 
     if (!triggerResult.shouldGenerate) {
       ctx.log.info(`⏭️ Skipping site generation: ${triggerResult.reason}`);
@@ -34,12 +49,12 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
     }
 
     ctx.log.info(
-      `🚀 Starting ${triggerResult.generationType} site generation for PR: ${pr.title}`
+      `🚀 Starting ${triggerResult.generationType} site generation for push to ${branchName}`
     );
 
-    // PRマージ直後のGitHub API同期待ち（特に設定ファイル読み込みのため）
-    ctx.log.info("⏳ Waiting for GitHub API sync after PR merge...");
-    await new Promise((resolve) => setTimeout(resolve, 5000)); // 5秒待機
+    // Push直後のGitHub API同期待ち
+    ctx.log.info("⏳ Waiting for GitHub API sync after push...");
+    await new Promise((resolve) => setTimeout(resolve, 3000)); // 3秒待機
 
     const repoData = await collectRepoData(ctx);
     ctx.log.info(`📊 Repository data collected: ${repoData.basicInfo.name}`);
@@ -49,7 +64,6 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
 
     // デプロイメント競合を防ぐためのガード付きサイト生成
     await safeGenerateWithDeploymentGuard(ctx, async () => {
-      // 新しいアーキテクチャでのサイト生成
       const repositoryAnalyzer = new RepositoryAnalyzer();
       const siteGenerator = new SiteGenerator();
       const deployer = new StaticFileDeployer();
@@ -60,16 +74,13 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
       // サイトを生成
       const generatedSite = await siteGenerator.generateSite(analysis, config);
 
-      // ファイルをデプロイ（プレビューまたはフル生成に応じてパスを変更）
-      const outputPath =
-        triggerResult.generationType === "preview" ? "preview" : "docs";
-      const optimize = triggerResult.generationType !== "preview";
-
+      // ファイルをデプロイ
+      const outputPath = "docs"; // Pushトリガーは常にフル生成
       const deploymentResult = await deployer.deployToDirectory(
         generatedSite,
         outputPath,
         config,
-        { clean: true, optimize }
+        { clean: true, optimize: true }
       );
 
       if (!deploymentResult.success) {
@@ -82,10 +93,10 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
     });
 
     ctx.log.info(
-      `✅ ${triggerResult.generationType} site generated for PR: ${pr.title} (${triggerResult.triggerType} trigger)`
+      `✅ Site generated for push to ${branchName} (${triggerResult.triggerType} trigger)`
     );
   } catch (error) {
-    ctx.log.error(`❌ Failed to handle feature PR: ${pr.title}`, error);
+    ctx.log.error("❌ Failed to handle push event", error);
     throw error;
   }
 }
