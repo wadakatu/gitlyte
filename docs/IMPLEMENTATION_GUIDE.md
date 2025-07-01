@@ -32,7 +32,7 @@ packages/gitlyte/
 │       ├── favicon.ico
 │       └── default-og.png
 ├── utils/
-│   ├── openai-client.ts           # 🆕 NEW: OpenAI API wrapper
+│   ├── anthropic-client.ts        # 🆕 NEW: Anthropic API wrapper
 │   ├── github-api.ts              # ✅ 既存のgithub.tsを改修
 │   └── content-processor.ts       # 🆕 NEW: Markdown処理など
 └── types/
@@ -327,12 +327,12 @@ ${generateResponsiveStyles(design)}
 **ファイル**: `utils/openai-client.ts`
 
 ```typescript
-export class OpenAIClient {
-  private client: OpenAI;
+export class AnthropicClient {
+  private client: Anthropic;
   
   constructor() {
-    this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+    this.client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY
     });
   }
   

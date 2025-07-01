@@ -3,94 +3,91 @@ import type { RepositoryAnalysis } from "../../types/repository.js";
 import {
   designSiteArchitecture,
   generateComponentSpecs,
-  setOpenAIClient,
+  setAnthropicClient,
 } from "../../services/ai-site-architect.js";
 import type { RepoData } from "../../types/repository.js";
 
-// Mock OpenAI client
-const mockOpenAI = {
-  chat: {
-    completions: {
-      create: async () => ({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                concept: {
-                  theme: "Modern Developer Tool",
-                  mood: "professional",
-                  target_impression: "innovative",
-                },
-                layout: {
-                  structure: "single-page",
-                  navigation: "sticky-header",
-                  sections: [
-                    {
-                      id: "hero",
-                      type: "hero",
-                      position: 1,
-                      content_strategy: {
-                        focus: "repository-overview",
-                        tone: "welcoming",
-                        data_source: ["repo"],
-                      },
-                      design_spec: {
-                        layout_pattern: "centered",
-                        visual_hierarchy: "prominent",
-                        interaction: "animated",
-                        responsive_behavior: "stack on mobile",
-                      },
-                    },
-                  ],
-                },
-                design: {
-                  color_palette: {
-                    primary: "#667eea",
-                    secondary: "#764ba2",
-                    accent: "#f093fb",
-                    background: "#ffffff",
-                    surface: "#f8fafc",
-                    text: {
-                      primary: "#2d3748",
-                      secondary: "#718096",
-                      accent: "#667eea",
-                    },
-                  },
-                  typography: {
-                    heading: {
-                      font: "Inter, sans-serif",
-                      weight: "700",
-                      scale: "moderate",
-                    },
-                    body: {
-                      font: "system-ui, sans-serif",
-                      size: "16px",
-                      line_height: "1.6",
-                    },
-                    code: {
-                      font: "JetBrains Mono, monospace",
-                      style: "minimal",
-                    },
-                  },
-                  spacing: {
-                    scale: "normal",
-                    rhythm: "geometric",
-                  },
-                  visual_style: {
-                    approach: "gradient",
-                    borders: "subtle",
-                    shadows: "soft",
-                    animations: "engaging",
-                  },
-                },
-              }),
+// Mock Anthropic client
+const mockAnthropic = {
+  messages: {
+    create: async () => ({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            concept: {
+              theme: "Modern Developer Tool",
+              mood: "professional",
+              target_impression: "innovative",
             },
-          },
-        ],
-      }),
-    },
+            layout: {
+              structure: "single-page",
+              navigation: "sticky-header",
+              sections: [
+                {
+                  id: "hero",
+                  type: "hero",
+                  position: 1,
+                  content_strategy: {
+                    focus: "repository-overview",
+                    tone: "welcoming",
+                    data_source: ["repo"],
+                  },
+                  design_spec: {
+                    layout_pattern: "centered",
+                    visual_hierarchy: "prominent",
+                    interaction: "animated",
+                    responsive_behavior: "stack on mobile",
+                  },
+                },
+              ],
+            },
+            design: {
+              color_palette: {
+                primary: "#667eea",
+                secondary: "#764ba2",
+                accent: "#f093fb",
+                background: "#ffffff",
+                surface: "#f8fafc",
+                text: {
+                  primary: "#2d3748",
+                  secondary: "#718096",
+                  accent: "#667eea",
+                },
+              },
+              typography: {
+                heading: {
+                  font: "Inter, sans-serif",
+                  weight: "700",
+                  scale: "moderate",
+                },
+                body: {
+                  font: "system-ui, sans-serif",
+                  size: "16px",
+                  line_height: "1.6",
+                },
+                code: {
+                  font: "JetBrains Mono, monospace",
+                  style: "minimal",
+                },
+              },
+              spacing: {
+                scale: "normal",
+                rhythm: "geometric",
+              },
+              visual_style: {
+                approach: "gradient",
+                borders: "subtle",
+                shadows: "soft",
+                animations: "engaging",
+              },
+            },
+          }),
+        },
+      ],
+    }),
   },
-} as unknown as Parameters<typeof setOpenAIClient>[0];
+} as unknown as Parameters<typeof setAnthropicClient>[0];
 
 describe("AI Site Architect", () => {
   const mockRepoData: RepoData = {
@@ -150,28 +147,30 @@ describe("AI Site Architect", () => {
       hasChangelog: false,
       hasContributing: false,
       hasLicense: true,
-      hasExamples: true,
+      hasExamples: false,
     },
     projectCharacteristics: {
-      type: "tool",
+      type: "library",
       industry: "devtools",
       audience: "developers",
-      maturity: "stable",
+      maturity: "beta",
     },
     technicalStack: {
-      frontend: ["TypeScript", "Node.js"],
+      frontend: ["React", "TypeScript"],
       backend: [],
       database: [],
-      deployment: [],
-      testing: ["Jest"],
+      deployment: ["npm"],
+      testing: ["Vitest"],
     },
-    uniqueFeatures: ["Testing AI site generation", "Easy to use"],
-    competitiveAdvantages: ["AI-powered", "Automated"],
-    suggestedUseCases: ["Testing AI site generation", "Development tools"],
+    uniqueFeatures: ["AI-powered", "Real-time analysis"],
+    competitiveAdvantages: ["Fast", "Easy to use"],
+    suggestedUseCases: ["Development", "Automation"],
   };
 
   beforeEach(() => {
-    setOpenAIClient(mockOpenAI);
+    setAnthropicClient(
+      mockAnthropic as unknown as Parameters<typeof setAnthropicClient>[0]
+    );
   });
 
   describe("designSiteArchitecture", () => {
@@ -181,108 +180,185 @@ describe("AI Site Architect", () => {
       expect(result).toBeDefined();
       expect(result.concept).toBeDefined();
       expect(result.concept.theme).toBe("Modern Developer Tool");
+      expect(result.concept.mood).toBe("professional");
+      expect(result.concept.target_impression).toBe("innovative");
+
       expect(result.layout).toBeDefined();
+      expect(result.layout.structure).toBe("single-page");
+      expect(result.layout.navigation).toBe("sticky-header");
       expect(result.layout.sections).toHaveLength(1);
+      expect(result.layout.sections[0].type).toBe("hero");
+
       expect(result.design).toBeDefined();
-      expect(result.design.color_palette).toBeDefined();
-    });
-
-    it("should have proper section structure", async () => {
-      const result = await designSiteArchitecture(mockRepoData, mockAnalysis);
-
-      const section = result.layout.sections[0];
-      expect(section.id).toBe("hero");
-      expect(section.type).toBe("hero");
-      expect(section.content_strategy).toBeDefined();
-      expect(section.design_spec).toBeDefined();
-    });
-
-    it("should have complete design system", async () => {
-      const result = await designSiteArchitecture(mockRepoData, mockAnalysis);
-
       expect(result.design.color_palette.primary).toBe("#667eea");
       expect(result.design.typography.heading.font).toBe("Inter, sans-serif");
-      expect(result.design.visual_style.animations).toBe("engaging");
+      expect(result.design.visual_style.approach).toBe("gradient");
+    });
+
+    it("should handle API errors gracefully", async () => {
+      // エラーが発生するモックを設定
+      const errorMockAnthropic = {
+        messages: {
+          create: async () => {
+            throw new Error("API Error");
+          },
+        },
+      };
+      setAnthropicClient(
+        errorMockAnthropic as unknown as Parameters<
+          typeof setAnthropicClient
+        >[0]
+      );
+
+      const result = await designSiteArchitecture(mockRepoData, mockAnalysis);
+
+      // フォールバックのアーキテクチャが返されることを確認
+      expect(result).toBeDefined();
+      expect(result.concept.theme).toBe("Modern Project Showcase");
+      expect(result.layout.structure).toBe("single-page");
+      expect(result.design.color_palette.primary).toBe("#667eea");
     });
   });
 
   describe("generateComponentSpecs", () => {
-    it("should generate component specifications", async () => {
-      // First get architecture
-      const architecture = await designSiteArchitecture(
-        mockRepoData,
-        mockAnalysis
-      );
-      const section = architecture.layout.sections[0];
+    const mockSection = {
+      id: "hero",
+      type: "hero" as const,
+      position: 1,
+      content_strategy: {
+        focus: "repository-overview",
+        tone: "welcoming",
+        data_source: ["repo"],
+      },
+      design_spec: {
+        layout_pattern: "centered",
+        visual_hierarchy: "prominent" as const,
+        interaction: "animated" as const,
+        responsive_behavior: "stack on mobile",
+      },
+    };
 
-      // Mock component specs response
-      const mockComponentSpecsOpenAI = {
-        chat: {
-          completions: {
-            create: async () => ({
-              choices: [
-                {
-                  message: {
-                    content: JSON.stringify([
-                      {
-                        name: "HeroSection",
-                        purpose: "Display repository overview with stats",
-                        props_interface:
-                          "export interface Props { title: string; description: string; stats: any; }",
-                        html_structure:
-                          "<section><h1>{title}</h1><p>{description}</p></section>",
-                        css_styles:
-                          "section { padding: 4rem 0; background: var(--primary); }",
-                        responsive_rules:
-                          "@media (max-width: 768px) { section { padding: 2rem 0; } }",
-                      },
-                    ]),
-                  },
-                },
-              ],
-            }),
+    const mockArchitecture = {
+      concept: {
+        theme: "Modern Developer Tool",
+        mood: "professional",
+        target_impression: "innovative",
+      },
+      layout: {
+        structure: "single-page" as const,
+        navigation: "sticky-header" as const,
+        sections: [mockSection],
+      },
+      design: {
+        color_palette: {
+          primary: "#667eea",
+          secondary: "#764ba2",
+          accent: "#f093fb",
+          background: "#ffffff",
+          surface: "#f8fafc",
+          text: {
+            primary: "#2d3748",
+            secondary: "#718096",
+            accent: "#667eea",
           },
         },
-      } as unknown as Parameters<typeof setOpenAIClient>[0];
+        typography: {
+          heading: {
+            font: "Inter, sans-serif",
+            weight: "700",
+            scale: "moderate" as const,
+          },
+          body: {
+            font: "system-ui, sans-serif",
+            size: "16px",
+            line_height: "1.6",
+          },
+          code: {
+            font: "JetBrains Mono, monospace",
+            style: "minimal" as const,
+          },
+        },
+        spacing: {
+          scale: "normal" as const,
+          rhythm: "geometric" as const,
+        },
+        visual_style: {
+          approach: "gradient" as const,
+          borders: "subtle" as const,
+          shadows: "soft" as const,
+          animations: "engaging" as const,
+        },
+      },
+    };
 
-      setOpenAIClient(mockComponentSpecsOpenAI);
+    it("should generate component specifications", async () => {
+      // コンポーネント仕様生成用のモック
+      const componentMock = {
+        messages: {
+          create: async () => ({
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify([
+                  {
+                    name: "HeroSection",
+                    purpose: "Display the main hero section",
+                    props_interface:
+                      "export interface Props { title: string; subtitle: string; }",
+                    html_structure:
+                      "<section class='hero'><h1>{title}</h1><p>{subtitle}</p></section>",
+                    css_styles: ".hero { padding: 4rem; text-align: center; }",
+                    responsive_rules:
+                      "@media (max-width: 768px) { .hero { padding: 2rem; } }",
+                  },
+                ]),
+              },
+            ],
+          }),
+        },
+      };
+      setAnthropicClient(
+        componentMock as unknown as Parameters<typeof setAnthropicClient>[0]
+      );
 
       const result = await generateComponentSpecs(
-        section,
-        architecture,
+        mockSection,
+        mockArchitecture,
         mockRepoData
       );
 
+      expect(result).toBeDefined();
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("HeroSection");
-      expect(result[0].purpose).toContain("repository overview");
-      expect(result[0].props_interface).toContain("Props");
-      expect(result[0].html_structure).toContain("section");
-      expect(result[0].css_styles).toContain("padding");
+      expect(result[0].purpose).toBe("Display the main hero section");
+      expect(result[0].props_interface).toContain("export interface Props");
+      expect(result[0].html_structure).toContain("<section");
+      expect(result[0].css_styles).toContain(".hero");
+      expect(result[0].responsive_rules).toContain("@media");
     });
-  });
 
-  describe("fallback behavior", () => {
-    it("should handle OpenAI API failures gracefully", async () => {
-      // Mock failing OpenAI client
-      const failingOpenAI = {
-        chat: {
-          completions: {
-            create: async () => {
-              throw new Error("API Error");
-            },
+    it("should provide fallback component specs on error", async () => {
+      const errorMock = {
+        messages: {
+          create: async () => {
+            throw new Error("API Error");
           },
         },
-      } as unknown as Parameters<typeof setOpenAIClient>[0];
+      };
+      setAnthropicClient(
+        errorMock as unknown as Parameters<typeof setAnthropicClient>[0]
+      );
 
-      setOpenAIClient(failingOpenAI);
+      const result = await generateComponentSpecs(
+        mockSection,
+        mockArchitecture,
+        mockRepoData
+      );
 
-      const result = await designSiteArchitecture(mockRepoData, mockAnalysis);
-
-      // Should return fallback architecture
       expect(result).toBeDefined();
-      expect(result.concept.theme).toBe("Modern Project Showcase");
-      expect(result.layout.sections).toHaveLength(1);
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("HeroSection");
+      expect(result[0].purpose).toBe("Display hero information");
     });
   });
 });

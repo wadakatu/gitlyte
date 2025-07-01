@@ -24,8 +24,8 @@
     "ci:check": "pnpm run build && pnpm run format && pnpm run lint && pnpm exec vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.55.1",
     "date-fns": "^4.1.0",
-    "openai": "^5.5.1",
     "probot": "^13.4.5"
   },
   "devDependencies": {

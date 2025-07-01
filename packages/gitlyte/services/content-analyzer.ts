@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import type { RepoData } from "../types/repository.js";
 import type { RepositoryAnalysis } from "../types/repository.js";
 
@@ -37,23 +37,23 @@ export interface SectionContent {
   recognition?: string[];
 }
 
-// OpenAI クライアント初期化
-let openai: OpenAI | null = null;
+// Anthropic クライアント初期化
+let anthropic: Anthropic | null = null;
 
-function getOpenAIClient(): OpenAI {
-  if (!openai) {
-    const apiKey = process.env.OPENAI_API_KEY;
+function getAnthropicClient(): Anthropic {
+  if (!anthropic) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error("OPENAI_API_KEY environment variable is required");
+      throw new Error("ANTHROPIC_API_KEY environment variable is required");
     }
-    openai = new OpenAI({ apiKey });
+    anthropic = new Anthropic({ apiKey });
   }
-  return openai;
+  return anthropic;
 }
 
-// テスト用：OpenAIクライアントをモック可能にする
-export function setOpenAIClient(client: OpenAI | null) {
-  openai = client;
+// テスト用：Anthropicクライアントをモック可能にする
+export function setAnthropicClient(client: Anthropic | null) {
+  anthropic = client;
 }
 
 /** リッチなコンテンツ分析結果 */
@@ -632,18 +632,17 @@ function getProjectTypeContent(projectType: string, projectName: string) {
 }
 
 /**
- * リトライ機能付きのOpenAI API呼び出し
+ * リトライ機能付きのAnthropic API呼び出し
  */
-async function callOpenAIWithRetry(
-  client: OpenAI,
-  params: OpenAI.Chat.ChatCompletionCreateParams,
-  options: { timeout?: number } = {},
+async function callAnthropicWithRetry(
+  client: Anthropic,
+  params: Anthropic.Messages.MessageCreateParams,
   maxRetries = 3,
   delay = 2000
 ) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await client.chat.completions.create(params, options);
+      return await client.messages.create(params);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
@@ -818,25 +817,23 @@ ${repoData.prs
   let cleanContent = "";
 
   try {
-    const client = getOpenAIClient();
-    const response = (await callOpenAIWithRetry(
-      client,
-      {
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.8,
-        max_tokens: 3000,
-      },
-      {
-        timeout: 60000, // 60秒タイムアウト
-      }
-    )) as OpenAI.Chat.ChatCompletion;
+    const client = getAnthropicClient();
+    const response = await callAnthropicWithRetry(client, {
+      model: "claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: prompt }],
+      system:
+        "You are an expert at technical writing and marketing. Always respond with valid JSON format only, no markdown or additional text.",
+      temperature: 0.8,
+      max_tokens: 3000,
+    });
 
-    const content = response.choices[0].message.content;
-    if (!content) throw new Error("No response from OpenAI");
+    const message = response as Anthropic.Message;
+    const content = message.content[0];
+    if (!content || content.type !== "text")
+      throw new Error("No response from Anthropic");
 
     // JSONクリーニング
-    cleanContent = content
+    cleanContent = content.text
       .replace(/```json\n?|\n?```/g, "")
       .replace(/```\n?|\n?```/g, "")
       .replace(/\/\*[\s\S]*?\*\//g, "")

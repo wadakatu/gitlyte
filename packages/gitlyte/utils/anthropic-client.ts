@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import type { GitLyteConfig, Suggestion } from "../types/config.js";
 import type { DesignSystem } from "../types/generated-site.js";
 import type { RepoData, RepositoryAnalysis } from "../types/repository.js";
@@ -46,23 +46,22 @@ export interface DesignPreferences {
   style?: string;
 }
 
-export class OpenAIClient {
-  public client: OpenAI;
+export class AnthropicClient {
+  public client: Anthropic;
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error("OPENAI_API_KEY environment variable is required");
+      throw new Error("ANTHROPIC_API_KEY environment variable is required");
     }
 
-    this.client = new OpenAI({ apiKey });
+    this.client = new Anthropic({ apiKey });
   }
 
   async analyzeRepository(repoData: RepoData): Promise<AIAnalysisResult> {
     const prompt = this.buildAnalysisPrompt(repoData);
 
-    return this.makeOpenAIRequest(
-      "gpt-4",
+    return this.makeAnthropicRequest(
       "You are an expert at analyzing software repositories. Always respond with valid JSON format only, no markdown or additional text.",
       prompt,
       0.3,
@@ -77,8 +76,7 @@ export class OpenAIClient {
   ): Promise<GeneratedContent> {
     const prompt = this.buildContentPrompt(analysis, contentType);
 
-    return this.makeOpenAIRequest(
-      "gpt-4",
+    return this.makeAnthropicRequest(
       "You are an expert at creating compelling website content. Always respond with valid JSON format only.",
       prompt,
       0.7,
@@ -93,8 +91,7 @@ export class OpenAIClient {
   ): Promise<DesignSystem> {
     const prompt = this.buildDesignPrompt(analysis, preferences);
 
-    return this.makeOpenAIRequest(
-      "gpt-4",
+    return this.makeAnthropicRequest(
       "You are an expert at creating beautiful, accessible design systems. Always respond with valid JSON format only.",
       prompt,
       0.5,
@@ -109,8 +106,7 @@ export class OpenAIClient {
   ): Promise<Suggestion[]> {
     const prompt = this.buildSuggestionPrompt(config, analysis);
 
-    return this.makeOpenAIRequest(
-      "gpt-4",
+    return this.makeAnthropicRequest(
       "You are an expert at analyzing website configurations and suggesting improvements. Always respond with valid JSON array format only.",
       prompt,
       0.3,
@@ -119,8 +115,7 @@ export class OpenAIClient {
     );
   }
 
-  private async makeOpenAIRequest<T>(
-    model: string,
+  private async makeAnthropicRequest<T>(
     systemMessage: string,
     userPrompt: string,
     temperature: number,
@@ -128,28 +123,25 @@ export class OpenAIClient {
     errorPrefix: string
   ): Promise<T> {
     try {
-      const completion = await this.client.chat.completions.create({
-        model,
+      const completion = await this.client.messages.create({
+        model: "claude-sonnet-4-20250514",
         messages: [
-          {
-            role: "system",
-            content: systemMessage,
-          },
           {
             role: "user",
             content: userPrompt,
           },
         ],
+        system: systemMessage,
         temperature,
         max_tokens: maxTokens,
       });
 
-      const response = completion.choices[0]?.message?.content?.trim();
-      if (!response) {
-        throw new Error("Empty response from OpenAI");
+      const response = completion.content[0];
+      if (!response || response.type !== "text") {
+        throw new Error("Empty response from Anthropic");
       }
 
-      const cleanedResponse = this.cleanJsonResponse(response);
+      const cleanedResponse = this.cleanJsonResponse(response.text);
       return JSON.parse(cleanedResponse);
     } catch (_error) {
       throw new Error(`${errorPrefix}: ${(_error as Error).message}`);

@@ -1,13 +1,16 @@
 import type { GitLyteConfig } from "../types/config.js";
 import type { DesignSystem, GeneratedSite } from "../types/generated-site.js";
 import type { RepositoryAnalysis } from "../types/repository.js";
-import { OpenAIClient, type GeneratedContent } from "../utils/openai-client.js";
+import {
+  AnthropicClient,
+  type GeneratedContent,
+} from "../utils/anthropic-client.js";
 
 export class SiteGenerator {
-  public openaiClient: OpenAIClient;
+  public anthropicClient: AnthropicClient;
 
   constructor() {
-    this.openaiClient = new OpenAIClient();
+    this.anthropicClient = new AnthropicClient();
   }
 
   async generateSite(
@@ -323,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
         style: config.design?.theme,
       };
 
-      return await this.openaiClient.generateDesign(analysis, preferences);
+      return await this.anthropicClient.generateDesign(analysis, preferences);
     } catch (_error) {
       return this.getFallbackDesignSystem(config);
     }
@@ -359,11 +362,14 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       switch (pageType) {
         case "index":
-          return await this.openaiClient.generateContent(analysis, "hero");
+          return await this.anthropicClient.generateContent(analysis, "hero");
         case "docs":
-          return await this.openaiClient.generateContent(analysis, "features");
+          return await this.anthropicClient.generateContent(
+            analysis,
+            "features"
+          );
         default:
-          return await this.openaiClient.generateContent(analysis, "hero");
+          return await this.anthropicClient.generateContent(analysis, "hero");
       }
     } catch (_error) {
       return this.getFallbackContent(pageType, analysis);

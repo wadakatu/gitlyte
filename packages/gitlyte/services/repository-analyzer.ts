@@ -5,13 +5,13 @@ import type {
   CodeAnalysis,
 } from "../types/repository.js";
 import { collectRepoData } from "../utils/github.js";
-import { OpenAIClient } from "../utils/openai-client.js";
+import { AnthropicClient } from "../utils/anthropic-client.js";
 
 export class RepositoryAnalyzer {
-  public openaiClient: OpenAIClient;
+  public anthropicClient: AnthropicClient;
 
   constructor() {
-    this.openaiClient = new OpenAIClient();
+    this.anthropicClient = new AnthropicClient();
   }
 
   async analyzeRepository(context: Context): Promise<RepositoryAnalysis> {
@@ -28,7 +28,7 @@ export class RepositoryAnalyzer {
   async analyzeRepositoryData(repoData: RepoData): Promise<RepositoryAnalysis> {
     try {
       // Get AI analysis
-      const aiAnalysis = await this.openaiClient.analyzeRepository(repoData);
+      const aiAnalysis = await this.anthropicClient.analyzeRepository(repoData);
 
       // Build comprehensive analysis
       const analysis: RepositoryAnalysis = {

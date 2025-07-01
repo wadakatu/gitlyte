@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RepositoryAnalyzer } from "../../services/repository-analyzer.js";
 import type { RepoData } from "../../types/repository.js";
 
-// Mock OpenAI Client
-vi.mock("../../utils/openai-client.js", () => ({
-  OpenAIClient: vi.fn().mockImplementation(() => ({
+// Mock Anthropic Client
+vi.mock("../../utils/anthropic-client.js", () => ({
+  AnthropicClient: vi.fn().mockImplementation(() => ({
     analyzeRepository: vi.fn(),
   })),
 }));
@@ -19,7 +19,7 @@ describe("Repository Analyzer", () => {
   let mockRepoData: RepoData;
 
   beforeEach(() => {
-    vi.stubEnv("OPENAI_API_KEY", "test-api-key");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-api-key");
     repositoryAnalyzer = new RepositoryAnalyzer();
 
     mockRepoData = {
@@ -67,7 +67,7 @@ describe("Repository Analyzer", () => {
 
       vi.mocked(collectRepoData).mockResolvedValue(mockRepoData);
       vi.mocked(
-        repositoryAnalyzer.openaiClient.analyzeRepository
+        repositoryAnalyzer.anthropicClient.analyzeRepository
       ).mockResolvedValue({
         projectType: "library",
         industry: "devtools",
@@ -85,7 +85,7 @@ describe("Repository Analyzer", () => {
 
     it("should analyze repository from existing RepoData", async () => {
       vi.mocked(
-        repositoryAnalyzer.openaiClient.analyzeRepository
+        repositoryAnalyzer.anthropicClient.analyzeRepository
       ).mockResolvedValue({
         projectType: "library",
         industry: "devtools",
@@ -124,7 +124,7 @@ describe("Repository Analyzer", () => {
 
       vi.mocked(collectRepoData).mockResolvedValue(mockRepoData);
       vi.mocked(
-        repositoryAnalyzer.openaiClient.analyzeRepository
+        repositoryAnalyzer.anthropicClient.analyzeRepository
       ).mockRejectedValue(new Error("AI analysis failed"));
 
       await expect(
@@ -134,7 +134,7 @@ describe("Repository Analyzer", () => {
 
     it("should process repository metadata correctly", async () => {
       vi.mocked(
-        repositoryAnalyzer.openaiClient.analyzeRepository
+        repositoryAnalyzer.anthropicClient.analyzeRepository
       ).mockResolvedValue({
         projectType: "library",
         industry: "devtools",
@@ -154,7 +154,7 @@ describe("Repository Analyzer", () => {
 
     it("should analyze code structure correctly", async () => {
       vi.mocked(
-        repositoryAnalyzer.openaiClient.analyzeRepository
+        repositoryAnalyzer.anthropicClient.analyzeRepository
       ).mockResolvedValue({
         projectType: "library",
         industry: "devtools",
@@ -176,7 +176,7 @@ describe("Repository Analyzer", () => {
 
     it("should analyze content structure correctly", async () => {
       vi.mocked(
-        repositoryAnalyzer.openaiClient.analyzeRepository
+        repositoryAnalyzer.anthropicClient.analyzeRepository
       ).mockResolvedValue({
         projectType: "library",
         industry: "devtools",
@@ -196,7 +196,7 @@ describe("Repository Analyzer", () => {
   describe("enrichAnalysis", () => {
     it("should enrich basic analysis with detailed insights", async () => {
       vi.mocked(
-        repositoryAnalyzer.openaiClient.analyzeRepository
+        repositoryAnalyzer.anthropicClient.analyzeRepository
       ).mockResolvedValue({
         projectType: "library",
         industry: "devtools",
