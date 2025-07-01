@@ -39,10 +39,10 @@ describe("TriggerController", () => {
       expect(result.reason).toBe("Config-based label generation");
     });
 
-    it("should not generate when no labels are configured", async () => {
+    it("should generate full site when PR has gitlyte label", async () => {
       const pr = {
         ...mockPR,
-        labels: [{ name: "enhancement" }],
+        labels: [{ name: "gitlyte" }],
       };
 
       const config = {
@@ -56,14 +56,36 @@ describe("TriggerController", () => {
         config
       );
 
-      expect(result.shouldGenerate).toBe(false);
-      expect(result.triggerType).toBe("manual");
-      expect(result.reason).toBe(
-        "PR-based generation disabled (use push or comment triggers)"
-      );
+      expect(result.shouldGenerate).toBe(true);
+      expect(result.triggerType).toBe("label");
+      expect(result.generationType).toBe("full");
+      expect(result.reason).toBe("PR has gitlyte label");
     });
 
-    it("should not generate when required labels are missing (PR-based generation disabled by default)", async () => {
+    it("should generate preview when PR has gitlyte:preview label", async () => {
+      const pr = {
+        ...mockPR,
+        labels: [{ name: "gitlyte:preview" }],
+      };
+
+      const config = {
+        generation: {
+          // labels 設定なし
+        },
+      };
+
+      const result = await triggerController.shouldGenerateOnPRMerge(
+        pr,
+        config
+      );
+
+      expect(result.shouldGenerate).toBe(true);
+      expect(result.triggerType).toBe("label");
+      expect(result.generationType).toBe("preview");
+      expect(result.reason).toBe("PR has gitlyte:preview label");
+    });
+
+    it("should not generate when PR doesn't have gitlyte labels", async () => {
       const pr = {
         ...mockPR,
         labels: [{ name: "documentation" }],
@@ -77,7 +99,7 @@ describe("TriggerController", () => {
       expect(result.shouldGenerate).toBe(false);
       expect(result.triggerType).toBe("manual");
       expect(result.reason).toBe(
-        "PR-based generation disabled (use push or comment triggers)"
+        "PR does not have gitlyte labels (gitlyte or gitlyte:preview)"
       );
     });
   });
