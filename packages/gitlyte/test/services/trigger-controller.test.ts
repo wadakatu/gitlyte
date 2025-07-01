@@ -22,10 +22,6 @@ describe("TriggerController", () => {
   };
 
   describe("shouldGenerateOnPRMerge", () => {
-
-
-
-
     it("should auto-generate for configured labels only", async () => {
       const pr = {
         ...mockPR,
@@ -62,7 +58,9 @@ describe("TriggerController", () => {
 
       expect(result.shouldGenerate).toBe(false);
       expect(result.triggerType).toBe("manual");
-      expect(result.reason).toBe("PR-based generation disabled (use push or comment triggers)");
+      expect(result.reason).toBe(
+        "PR-based generation disabled (use push or comment triggers)"
+      );
     });
 
     it("should not generate when required labels are missing (PR-based generation disabled by default)", async () => {
@@ -78,7 +76,9 @@ describe("TriggerController", () => {
 
       expect(result.shouldGenerate).toBe(false);
       expect(result.triggerType).toBe("manual");
-      expect(result.reason).toBe("PR-based generation disabled (use push or comment triggers)");
+      expect(result.reason).toBe(
+        "PR-based generation disabled (use push or comment triggers)"
+      );
     });
   });
 

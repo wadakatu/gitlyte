@@ -123,7 +123,9 @@ describe("TriggerController - Push Trigger", () => {
 
       expect(result.shouldGenerate).toBe(false);
       expect(result.triggerType).toBe("auto");
-      expect(result.reason).toBe("All changes in ignored paths: docs/, .github/");
+      expect(result.reason).toBe(
+        "All changes in ignored paths: docs/, .github/"
+      );
     });
 
     it("should generate when some changes are not in ignored paths", async () => {

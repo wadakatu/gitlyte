@@ -43,9 +43,6 @@ export class TriggerController {
     pr: PullRequest,
     config: GitLyteConfig
   ): Promise<TriggerResult> {
-    const labels = pr.labels.map((l) => l.name);
-
-
     // 設定ファイルベースの判定（ラベル制限など）
     const configTrigger = this.checkConfigTrigger(pr, config);
     if (configTrigger.shouldGenerate) {
@@ -133,9 +130,6 @@ export class TriggerController {
       };
     }
 
-    // 設定がない場合はデフォルトで有効
-    const isEnabled = pushConfig?.enabled !== false;
-
     // ブランチチェック
     const targetBranches = pushConfig?.branches || [defaultBranch];
     if (!targetBranches.includes(branchName)) {
@@ -149,9 +143,11 @@ export class TriggerController {
 
     // 除外パスチェック
     if (pushConfig?.ignorePaths && pushConfig.ignorePaths.length > 0) {
-      const changedFiles = commits.flatMap(commit => 
-        [...commit.added, ...commit.modified, ...commit.removed]
-      );
+      const changedFiles = commits.flatMap((commit) => [
+        ...commit.added,
+        ...commit.modified,
+        ...commit.removed,
+      ]);
 
       // ファイルが変更されていない場合は生成を続行
       if (changedFiles.length === 0) {
@@ -163,8 +159,8 @@ export class TriggerController {
         };
       }
 
-      const shouldIgnore = changedFiles.every(file => 
-        pushConfig.ignorePaths!.some(ignorePath => 
+      const shouldIgnore = changedFiles.every((file) =>
+        pushConfig.ignorePaths!.some((ignorePath) =>
           file.startsWith(ignorePath)
         )
       );
@@ -277,7 +273,10 @@ export class TriggerController {
   /**
    * デフォルトの自動生成判定 (廃止: Push時トリガーがデフォルト)
    */
-  private shouldAutoGenerate(_pr: PullRequest, _config: GitLyteConfig): boolean {
+  private shouldAutoGenerate(
+    _pr: PullRequest,
+    _config: GitLyteConfig
+  ): boolean {
     // PRベースの自動生成は廃止、Push時トリガーがデフォルト
     return false;
   }

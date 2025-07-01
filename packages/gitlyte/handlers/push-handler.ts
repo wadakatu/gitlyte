@@ -12,14 +12,20 @@ export async function handlePush(ctx: Context) {
   try {
     const { ref, commits, repository } = ctx.payload as {
       ref: string;
-      commits: Array<{ added: string[]; modified: string[]; removed: string[] }>;
+      commits: Array<{
+        added: string[];
+        modified: string[];
+        removed: string[];
+      }>;
       repository: { default_branch: string };
     };
 
     // ブランチ名を取得（refs/heads/main → main）
     const branchName = ref.replace("refs/heads/", "");
-    
-    ctx.log.info(`📥 Push event received: branch=${branchName}, commits=${commits.length}`);
+
+    ctx.log.info(
+      `📥 Push event received: branch=${branchName}, commits=${commits.length}`
+    );
 
     // 設定をロード
     const configLoader = new ConfigurationLoader();
@@ -90,7 +96,7 @@ export async function handlePush(ctx: Context) {
       `✅ Site generated for push to ${branchName} (${triggerResult.triggerType} trigger)`
     );
   } catch (error) {
-    ctx.log.error(`❌ Failed to handle push event`, error);
+    ctx.log.error("❌ Failed to handle push event", error);
     throw error;
   }
 }

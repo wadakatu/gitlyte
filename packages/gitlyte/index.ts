@@ -36,8 +36,10 @@ export default function app(bot: Probot) {
       commits: Array<unknown>;
     };
     const branchName = ref.replace("refs/heads/", "");
-    
-    ctx.log.info(`📤 Push event received: branch=${branchName}, commits=${commits.length}`);
+
+    ctx.log.info(
+      `📤 Push event received: branch=${branchName}, commits=${commits.length}`
+    );
     await handlePush(ctx);
   });
 }
