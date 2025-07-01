@@ -2,6 +2,10 @@ import type { Probot } from "probot";
 import { handleFeaturePR } from "./handlers/pr-handler.js";
 import { handleIssueComment } from "./handlers/comment-handler.js";
 import { handlePush } from "./handlers/push-handler.js";
+import {
+  handleInstallation,
+  handleUninstallation,
+} from "./handlers/installation-handler.js";
 
 export default function app(bot: Probot) {
   // PRマージ時のハンドリング
@@ -42,4 +46,22 @@ export default function app(bot: Probot) {
     );
     await handlePush(ctx);
   });
+
+  // アプリインストール時のハンドリング
+  bot.on(
+    ["installation.created", "installation_repositories.added"],
+    async (ctx) => {
+      ctx.log.info("🎉 GitLyte app installed or repositories added");
+      await handleInstallation(ctx);
+    }
+  );
+
+  // アプリアンインストール時のハンドリング
+  bot.on(
+    ["installation.deleted", "installation_repositories.removed"],
+    async (ctx) => {
+      ctx.log.info("👋 GitLyte app uninstalled or repositories removed");
+      await handleUninstallation(ctx);
+    }
+  );
 }
