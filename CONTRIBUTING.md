@@ -13,7 +13,7 @@ Please note that this project is released with a [Contributor Code of Conduct][c
 ### Prerequisites
 - Node.js 20.18.0+ (managed via mise)
 - pnpm 10.12.1+ (managed via mise)
-- OpenAI API key for AI-powered design generation
+- Anthropic API key for AI-powered design generation
 
 ### Environment Setup
 
@@ -34,8 +34,8 @@ pnpm install
 # Copy environment template
 cp .env.example .env
 
-# Add your OpenAI API key to .env
-OPENAI_API_KEY=your_openai_api_key_here
+# Add your Anthropic API key to .env
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 # Run the bot
 pnpm start
