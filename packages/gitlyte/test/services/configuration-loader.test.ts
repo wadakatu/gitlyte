@@ -71,6 +71,11 @@ describe("Configuration Loader", () => {
         keywords: ["test", "repository", "library"],
         author: "Test Author",
       },
+      generation: {
+        branches: ["main"],
+        labels: ["enhancement"],
+        outputDirectory: "custom-output",
+      },
     };
   });
 
@@ -93,6 +98,7 @@ describe("Configuration Loader", () => {
       expect(result.config.design?.colors?.primary).toBe(
         mockValidConfig.design?.colors?.primary
       );
+      expect(result.config.generation?.outputDirectory).toBe("custom-output");
       expect(result.source).toBe("/test/path/gitlyte.json");
     });
 
@@ -245,6 +251,38 @@ describe("Configuration Loader", () => {
         expect.stringContaining("Invalid page type")
       );
     });
+
+    it("should validate outputDirectory configuration", () => {
+      const configWithOutputDir = {
+        ...mockValidConfig,
+        generation: {
+          outputDirectory: "build",
+          branches: ["main"],
+        },
+      };
+
+      const validation =
+        configLoader.validateConfiguration(configWithOutputDir);
+
+      expect(validation.valid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
+    });
+
+    it("should handle empty outputDirectory gracefully", () => {
+      const configWithEmptyOutputDir = {
+        ...mockValidConfig,
+        generation: {
+          outputDirectory: "",
+          branches: ["main"],
+        },
+      };
+
+      const validation = configLoader.validateConfiguration(
+        configWithEmptyOutputDir
+      );
+
+      expect(validation.valid).toBe(true);
+    });
   });
 
   describe("mergeWithDefaults", () => {
@@ -299,6 +337,19 @@ describe("Configuration Loader", () => {
       expect(merged.pages?.generate).toEqual(["index", "docs"]);
       expect(merged.seo?.keywords).toEqual(["custom", "keywords"]);
     });
+
+    it("should merge outputDirectory with defaults", () => {
+      const userConfig: GitLyteConfig = {
+        generation: {
+          outputDirectory: "build",
+        },
+      };
+
+      const merged = configLoader.mergeWithDefaults(userConfig);
+
+      expect(merged.generation?.outputDirectory).toBe("build");
+      expect(merged.generation?.branches).toBeDefined(); // From defaults
+    });
   });
 
   describe("getDefaultConfiguration", () => {
@@ -309,6 +360,7 @@ describe("Configuration Loader", () => {
       expect(defaults.site?.layout).toBe("hero-focused");
       expect(defaults.design?.theme).toBe("professional");
       expect(defaults.pages?.generate).toContain("index");
+      expect(defaults.generation?.outputDirectory).toBe("docs"); // Default value
     });
 
     it("should have all required fields", () => {

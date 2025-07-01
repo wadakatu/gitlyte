@@ -253,6 +253,20 @@ export class ConfigurationLoader {
         keywords: [],
         author: "",
       },
+      generation: {
+        branches: [],
+        labels: [],
+        outputDirectory: "docs",
+        preview: {
+          enabled: true,
+          path: "docs/preview",
+        },
+        push: {
+          enabled: true,
+          branches: [],
+          ignorePaths: [],
+        },
+      },
     };
   }
 
