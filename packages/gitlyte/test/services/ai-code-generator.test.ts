@@ -4,7 +4,7 @@ import { RepositoryAnalyzer } from "../../services/repository-analyzer.js";
 import { SiteGenerator } from "../../services/site-generator.js";
 import { StaticFileDeployer } from "../../services/static-file-deployer.js";
 import type { RepoData } from "../../types/repository.js";
-import { OpenAIClient } from "../../utils/openai-client.js";
+import { AnthropicClient } from "../../utils/anthropic-client.js";
 
 describe("Site Generation Pipeline", () => {
   let configLoader: ConfigurationLoader;
@@ -13,16 +13,16 @@ describe("Site Generation Pipeline", () => {
   let deployer: StaticFileDeployer;
 
   beforeEach(() => {
-    // Mock the OpenAI environment variable
-    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    // Mock the Anthropic environment variable
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
 
     configLoader = new ConfigurationLoader();
     repositoryAnalyzer = new RepositoryAnalyzer();
     siteGenerator = new SiteGenerator();
     deployer = new StaticFileDeployer();
 
-    // Mock OpenAI client
-    vi.spyOn(OpenAIClient.prototype, "analyzeRepository").mockImplementation(
+    // Mock Anthropic client
+    vi.spyOn(AnthropicClient.prototype, "analyzeRepository").mockImplementation(
       async () => ({
         projectType: "application",
         industry: "web",
@@ -31,7 +31,7 @@ describe("Site Generation Pipeline", () => {
       })
     );
 
-    vi.spyOn(OpenAIClient.prototype, "generateDesign").mockImplementation(
+    vi.spyOn(AnthropicClient.prototype, "generateDesign").mockImplementation(
       async () => ({
         colors: {
           primary: "#007acc",
@@ -65,7 +65,7 @@ describe("Site Generation Pipeline", () => {
       })
     );
 
-    vi.spyOn(OpenAIClient.prototype, "generateContent").mockImplementation(
+    vi.spyOn(AnthropicClient.prototype, "generateContent").mockImplementation(
       async () => ({
         hero: {
           title: "Test Repository",

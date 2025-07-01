@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RepositoryAnalyzer } from "../../services/repository-analyzer.js";
 import type { RepoData } from "../../types/repository.js";
 
-// Mock OpenAI Client
-vi.mock("../../utils/openai-client.js", () => ({
-  OpenAIClient: vi.fn().mockImplementation(() => ({
+// Mock Anthropic Client
+vi.mock("../../utils/anthropic-client.js", () => ({
+  AnthropicClient: vi.fn().mockImplementation(() => ({
     analyzeRepository: vi.fn(),
   })),
 }));
@@ -19,7 +19,7 @@ describe("Repository Analyzer", () => {
   let mockRepoData: RepoData;
 
   beforeEach(() => {
-    vi.stubEnv("OPENAI_API_KEY", "test-api-key");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-api-key");
     repositoryAnalyzer = new RepositoryAnalyzer();
 
     mockRepoData = {

@@ -1,19 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RepositoryAnalyzer } from "../../services/repository-analyzer.js";
 import type { RepoData } from "../../types/repository.js";
-import { OpenAIClient } from "../../utils/openai-client.js";
+import { AnthropicClient } from "../../utils/anthropic-client.js";
 
 describe("Repository Analyzer", () => {
   let repositoryAnalyzer: RepositoryAnalyzer;
 
   beforeEach(() => {
-    // Mock the OpenAI environment variable
-    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    // Mock the Anthropic environment variable
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
 
     repositoryAnalyzer = new RepositoryAnalyzer();
 
-    // Mock OpenAI client methods
-    vi.spyOn(OpenAIClient.prototype, "analyzeRepository").mockImplementation(
+    // Mock Anthropic client methods
+    vi.spyOn(AnthropicClient.prototype, "analyzeRepository").mockImplementation(
       async () => ({
         projectType: "application",
         industry: "web",
@@ -123,9 +123,10 @@ describe("Repository Analyzer", () => {
     });
 
     it("should handle error gracefully", async () => {
-      vi.spyOn(OpenAIClient.prototype, "analyzeRepository").mockRejectedValue(
-        new Error("API Error")
-      );
+      vi.spyOn(
+        AnthropicClient.prototype,
+        "analyzeRepository"
+      ).mockRejectedValue(new Error("API Error"));
 
       await expect(
         repositoryAnalyzer.analyzeRepositoryData(mockRepoData)

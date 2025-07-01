@@ -4,7 +4,7 @@ import { RepositoryAnalyzer } from "../../services/repository-analyzer.js";
 import { SiteGenerator } from "../../services/site-generator.js";
 import type { GitLyteConfig } from "../../types/config.js";
 import type { RepoData } from "../../types/repository.js";
-import { OpenAIClient } from "../../utils/openai-client.js";
+import { AnthropicClient } from "../../utils/anthropic-client.js";
 
 describe("Layout Configuration Override", () => {
   let configLoader: ConfigurationLoader;
@@ -12,15 +12,15 @@ describe("Layout Configuration Override", () => {
   let siteGenerator: SiteGenerator;
 
   beforeEach(() => {
-    // Mock the OpenAI environment variable
-    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    // Mock the Anthropic environment variable
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
 
     configLoader = new ConfigurationLoader();
     repositoryAnalyzer = new RepositoryAnalyzer();
     siteGenerator = new SiteGenerator();
 
-    // Mock OpenAI client
-    vi.spyOn(OpenAIClient.prototype, "analyzeRepository").mockImplementation(
+    // Mock Anthropic client
+    vi.spyOn(AnthropicClient.prototype, "analyzeRepository").mockImplementation(
       async () => ({
         projectType: "application",
         industry: "web",
