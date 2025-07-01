@@ -93,7 +93,10 @@ export class GitHubAPI {
   /**
    * Enable GitHub Pages for the repository
    */
-  async enableGitHubPages(context: Context): Promise<PagesConfiguration> {
+  async enableGitHubPages(
+    context: Context,
+    outputDirectory = "docs"
+  ): Promise<PagesConfiguration> {
     const { owner, repo } = context.repo();
 
     try {
@@ -104,14 +107,14 @@ export class GitHubAPI {
           repo,
         });
 
-        // Pages exists, update to use docs folder
+        // Pages exists, update to use output directory
         const updateResult =
           await context.octokit.rest.repos.updateInformationAboutPagesSite({
             owner,
             repo,
             source: {
               branch: "main",
-              path: "/docs",
+              path: `/${outputDirectory}` as "/docs",
             },
           });
 
@@ -122,7 +125,7 @@ export class GitHubAPI {
               .html_url as string) || "",
           source: {
             branch: "main",
-            path: "/docs",
+            path: `/${outputDirectory}` as "/docs",
           },
         };
       } catch (_pagesError) {
@@ -132,7 +135,7 @@ export class GitHubAPI {
           repo,
           source: {
             branch: "main",
-            path: "/docs",
+            path: `/${outputDirectory}` as "/docs",
           },
         });
 
@@ -141,7 +144,7 @@ export class GitHubAPI {
           url: createResult.data.url,
           source: {
             branch: "main",
-            path: "/docs",
+            path: `/${outputDirectory}` as "/docs",
           },
         };
       }
@@ -159,7 +162,8 @@ export class GitHubAPI {
    */
   async commitGeneratedSite(
     context: Context,
-    site: GeneratedSite
+    site: GeneratedSite,
+    outputDirectory = "docs"
   ): Promise<CommitResult> {
     const { owner, repo } = context.repo();
 
@@ -174,7 +178,7 @@ export class GitHubAPI {
       const currentSha = refResponse.data.object.sha;
 
       // Create tree with all site files
-      const treeItems = this.createTreeItems(site);
+      const treeItems = this.createTreeItems(site, outputDirectory);
 
       const treeResponse = await context.octokit.rest.git.createTree({
         owner,
@@ -577,7 +581,8 @@ export class GitHubAPI {
   }
 
   private createTreeItems(
-    site: GeneratedSite
+    site: GeneratedSite,
+    outputDirectory = "docs"
   ): Array<{ path: string; mode: "100644"; type: "blob"; content: string }> {
     const items: Array<{
       path: string;
@@ -589,7 +594,7 @@ export class GitHubAPI {
     // Add pages
     for (const [filename, content] of Object.entries(site.pages)) {
       items.push({
-        path: `docs/${filename}`,
+        path: `${outputDirectory}/${filename}`,
         mode: "100644",
         type: "blob",
         content,
@@ -599,7 +604,7 @@ export class GitHubAPI {
     // Add assets
     for (const [filename, content] of Object.entries(site.assets)) {
       items.push({
-        path: `docs/${filename}`,
+        path: `${outputDirectory}/${filename}`,
         mode: "100644",
         type: "blob",
         content,
@@ -608,7 +613,7 @@ export class GitHubAPI {
 
     // Add meta files
     items.push({
-      path: "docs/robots.txt",
+      path: `${outputDirectory}/robots.txt`,
       mode: "100644",
       type: "blob",
       content: site.meta.robotsTxt,

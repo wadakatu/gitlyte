@@ -59,7 +59,9 @@ export async function handlePush(ctx: Context) {
     const repoData = await collectRepoData(ctx);
     ctx.log.info(`📊 Repository data collected: ${repoData.basicInfo.name}`);
 
-    await ensurePages(ctx);
+    // 出力ディレクトリを設定から取得
+    const outputPath = config.generation?.outputDirectory || "docs";
+    await ensurePages(ctx, outputPath);
     ctx.log.info("📄 GitHub Pages setup completed");
 
     // デプロイメント競合を防ぐためのガード付きサイト生成
@@ -74,8 +76,7 @@ export async function handlePush(ctx: Context) {
       // サイトを生成
       const generatedSite = await siteGenerator.generateSite(analysis, config);
 
-      // ファイルをデプロイ
-      const outputPath = "docs"; // Pushトリガーは常にフル生成
+      // ファイルをデプロイ (outputPathは上で定義済み)
       const deploymentResult = await deployer.deployToDirectory(
         generatedSite,
         outputPath,

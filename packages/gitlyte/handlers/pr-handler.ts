@@ -44,7 +44,9 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
     const repoData = await collectRepoData(ctx);
     ctx.log.info(`📊 Repository data collected: ${repoData.basicInfo.name}`);
 
-    await ensurePages(ctx);
+    // デフォルトのoutputPathを先に決定
+    const defaultOutputPath = config.generation?.outputDirectory || "docs";
+    await ensurePages(ctx, defaultOutputPath);
     ctx.log.info("📄 GitHub Pages setup completed");
 
     // デプロイメント競合を防ぐためのガード付きサイト生成
@@ -62,7 +64,9 @@ export async function handleFeaturePR(ctx: Context, pr: PullRequest) {
 
       // ファイルをデプロイ（プレビューまたはフル生成に応じてパスを変更）
       const outputPath =
-        triggerResult.generationType === "preview" ? "preview" : "docs";
+        triggerResult.generationType === "preview"
+          ? `${defaultOutputPath}/preview`
+          : defaultOutputPath;
       const optimize = triggerResult.generationType !== "preview";
 
       const deploymentResult = await deployer.deployToDirectory(
