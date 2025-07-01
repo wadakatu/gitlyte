@@ -4,9 +4,9 @@ import type { GitLyteConfig } from "../../types/config.js";
 import type { DesignSystem } from "../../types/generated-site.js";
 import type { RepositoryAnalysis } from "../../types/repository.js";
 
-// Mock OpenAI Client
-vi.mock("../../utils/openai-client.js", () => ({
-  OpenAIClient: vi.fn().mockImplementation(() => ({
+// Mock Anthropic Client
+vi.mock("../../utils/anthropic-client.js", () => ({
+  AnthropicClient: vi.fn().mockImplementation(() => ({
     generateContent: vi.fn(),
     generateDesign: vi.fn(),
   })),
@@ -129,7 +129,9 @@ describe("Site Generator", () => {
 
   describe("generateSite", () => {
     it("should generate complete static site from analysis and config", async () => {
-      vi.mocked(siteGenerator.openaiClient.generateContent).mockResolvedValue({
+      vi.mocked(
+        siteGenerator.anthropicClient.generateContent
+      ).mockResolvedValue({
         hero: {
           title: "Test Repository",
           subtitle: "A powerful testing library",
@@ -137,7 +139,7 @@ describe("Site Generator", () => {
         },
       });
 
-      vi.mocked(siteGenerator.openaiClient.generateDesign).mockResolvedValue(
+      vi.mocked(siteGenerator.anthropicClient.generateDesign).mockResolvedValue(
         mockDesignSystem
       );
 
@@ -151,7 +153,9 @@ describe("Site Generator", () => {
     });
 
     it("should generate responsive CSS styles", async () => {
-      vi.mocked(siteGenerator.openaiClient.generateContent).mockResolvedValue({
+      vi.mocked(
+        siteGenerator.anthropicClient.generateContent
+      ).mockResolvedValue({
         hero: {
           title: "Test Repository",
           subtitle: "A powerful testing library",
@@ -159,7 +163,7 @@ describe("Site Generator", () => {
         },
       });
 
-      vi.mocked(siteGenerator.openaiClient.generateDesign).mockResolvedValue(
+      vi.mocked(siteGenerator.anthropicClient.generateDesign).mockResolvedValue(
         mockDesignSystem
       );
 
@@ -171,7 +175,9 @@ describe("Site Generator", () => {
     });
 
     it("should include navigation JavaScript", async () => {
-      vi.mocked(siteGenerator.openaiClient.generateContent).mockResolvedValue({
+      vi.mocked(
+        siteGenerator.anthropicClient.generateContent
+      ).mockResolvedValue({
         hero: {
           title: "Test Repository",
           subtitle: "A powerful testing library",
@@ -179,7 +185,7 @@ describe("Site Generator", () => {
         },
       });
 
-      vi.mocked(siteGenerator.openaiClient.generateDesign).mockResolvedValue(
+      vi.mocked(siteGenerator.anthropicClient.generateDesign).mockResolvedValue(
         mockDesignSystem
       );
 
@@ -201,7 +207,9 @@ describe("Site Generator", () => {
         },
       };
 
-      vi.mocked(siteGenerator.openaiClient.generateContent).mockResolvedValue({
+      vi.mocked(
+        siteGenerator.anthropicClient.generateContent
+      ).mockResolvedValue({
         hero: {
           title: "Test Repository",
           subtitle: "A powerful testing library",
@@ -209,7 +217,7 @@ describe("Site Generator", () => {
         },
       });
 
-      vi.mocked(siteGenerator.openaiClient.generateDesign).mockResolvedValue(
+      vi.mocked(siteGenerator.anthropicClient.generateDesign).mockResolvedValue(
         mockDesignSystem
       );
 
@@ -225,7 +233,9 @@ describe("Site Generator", () => {
     });
 
     it("should include SEO meta tags", async () => {
-      vi.mocked(siteGenerator.openaiClient.generateContent).mockResolvedValue({
+      vi.mocked(
+        siteGenerator.anthropicClient.generateContent
+      ).mockResolvedValue({
         hero: {
           title: "Test Repository",
           subtitle: "A powerful testing library",
@@ -233,7 +243,7 @@ describe("Site Generator", () => {
         },
       });
 
-      vi.mocked(siteGenerator.openaiClient.generateDesign).mockResolvedValue(
+      vi.mocked(siteGenerator.anthropicClient.generateDesign).mockResolvedValue(
         mockDesignSystem
       );
 
@@ -247,7 +257,9 @@ describe("Site Generator", () => {
     });
 
     it("should generate sitemap and robots.txt", async () => {
-      vi.mocked(siteGenerator.openaiClient.generateContent).mockResolvedValue({
+      vi.mocked(
+        siteGenerator.anthropicClient.generateContent
+      ).mockResolvedValue({
         hero: {
           title: "Test Repository",
           subtitle: "A powerful testing library",
@@ -255,7 +267,7 @@ describe("Site Generator", () => {
         },
       });
 
-      vi.mocked(siteGenerator.openaiClient.generateDesign).mockResolvedValue(
+      vi.mocked(siteGenerator.anthropicClient.generateDesign).mockResolvedValue(
         mockDesignSystem
       );
 
@@ -268,10 +280,10 @@ describe("Site Generator", () => {
     });
 
     it("should handle AI generation errors gracefully", async () => {
-      vi.mocked(siteGenerator.openaiClient.generateContent).mockRejectedValue(
-        new Error("AI Error")
-      );
-      vi.mocked(siteGenerator.openaiClient.generateDesign).mockRejectedValue(
+      vi.mocked(
+        siteGenerator.anthropicClient.generateContent
+      ).mockRejectedValue(new Error("AI Error"));
+      vi.mocked(siteGenerator.anthropicClient.generateDesign).mockRejectedValue(
         new Error("AI Error")
       );
 
@@ -286,7 +298,9 @@ describe("Site Generator", () => {
 
   describe("generatePage", () => {
     it("should generate index page with hero content", async () => {
-      vi.mocked(siteGenerator.openaiClient.generateContent).mockResolvedValue({
+      vi.mocked(
+        siteGenerator.anthropicClient.generateContent
+      ).mockResolvedValue({
         hero: {
           title: "Test Repository",
           subtitle: "A powerful testing library",
@@ -307,7 +321,9 @@ describe("Site Generator", () => {
     });
 
     it("should generate docs page with documentation content", async () => {
-      vi.mocked(siteGenerator.openaiClient.generateContent).mockResolvedValue({
+      vi.mocked(
+        siteGenerator.anthropicClient.generateContent
+      ).mockResolvedValue({
         features: {
           title: "Features",
           items: [

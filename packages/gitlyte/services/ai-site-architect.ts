@@ -1,24 +1,24 @@
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import type { RepoData } from "../types/repository.js";
 import type { RepositoryAnalysis } from "../types/repository.js";
 
-// OpenAI クライアント初期化
-let openai: OpenAI | null = null;
+// Anthropic クライアント初期化
+let anthropic: Anthropic | null = null;
 
-function getOpenAIClient(): OpenAI {
-  if (!openai) {
-    const apiKey = process.env.OPENAI_API_KEY;
+function getAnthropicClient(): Anthropic {
+  if (!anthropic) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error("OPENAI_API_KEY environment variable is required");
+      throw new Error("ANTHROPIC_API_KEY environment variable is required");
     }
-    openai = new OpenAI({ apiKey });
+    anthropic = new Anthropic({ apiKey });
   }
-  return openai;
+  return anthropic;
 }
 
-// テスト用：OpenAIクライアントをモック可能にする
-export function setOpenAIClient(client: OpenAI | null) {
-  openai = client;
+// テスト用：Anthropicクライアントをモック可能にする
+export function setAnthropicClient(client: Anthropic | null) {
+  anthropic = client;
 }
 
 /** サイト全体の構成設計 */
@@ -227,19 +227,22 @@ export async function designSiteArchitecture(
 }`;
 
   try {
-    const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
+    const client = getAnthropicClient();
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-20250514",
       messages: [{ role: "user", content: prompt }],
+      system:
+        "You are an expert web design architect. Always respond with valid JSON format only, no markdown or additional text.",
       temperature: 0.8, // 創造性を重視
       max_tokens: 2000,
     });
 
-    const content = response.choices[0].message.content;
-    if (!content) throw new Error("No response from OpenAI");
+    const content = response.content[0];
+    if (!content || content.type !== "text")
+      throw new Error("No response from Anthropic");
 
     // より強力なJSONクリーニング
-    let cleanContent = content
+    let cleanContent = content.text
       .replace(/```json\n?|\n?```/g, "") // コードブロック除去
       .replace(/```\n?|\n?```/g, "") // 一般的なコードブロック除去
       .trim();
@@ -376,19 +379,22 @@ export async function generateComponentSpecs(
 ]`;
 
   try {
-    const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
+    const client = getAnthropicClient();
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-20250514",
       messages: [{ role: "user", content: prompt }],
+      system:
+        "You are an expert web component designer. Always respond with valid JSON array format only, no markdown or additional text.",
       temperature: 0.9, // 最大限の創造性
       max_tokens: 3000,
     });
 
-    const content = response.choices[0].message.content;
-    if (!content) throw new Error("No response from OpenAI");
+    const content = response.content[0];
+    if (!content || content.type !== "text")
+      throw new Error("No response from Anthropic");
 
     // より強力なJSONクリーニング
-    let cleanContent = content
+    let cleanContent = content.text
       .replace(/```json\n?|\n?```/g, "") // コードブロック除去
       .replace(/```\n?|\n?```/g, "") // 一般的なコードブロック除去
       .trim();
