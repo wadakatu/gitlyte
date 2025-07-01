@@ -29,8 +29,8 @@ export async function commitFile(
   });
 }
 
-/** GitHub Pages を docs/ で有効化（未設定なら） */
-export async function ensurePages(ctx: Context) {
+/** GitHub Pages を指定ディレクトリで有効化（未設定なら） */
+export async function ensurePages(ctx: Context, outputDirectory = "docs") {
   try {
     await ctx.octokit.request("GET /repos/{owner}/{repo}/pages", ctx.repo());
   } catch (e: unknown) {
@@ -38,9 +38,9 @@ export async function ensurePages(ctx: Context) {
     await ctx.octokit.request("POST /repos/{owner}/{repo}/pages", {
       ...ctx.repo(),
       build_type: "legacy",
-      source: { branch: "main", path: "/docs" },
+      source: { branch: "main", path: `/${outputDirectory}` as "/docs" },
     });
-    ctx.log.info("🚀 Pages enabled (docs/ legacy)");
+    ctx.log.info(`🚀 Pages enabled (${outputDirectory}/ legacy)`);
   }
 }
 
