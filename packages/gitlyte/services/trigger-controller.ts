@@ -270,16 +270,6 @@ export class TriggerController {
     };
   }
 
-  /**
-   * デフォルトの自動生成判定 (廃止: Push時トリガーがデフォルト)
-   */
-  private shouldAutoGenerate(
-    _pr: PullRequest,
-    _config: GitLyteConfig
-  ): boolean {
-    // PRベースの自動生成は廃止、Push時トリガーがデフォルト
-    return false;
-  }
 
   /**
    * ヘルプメッセージの生成

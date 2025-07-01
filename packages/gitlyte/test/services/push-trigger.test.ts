@@ -163,7 +163,7 @@ describe("TriggerController - Push Trigger", () => {
     it("should default to enabled when push config is missing", async () => {
       const configWithoutPush = {
         generation: {
-          trigger: "auto" as const,
+          labels: ["enhancement"],
         },
       };
 
