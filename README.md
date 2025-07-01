@@ -76,35 +76,49 @@ docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> -e OPENAI_API_KEY=<open
 
 GitLyte offers multiple ways to generate your site:
 
-### 🤖 Automatic Generation (Default)
+### 📤 Push-Based Generation (Default)
+Automatically generate sites when you push to the default branch:
+
 1. **Install the GitHub App** on your repository
-2. **Create a PR** with `enhancement` or `feat` label  
-3. **Merge the PR** - GitLyte automatically generates your site
+2. **Push to main branch** - GitLyte automatically generates your site
+
+No configuration needed! Works out of the box.
 
 ### 💬 Comment Commands (On-Demand)
 Use these commands in any PR comment to control generation:
 
 ```bash
-/gitlyte generate        # Generate full site
-/gitlyte preview         # Generate preview (faster, lightweight)
-/gitlyte config          # Show current configuration
-/gitlyte help            # Show available commands
+@gitlyte generate        # Generate full site
+@gitlyte preview         # Generate preview (faster, lightweight)
+@gitlyte config          # Show current configuration
+@gitlyte help            # Show available commands
 ```
 
 **Command Options:**
 ```bash
-/gitlyte generate --force           # Force regeneration 
-/gitlyte preview --layout=minimal   # Preview with specific layout
+@gitlyte generate --force           # Force regeneration 
+@gitlyte preview --layout=minimal   # Preview with specific layout
 ```
 
-### 🏷️ Label Control (PR Labels)
-Add these labels to your PRs for precise control:
+### ⚙️ Advanced Push Configuration (Optional)
+Customize push-based generation behavior:
 
-- `gitlyte:generate` - Generate site when PR is merged
-- `gitlyte:preview` - Generate preview version
-- `gitlyte:force` - Force regeneration (ignores cache)
-- `gitlyte:skip` - Skip generation for this PR
-- `gitlyte:auto` - Enable automatic generation
+```json
+{
+  "generation": {
+    "push": {
+      "enabled": true,
+      "branches": ["main", "production"],
+      "ignorePaths": ["docs/", ".github/", "test/"]
+    }
+  }
+}
+```
+
+**Advanced Options:**
+- **branches**: Target specific branches (default: repository default branch)
+- **ignorePaths**: Skip generation when only these paths change
+- **enabled**: Disable push generation if needed (default: true)
 
 ### ⚙️ Configuration-Based Control
 Control generation behavior with `.gitlyte.json`:
@@ -112,12 +126,21 @@ Control generation behavior with `.gitlyte.json`:
 ```json
 {
   "generation": {
-    "trigger": "manual",              // "auto", "manual", or "label"
-    "branches": ["main", "develop"],  // Only generate for these branches
-    "labels": ["enhancement", "feat"] // Required labels for auto-generation
+    "labels": ["enhancement", "feat"],
+    "push": {
+      "enabled": true,
+      "branches": ["main"],
+      "ignorePaths": ["docs/", "test/"]
+    }
   }
 }
 ```
+
+**Configuration Options:**
+- **labels**: Required labels for PR-based generation
+- **push.enabled**: Enable/disable push-based generation (default: true)
+- **push.branches**: Target branches for push generation (defaults to repository default branch)
+- **push.ignorePaths**: Paths to ignore for push generation
 
 **When GitLyte generates your site, it:**
 - Analyzes your repository (tech stack, purpose, audience)
@@ -132,25 +155,24 @@ Create a `.gitlyte.json` file in your repository root to customize your site:
 ```json
 {
   "generation": {
-    "trigger": "auto",                    // How to trigger generation
-    "branches": ["main"],                 // Target branches  
-    "labels": ["enhancement", "feat"],    // Required labels for auto-gen
-    "skipLabels": ["wip", "draft"]        // Labels that skip generation
+    "trigger": "auto",
+    "branches": ["main"],
+    "labels": ["enhancement", "feat"]
   },
   "site": {
-    "layout": "hero-focused",             // Layout type
+    "layout": "hero-focused",
     "theme": {
-      "primary": "#667eea",               // Custom colors
+      "primary": "#667eea",
       "secondary": "#764ba2",
       "accent": "#f093fb"
     }
   },
   "logo": {
-    "path": "./assets/logo.svg",          // Logo image path
-    "alt": "MyProject Logo"               // Logo alt text
+    "path": "./assets/logo.svg",
+    "alt": "MyProject Logo"
   },
   "favicon": {
-    "path": "./assets/favicon.ico"        // Favicon path
+    "path": "./assets/favicon.ico"
   }
 }
 ```
@@ -158,10 +180,9 @@ Create a `.gitlyte.json` file in your repository root to customize your site:
 ### Configuration Options
 
 #### Generation Settings
-- **trigger**: `"auto"` | `"manual"` | `"label"` - When to generate sites
+- **trigger**: `"auto"` | `"manual"` - When to generate sites
 - **branches**: Array of branch names to generate for (empty = all branches)
 - **labels**: Required labels for automatic generation
-- **skipLabels**: Labels that prevent generation
 
 #### Site Settings  
 - **layout**: `"hero-focused"` | `"minimal"` | `"grid"` | `"sidebar"` | `"content-heavy"`
@@ -179,28 +200,43 @@ If no configuration file is provided, GitLyte uses smart defaults based on your 
 ### Quick Start (Default Behavior)
 ```bash
 # 1. Install GitLyte GitHub App on your repo
-# 2. Create a PR with "enhancement" label
-# 3. Merge PR → Site automatically generated!
+# 2. Push to main branch → Site automatically generated!
+```
+
+**That's it!** No configuration needed - GitLyte works out of the box with push-based generation.
+
+### Advanced Configuration (Optional)
+For custom behavior, create `.gitlyte.json`:
+```json
+{
+  "generation": {
+    "push": {
+      "branches": ["main", "production"],
+      "ignorePaths": ["docs/", "test/"]
+    }
+  }
+}
 ```
 
 ### Manual Control  
 ```json
-// .gitlyte.json
 {
   "generation": {
-    "trigger": "manual"  // Only generate via commands/labels
+    "push": {
+      "enabled": false
+    }
   }
 }
 ```
 
 Then use:
-- Comment: `/gitlyte generate` in any PR
-- Label: Add `gitlyte:generate` to PR before merging
+- Comment: `@gitlyte generate` in any PR
+- Or configure specific labels for PR-based generation
 
 ### Preview Mode
 ```bash
 # In PR comment:
-/gitlyte preview
+@gitlyte preview
 ```
 - Generates to `preview/` directory instead of `docs/`
 - Faster, lighter build for testing
@@ -208,7 +244,6 @@ Then use:
 
 ### Branch-Specific Generation
 ```json
-// .gitlyte.json  
 {
   "generation": {
     "branches": ["main", "production"],
@@ -219,11 +254,8 @@ Then use:
 
 ### Skip Generation
 ```bash
-# Add label to PR:
-gitlyte:skip
-
-# Or in PR comment:
-/gitlyte help  # Shows current settings without generating
+# In PR comment:
+@gitlyte help  # Shows current settings without generating
 ```
 
 ## 🛠 Architecture
