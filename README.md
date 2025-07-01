@@ -19,7 +19,7 @@ A GitHub App built with [Probot](https://github.com/probot/probot) that automati
 
 1. **Install the GitLyte GitHub App** on your repository
 2. **Push to your main branch** → Your site is automatically generated!
-3. **Enable GitHub Pages** → Go to Settings > Pages > Source: Deploy from a branch → Branch: main → Folder: /docs
+3. **Enable GitHub Pages** → Go to Settings > Pages > Source: Deploy from a branch → Branch: main → Folder: /docs (or your configured `outputDirectory`)
 
 That's it! GitLyte works out of the box with zero configuration.
 
@@ -64,7 +64,8 @@ Create a `.gitlyte.json` file in your repository root to customize your site:
   "generation": {
     "trigger": "auto",
     "branches": ["main"],
-    "labels": ["enhancement", "feat"]
+    "labels": ["enhancement", "feat"],
+    "outputDirectory": "docs"
   },
   "site": {
     "layout": "hero-focused",
@@ -90,6 +91,7 @@ Create a `.gitlyte.json` file in your repository root to customize your site:
 - **trigger**: `"auto"` | `"manual"` - When to generate sites
 - **branches**: Array of branch names to generate for (empty = all branches)
 - **labels**: Required labels for automatic generation
+- **outputDirectory**: Output directory for generated files (default: `"docs"`)
 
 #### Site Settings  
 - **layout**: `"hero-focused"` | `"minimal"` | `"grid"` | `"sidebar"` | `"content-heavy"`
@@ -117,6 +119,7 @@ For custom behavior, create `.gitlyte.json`:
 ```json
 {
   "generation": {
+    "outputDirectory": "build",
     "push": {
       "branches": ["main", "production"],
       "ignorePaths": ["docs/", "test/"]
@@ -145,7 +148,7 @@ Then use:
 # In PR comment:
 @gitlyte preview
 ```
-- Generates to `preview/` directory instead of `docs/`
+- Generates to `{outputDirectory}/preview/` directory (default: `docs/preview/`)
 - Faster, lighter build for testing
 - Perfect for experimenting with changes
 
@@ -166,6 +169,25 @@ Then use:
 @gitlyte config  # Display current configuration
 ```
 
+### Custom Output Directory
+```json
+{
+  "generation": {
+    "outputDirectory": "build"
+  }
+}
+```
+This generates files to:
+- **Production site**: `build/` directory
+- **Preview site**: `build/preview/` directory
+
+Common output directories:
+- `"docs"` (default) - GitHub Pages ready
+- `"build"` - Common build directory  
+- `"dist"` - Distribution directory
+- `"public"` - Public assets directory
+
+**Note**: Remember to update your GitHub Pages settings to match your chosen directory.
 
 ## 🤝 Contributing
 
