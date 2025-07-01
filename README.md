@@ -13,13 +13,17 @@ A GitHub App built with [Probot](https://github.com/probot/probot) that automati
 - ⚡ **Auto-Deploy**: GitHub Actions automatically build and deploy
 - 🔄 **Flexible Triggers**: Multiple ways to control when sites are generated
 - 💬 **Comment Commands**: Generate sites on-demand with PR comments  
-- 🏷️ **Label Control**: Fine-grained control with GitHub labels
+- 🏷️ **Label Control**: Simple control with `gitlyte` and `gitlyte:preview` labels
 
 ## 🚀 Quick Start
 
 1. **Install the GitLyte GitHub App** on your repository
-2. **Push to your main branch** → Your site is automatically generated!
-3. **Enable GitHub Pages** → Go to Settings > Pages > Source: Deploy from a branch → Branch: main → Folder: /docs (or your configured `outputDirectory`)
+   - ✨ GitLyte automatically creates the necessary labels (`gitlyte` and `gitlyte:preview`)
+2. **Add a label to your PR**:
+   - `gitlyte` - Generate full production site
+   - `gitlyte:preview` - Generate lightweight preview site
+3. **Merge the PR** → Your site is automatically generated!
+4. **Enable GitHub Pages** → Go to Settings > Pages > Source: Deploy from a branch → Branch: main → Folder: /docs (or your configured `outputDirectory`)
 
 That's it! GitLyte works out of the box with zero configuration.
 
@@ -36,8 +40,26 @@ GitLyte uses AI to analyze your repository and create a custom website:
 3. **Creates** Astro components with unique styling  
 4. **Deploys** to GitHub Pages automatically
 
-### 📤 Push-Based Generation (Default)
-Automatically generate sites when you push to the default branch - **no configuration needed!**
+### 🏷️ PR Merge Generation (Default)
+Automatically generate sites when you merge PRs with GitLyte labels - **no configuration needed!**
+
+- **`gitlyte`** - Generates a full production-ready site
+- **`gitlyte:preview`** - Generates a lightweight preview version (faster, uses less resources)
+
+> 💡 **Note**: These labels are automatically created when you install the GitLyte app and removed when you uninstall it.
+
+### 📤 Push-Based Generation
+For direct pushes to branches, configure in `.gitlyte.json`:
+```json
+{
+  "generation": {
+    "push": {
+      "enabled": true,
+      "branches": ["main"]
+    }
+  }
+}
+```
 
 ### 💬 Comment Commands (On-Demand)
 Use these commands in any PR comment to control generation:
@@ -64,7 +86,7 @@ Create a `.gitlyte.json` file in your repository root to customize your site:
   "generation": {
     "trigger": "auto",
     "branches": ["main"],
-    "labels": ["enhancement", "feat"],
+    "labels": ["gitlyte", "gitlyte:preview", "custom-label"],
     "outputDirectory": "docs"
   },
   "site": {
@@ -90,7 +112,7 @@ Create a `.gitlyte.json` file in your repository root to customize your site:
 #### Generation Settings
 - **trigger**: `"auto"` | `"manual"` - When to generate sites
 - **branches**: Array of branch names to generate for (empty = all branches)
-- **labels**: Required labels for automatic generation
+- **labels**: Custom labels for automatic generation (default: `["gitlyte", "gitlyte:preview"]`)
 - **outputDirectory**: Output directory for generated files (default: `"docs"`)
 
 #### Site Settings  

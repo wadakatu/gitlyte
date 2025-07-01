@@ -49,12 +49,34 @@ export class TriggerController {
       return configTrigger;
     }
 
-    // PRベースの生成は基本的に無効（Push時生成がデフォルト）
+    // デフォルトでPRマージ時の生成を有効化（GitLyte専用ラベルをチェック）
+    const prLabels = pr.labels.map((l) => l.name);
+
+    // gitlyte:preview ラベルがある場合はプレビュー生成
+    if (prLabels.includes("gitlyte:preview")) {
+      return {
+        shouldGenerate: true,
+        triggerType: "label",
+        generationType: "preview",
+        reason: "PR has gitlyte:preview label",
+      };
+    }
+
+    // gitlyte ラベルがある場合はフル生成
+    if (prLabels.includes("gitlyte")) {
+      return {
+        shouldGenerate: true,
+        triggerType: "label",
+        generationType: "full",
+        reason: "PR has gitlyte label",
+      };
+    }
+
     return {
       shouldGenerate: false,
       triggerType: "manual",
       generationType: "full",
-      reason: "PR-based generation disabled (use push or comment triggers)",
+      reason: "PR does not have gitlyte labels (gitlyte or gitlyte:preview)",
     };
   }
 
