@@ -7,7 +7,7 @@ A GitHub App built with [Probot](https://github.com/probot/probot) that automati
 ## ✨ Features
 
 - 🤖 **AI-Powered Design**: Analyzes your repository and generates custom designs
-- 🚀 **Astro-Based Sites**: Modern, fast static sites with excellent performance
+- 🚀 **Static HTML Sites**: Modern, fast static sites with excellent performance
 - 🎨 **Unique Styling**: Every site gets a custom color scheme and layout
 - 📱 **Responsive Design**: Looks great on all devices
 - ⚡ **Auto-Deploy**: GitHub Actions automatically build and deploy
@@ -37,7 +37,7 @@ GitLyte uses AI to analyze your repository and create a custom website:
 
 1. **Analyzes** your repository (tech stack, purpose, audience)
 2. **Generates** a custom design strategy with AI
-3. **Creates** Astro components with unique styling  
+3. **Creates** HTML pages with unique styling  
 4. **Deploys** to GitHub Pages automatically
 
 ### 🏷️ PR Merge Generation (Default)
