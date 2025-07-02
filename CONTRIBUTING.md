@@ -47,7 +47,7 @@ pnpm start
 ```sh
 pnpm run build       # Build all packages
 pnpm start           # Start the GitHub App (requires .env setup)
-pnpm run dev:demo    # Start demo Astro development server
+pnpm run dev:demo    # Start demo development server
 ```
 
 ### Code Quality

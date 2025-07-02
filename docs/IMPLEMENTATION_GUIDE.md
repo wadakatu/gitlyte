@@ -52,7 +52,7 @@ packages/gitlyte/
 services/
 ├── ai-content-generator.ts       # ❌ DELETE: 新アーキテクチャで置換
 ├── ai-code-generator.ts          # ❌ DELETE: 新アーキテクチャで置換
-├── astro-generator.ts            # ❌ DELETE: 静的生成に変更
+├── astro-generator.ts            # ❌ DELETE: HTML生成に変更
 ├── ai-analyzer.ts                # ❌ DELETE: repository-analyzer.tsで置換
 ├── docs-generator.ts             # ❌ DELETE: site-generator.tsに統合
 └── hybrid-generator.ts           # ❌ DELETE: 不要
@@ -134,7 +134,7 @@ export class RepositoryAnalyzer {
   }
   
   private async analyzeWithAI(repoData: RepoData): Promise<AIAnalysisResult> {
-    // OpenAI API call for intelligent analysis
+    // Anthropic Claude API call for intelligent analysis
   }
   
   private async extractCodeFeatures(repoData: RepoData): Promise<CodeFeatures> {

@@ -1,14 +1,14 @@
 # GitLyte Architecture
 
-GitLyte is a GitHub App built with [Probot](https://github.com/probot/probot) that automatically generates AI-powered Astro websites from repository data. This document provides a detailed technical overview of the system architecture.
+GitLyte is a GitHub App built with [Probot](https://github.com/probot/probot) that automatically generates AI-powered static HTML websites from repository data. This document provides a detailed technical overview of the system architecture.
 
 ## 🏗 System Architecture
 
 ```
 GitHub Events → AI Analysis → Custom Site Generation → GitHub Pages Deploy
      ↓             ↓              ↓                    ↓
-  PR/Issue      OpenAI API     Astro Components    Static Site
-  Content       Design AI      Custom CSS/JS       Auto-Deploy
+  PR/Issue      Anthropic API   HTML/CSS/JS        Static Site
+  Content       Design AI       Custom Pages       Auto-Deploy
 ```
 
 ## 📁 Project Structure
@@ -16,7 +16,7 @@ GitHub Events → AI Analysis → Custom Site Generation → GitHub Pages Deploy
 GitLyte uses pnpm workspaces with two main packages:
 
 - `@gitlyte/core` - Main GitHub App in `packages/gitlyte/`
-- `@gitlyte/demo` - Demo Astro application in `packages/demo/`
+- `@gitlyte/demo` - Demo site example in `packages/demo/`
 
 ```
 packages/
@@ -47,7 +47,7 @@ The architecture follows a three-stage AI pipeline:
 - **Comment commands** (`@gitlyte generate`, `@gitlyte preview`)
 
 ### 2. AI Analysis
-Repository is analyzed using OpenAI API to determine:
+Repository is analyzed using Anthropic Claude API to determine:
 - Project type and tech stack
 - Target audience
 - Purpose and tone
@@ -61,7 +61,7 @@ AI creates custom design strategy:
 - Component styling
 
 ### 4. Code Generation
-Astro components are generated with:
+HTML pages are generated with:
 - Custom styling (no templates)
 - Project-specific content
 - Responsive design
@@ -87,7 +87,7 @@ Files are batch-committed and deployed:
 **File**: `packages/gitlyte/services/repository-analyzer.ts`
 - Analyzes repository structure and content
 - Determines project characteristics
-- Generates design strategy using OpenAI
+- Generates design strategy using Anthropic Claude
 
 #### Site Generator
 **File**: `packages/gitlyte/services/site-generator.ts`

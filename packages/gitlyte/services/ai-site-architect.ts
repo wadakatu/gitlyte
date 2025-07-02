@@ -338,7 +338,7 @@ export async function generateComponentSpecs(
   repoData: RepoData
 ): Promise<ComponentSpec[]> {
   const prompt = `
-あなたは革新的なWebコンポーネント設計の専門家です。以下の詳細なセクション設計から、完全オリジナルのAstroコンポーネントを作成してください。
+あなたは革新的なWebコンポーネント設計の専門家です。以下の詳細なセクション設計から、完全オリジナルのHTMLコンポーネントを作成してください。
 
 ## サイト全体のコンセプト
 - テーマ: ${architecture.concept.theme}
@@ -372,7 +372,7 @@ export async function generateComponentSpecs(
     "name": "コンポーネント名",
     "purpose": "コンポーネントの目的と役割",
     "props_interface": "export interface Props { ... }の完全な型定義",
-    "html_structure": "Astroコンポーネントの完全なHTML構造（propsを使用）",
+    "html_structure": "HTMLコンポーネントの完全な構造（変数を使用）",
     "css_styles": "コンポーネント専用の完全なCSS（CSS変数を活用）",
     "responsive_rules": "レスポンシブデザインの詳細なルール"
   }
