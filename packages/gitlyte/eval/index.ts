@@ -21,6 +21,11 @@ import {
 } from "./llm-judge.js";
 import { ALL_BENCHMARKS, getMockData } from "./benchmarks/index.js";
 
+export interface EvaluationError {
+  component: "lighthouse" | "design" | "generation";
+  message: string;
+}
+
 export interface EvaluationReport {
   timestamp: string;
   benchmarkId: string;
@@ -28,6 +33,7 @@ export interface EvaluationReport {
   designEvaluation?: DesignEvaluation;
   overallPassed: boolean;
   summary: string;
+  errors?: EvaluationError[];
 }
 
 export interface EvaluationOptions {
@@ -55,9 +61,12 @@ export async function evaluateSite(
 ): Promise<EvaluationReport> {
   const timestamp = new Date().toISOString();
   const mockData = getMockData(benchmarkId);
+  const errors: EvaluationError[] = [];
 
   let lighthouseResult: LighthouseResult | undefined;
   let designEvaluation: DesignEvaluation | undefined;
+  let lighthouseFailed = false;
+  let designFailed = false;
 
   // Run Lighthouse evaluation
   if (options.runLighthouse) {
@@ -67,6 +76,10 @@ export async function evaluateSite(
         options.lighthouseThresholds
       );
     } catch (error) {
+      lighthouseFailed = true;
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      errors.push({ component: "lighthouse", message: errorMessage });
       console.error("Lighthouse evaluation failed:", error);
     }
   }
@@ -88,15 +101,24 @@ export async function evaluateSite(
       const response = await llmEvaluator(prompt);
       designEvaluation = parseEvaluationResponse(response);
     } catch (error) {
+      designFailed = true;
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      errors.push({ component: "design", message: errorMessage });
       console.error("Design evaluation failed:", error);
     }
   }
 
   // Determine overall pass/fail
-  const lighthousePassed = lighthouseResult?.passed ?? true;
-  const designPassed = designEvaluation
-    ? meetsQualityThreshold(designEvaluation, options.designThreshold)
-    : true;
+  // Failed evaluations should NOT default to passed
+  const lighthousePassed = lighthouseFailed
+    ? false
+    : (lighthouseResult?.passed ?? !options.runLighthouse);
+  const designPassed = designFailed
+    ? false
+    : designEvaluation
+      ? meetsQualityThreshold(designEvaluation, options.designThreshold)
+      : !options.runDesignEvaluation;
   const overallPassed = lighthousePassed && designPassed;
 
   // Generate summary
@@ -119,6 +141,7 @@ export async function evaluateSite(
     designEvaluation,
     overallPassed,
     summary: summaryParts.join(" | ") || "No evaluations run",
+    errors: errors.length > 0 ? errors : undefined,
   };
 }
 

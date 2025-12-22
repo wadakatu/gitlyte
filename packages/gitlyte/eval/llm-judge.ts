@@ -138,6 +138,22 @@ export function parseEvaluationResponse(response: string): DesignEvaluation {
       throw new Error("Invalid overallScore");
     }
 
+    // Validate reasoning
+    if (typeof parsed.reasoning !== "string" || parsed.reasoning.length === 0) {
+      throw new Error("Missing or invalid reasoning");
+    }
+
+    // Validate suggestions
+    if (!Array.isArray(parsed.suggestions)) {
+      throw new Error("Missing or invalid suggestions array");
+    }
+    for (const suggestion of parsed.suggestions) {
+      if (typeof suggestion !== "string") {
+        throw new Error("Invalid suggestion: must be a string");
+      }
+    }
+
+    // Validate criteria
     const requiredCriteria = [
       "aesthetics",
       "modernity",
@@ -145,6 +161,11 @@ export function parseEvaluationResponse(response: string): DesignEvaluation {
       "usability",
       "consistency",
     ];
+
+    if (!parsed.criteria || typeof parsed.criteria !== "object") {
+      throw new Error("Missing criteria object");
+    }
+
     for (const criterion of requiredCriteria) {
       if (!parsed.criteria[criterion]) {
         throw new Error(`Missing criterion: ${criterion}`);
@@ -155,6 +176,12 @@ export function parseEvaluationResponse(response: string): DesignEvaluation {
         parsed.criteria[criterion].score > 5
       ) {
         throw new Error(`Invalid score for ${criterion}`);
+      }
+      if (
+        typeof parsed.criteria[criterion].reasoning !== "string" ||
+        parsed.criteria[criterion].reasoning.length === 0
+      ) {
+        throw new Error(`Missing or invalid reasoning for ${criterion}`);
       }
     }
 

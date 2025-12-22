@@ -76,16 +76,39 @@ export async function runLighthouse(
     }
 
     const manifest = JSON.parse(readFileSync(resultsPath, "utf-8"));
+
+    // Validate manifest structure
+    if (!Array.isArray(manifest) || manifest.length === 0) {
+      throw new Error("Lighthouse manifest is empty or invalid");
+    }
+
     const latestRun = manifest[manifest.length - 1];
+    if (!latestRun?.jsonPath) {
+      throw new Error("Lighthouse manifest entry is missing jsonPath");
+    }
+
     const report = JSON.parse(readFileSync(latestRun.jsonPath, "utf-8"));
 
+    // Validate report structure and extract scores safely
+    if (!report?.categories) {
+      throw new Error("Lighthouse report is missing categories");
+    }
+
+    const getScore = (categoryKey: string): number => {
+      const category = report.categories[categoryKey];
+      if (!category || typeof category.score !== "number") {
+        throw new Error(
+          `Lighthouse category "${categoryKey}" is missing or has invalid score`
+        );
+      }
+      return Math.round(category.score * 100);
+    };
+
     const scores: LighthouseScores = {
-      performance: Math.round(report.categories.performance.score * 100),
-      accessibility: Math.round(report.categories.accessibility.score * 100),
-      bestPractices: Math.round(
-        report.categories["best-practices"].score * 100
-      ),
-      seo: Math.round(report.categories.seo.score * 100),
+      performance: getScore("performance"),
+      accessibility: getScore("accessibility"),
+      bestPractices: getScore("best-practices"),
+      seo: getScore("seo"),
     };
 
     const passed =
