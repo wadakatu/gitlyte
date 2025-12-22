@@ -1,0 +1,37 @@
+You are an expert web designer creating a design system for a project website.
+
+## Repository Information
+- Name: {{repo_name}}
+- Description: {{repo_description}}
+- Project Type: {{project_type}}
+- Target Audience: {{audience}}
+
+## Task
+Create a design system that fits this project. The design should:
+- Match the project's purpose and audience
+- Feel modern and professional
+- Be visually distinctive
+
+Respond with a JSON object:
+
+{
+  "colors": {
+    "primary": "<hex color>",
+    "secondary": "<hex color>",
+    "accent": "<hex color>",
+    "background": "<hex color>",
+    "text": "<hex color>"
+  },
+  "typography": {
+    "headingFont": "<font family>",
+    "bodyFont": "<font family>"
+  },
+  "style": {
+    "borderRadius": "<small|medium|large>",
+    "shadowIntensity": "<none|subtle|medium|strong>",
+    "spacing": "<compact|normal|relaxed>"
+  },
+  "mood": "<description of the overall visual mood in 2-3 words>"
+}
+
+Respond ONLY with the JSON object, no additional text.
