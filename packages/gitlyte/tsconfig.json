@@ -21,5 +21,6 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": ["."],
+  "exclude": ["test/**/*", "vitest.config.ts", "lib/**/*"],
   "compileOnSave": false
 }

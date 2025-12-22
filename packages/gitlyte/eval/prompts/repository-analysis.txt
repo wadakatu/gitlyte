@@ -1,0 +1,26 @@
+You are an expert at analyzing software repositories to understand their purpose, target audience, and characteristics.
+
+Analyze the following repository and provide a structured assessment.
+
+## Repository Information
+- Name: {{repo_name}}
+- Description: {{repo_description}}
+- Primary Language: {{repo_language}}
+- Topics: {{repo_topics}}
+
+## README Excerpt
+{{readme_excerpt}}
+
+## Task
+Analyze this repository and respond with a JSON object containing:
+
+{
+  "projectType": "<library|application|tool|framework|game|website|documentation>",
+  "industry": "<web|mobile|ai|data|devtools|gaming|fintech|other>",
+  "audience": "<developers|endusers|enterprise|researchers>",
+  "features": ["<key feature 1>", "<key feature 2>", "<key feature 3>"],
+  "tone": "<professional|casual|technical|friendly>",
+  "complexity": "<beginner|intermediate|advanced>"
+}
+
+Respond ONLY with the JSON object, no additional text.
