@@ -6,12 +6,12 @@ export default function app(bot: Probot) {
   bot.on("push", async (ctx) => {
     const { ref, commits } = ctx.payload as {
       ref: string;
-      commits: Array<unknown>;
+      commits: Array<{ id: string; message: string }>;
     };
     const branchName = ref.replace("refs/heads/", "");
 
     ctx.log.info(
-      `📤 Push event received: branch=${branchName}, commits=${(commits as Array<unknown>).length}`
+      `📤 Push event received: branch=${branchName}, commits=${commits.length}`
     );
     await handlePushV2(ctx);
   });
