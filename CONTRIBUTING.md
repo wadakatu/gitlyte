@@ -182,7 +182,7 @@ GitLyte uses AI to generate custom websites from repository data.
 3. **Design Generation**: AI creates custom design with Tailwind CSS
 4. **HTML Generation**: Complete HTML pages are generated
 5. **Self-Refine** (optional): Quality improvement through iterative refinement
-6. **Deployment**: Files are batch-committed via GitHub Tree API
+6. **Deployment**: Creates branch and opens PR via GitHub API (batch commit via Tree API)
 
 ### Key Components
 

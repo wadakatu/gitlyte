@@ -18,8 +18,9 @@ A GitHub App built with [Probot](https://github.com/probot/probot) that automati
 
 1. **Install the GitLyte GitHub App** on your repository
 2. **Push to your default branch** (typically `main`)
-3. **Site is automatically generated** in your `docs/` directory
-4. **Enable GitHub Pages**: Settings > Pages > Source: Deploy from a branch > Branch: main > Folder: /docs
+3. **Review the auto-generated PR** with your new site
+4. **Merge the PR** to deploy your site
+5. **Enable GitHub Pages**: Settings > Pages > Source: Deploy from a branch > Branch: main > Folder: /docs
 
 That's it! GitLyte works out of the box with zero configuration.
 
@@ -30,9 +31,9 @@ GitLyte uses AI to analyze your repository and create a custom website:
 1. **Analyzes** your repository (README, tech stack, purpose, audience)
 2. **Generates** a custom design with AI-crafted Tailwind CSS
 3. **Creates** HTML pages with unique styling
-4. **Commits** directly to your repository
+4. **Opens a Pull Request** with the generated site
 
-Every push to the default branch triggers a new site generation.
+Every push to the default branch triggers a new site generation. The generated site is submitted as a PR for review, making it compatible with branch protection rules.
 
 ## Configuration
 

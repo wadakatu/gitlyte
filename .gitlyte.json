@@ -1,20 +1,12 @@
 {
-  "generation": {
-    "trigger": "manual",
-    "outputDirectory": "docs/sites",
-    "branches": ["main", "feature/migrate-to-anthropic"],
-    "labels": ["gitlyte"]
-  },
-  "site": {
-    "layout": "hero-focused",
-    "theme": {
-      "primary": "#667eea",
-      "secondary": "#764ba2",
-      "accent": "#f093fb"
-    }
-  },
+  "enabled": true,
+  "outputDirectory": "docs/site",
   "logo": {
     "path": "./docs/architecture/images/gitlyte-logo.svg",
     "alt": "GitLyte - AI-Powered Website Generator"
+  },
+  "ai": {
+    "provider": "anthropic",
+    "quality": "standard"
   }
 }
