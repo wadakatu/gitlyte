@@ -85,7 +85,7 @@ Uses Vercel AI SDK for provider abstraction:
 |----------|-------|---------------------|
 | Anthropic (default) | claude-sonnet-4-20250514 | `ANTHROPIC_API_KEY` |
 | OpenAI | gpt-4o | `OPENAI_API_KEY` |
-| Google | gemini-1.5-pro | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| Google | gemini-2.0-flash | `GOOGLE_API_KEY` |
 
 ### Quality Modes
 - **standard**: Single generation pass (fast, cost-effective)
@@ -160,12 +160,12 @@ packages/gitlyte/test/
 - Vitest for test runner
 - nock for GitHub API mocking
 - Mock AI responses for deterministic tests
-- 214+ tests covering all functionality
+- Comprehensive test coverage across all functionality
 
 ## Version Management
 
 Uses **mise** for consistent environments:
-- Node.js: 20.18.0
-- pnpm: 10.12.1
+- Node.js: 24.12.0
+- pnpm: 10.25.0
 
 Configuration in `.mise.toml` ensures consistency across contributors.

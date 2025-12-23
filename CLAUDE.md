@@ -70,7 +70,7 @@ GitLyte is a GitHub App built with Probot that automatically generates static we
 Uses Vercel AI SDK for multi-provider support:
 - **Anthropic**: `claude-sonnet-4-20250514` (default)
 - **OpenAI**: `gpt-4o`
-- **Google**: `gemini-1.5-pro`
+- **Google**: `gemini-2.0-flash`
 
 Quality modes:
 - `standard`: Single generation pass
@@ -78,10 +78,12 @@ Quality modes:
 
 ### Evaluation System
 Located in `packages/gitlyte/eval/`:
+- `index.ts` - Main evaluation entry point
 - `lighthouse.ts` - Lighthouse CI integration
 - `llm-judge.ts` - LLM-based design quality evaluation
 - `run-eval.ts` - CLI for running evaluations
 - `benchmarks/` - Benchmark repository definitions
+- `prompts/` - Prompt templates for evaluation
 - `promptfoo.yaml` - Prompt regression testing
 
 ## Testing

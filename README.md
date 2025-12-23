@@ -83,7 +83,7 @@ GitLyte supports multiple AI providers. Set the appropriate environment variable
 |----------|---------------------|
 | Anthropic (default) | `ANTHROPIC_API_KEY` |
 | OpenAI | `OPENAI_API_KEY` |
-| Google | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| Google | `GOOGLE_API_KEY` |
 
 ## Examples
 
