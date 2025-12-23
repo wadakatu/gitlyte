@@ -72,9 +72,10 @@ When `ai.quality: "high"` is configured:
 - Iterates until quality threshold is met or max iterations reached
 
 ### 6. Deployment via Pull Request
-- Creates a new branch (`gitlyte/update-site-<timestamp>`)
-- Commits files via GitHub Tree API (batch operation)
+- Creates tree and commit via GitHub Tree API (batch operation)
+- Creates a new branch (`gitlyte/update-site-<timestamp>`) pointing to the commit
 - Opens a Pull Request to the default branch
+- Cleans up orphaned branches on PR creation failure
 - Works with branch protection rules enabled
 - Files are available on GitHub Pages after PR merge
 

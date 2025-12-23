@@ -38,6 +38,7 @@ describe("v2-push-handler", () => {
         createTree: ReturnType<typeof vi.fn>;
         createCommit: ReturnType<typeof vi.fn>;
         createRef: ReturnType<typeof vi.fn>;
+        deleteRef: ReturnType<typeof vi.fn>;
       };
       pulls: {
         create: ReturnType<typeof vi.fn>;
@@ -84,6 +85,7 @@ describe("v2-push-handler", () => {
           createTree: vi.fn(),
           createCommit: vi.fn(),
           createRef: vi.fn(),
+          deleteRef: vi.fn(),
         },
         pulls: {
           create: vi.fn(),
@@ -126,6 +128,7 @@ describe("v2-push-handler", () => {
       data: { sha: "commit-sha" },
     });
     mockContext.octokit.git.createRef.mockResolvedValue({});
+    mockContext.octokit.git.deleteRef.mockResolvedValue({});
     mockContext.octokit.pulls.create.mockResolvedValue({
       data: {
         number: 42,
@@ -399,13 +402,67 @@ describe("v2-push-handler", () => {
       );
     });
 
-    it("should handle PR creation failure with context", async () => {
+    it("should handle PR creation failure with branch cleanup", async () => {
       const prError = new Error("Permission denied");
       mockContext.octokit.pulls.create.mockRejectedValue(prError);
 
       await expect(
         handlePushV2(mockContext as Parameters<typeof handlePushV2>[0])
       ).rejects.toThrow("Failed to create PR for owner/test-repo");
+
+      // Should attempt to clean up the orphaned branch
+      expect(mockContext.octokit.git.deleteRef).toHaveBeenCalledWith(
+        expect.objectContaining({
+          owner: "owner",
+          repo: "test-repo",
+          ref: expect.stringMatching(/^heads\/gitlyte\/update-site-/),
+        })
+      );
+      expect(mockContext.log.info).toHaveBeenCalledWith(
+        expect.stringContaining("Cleaned up orphaned branch")
+      );
+    });
+
+    it("should handle branch already exists (422) error", async () => {
+      const branchExistsError = new Error("Reference already exists");
+      (branchExistsError as { status?: number }).status = 422;
+      mockContext.octokit.git.createRef.mockRejectedValue(branchExistsError);
+
+      await expect(
+        handlePushV2(mockContext as Parameters<typeof handlePushV2>[0])
+      ).rejects.toThrow("already exists");
+    });
+
+    it("should warn but proceed when README fetch fails with non-404 error", async () => {
+      const networkError = new Error("Network timeout");
+      (networkError as { status?: number }).status = 500;
+      mockContext.octokit.repos.getReadme.mockRejectedValue(networkError);
+
+      await handlePushV2(mockContext as Parameters<typeof handlePushV2>[0]);
+
+      expect(mockContext.log.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Failed to fetch README (proceeding without it)"
+        )
+      );
+      // Should still proceed with generation
+      expect(mockContext.log.info).toHaveBeenCalledWith(
+        expect.stringContaining("Starting site generation")
+      );
+    });
+
+    it("should include repository name in error log", async () => {
+      const error = new Error("Generation failed");
+      mockContext.octokit.git.createTree.mockRejectedValue(error);
+
+      await expect(
+        handlePushV2(mockContext as Parameters<typeof handlePushV2>[0])
+      ).rejects.toThrow();
+
+      expect(mockContext.log.error).toHaveBeenCalledWith(
+        expect.stringContaining("owner/test-repo"),
+        expect.any(Error)
+      );
     });
   });
 });
