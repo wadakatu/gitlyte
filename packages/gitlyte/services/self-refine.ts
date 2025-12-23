@@ -1,16 +1,18 @@
 /**
  * Self-Refine Service
  *
- * Implements the Self-Refine pattern for improving generated site quality:
- * 1. Generate initial site
- * 2. Evaluate design quality using LLM as Judge
- * 3. If below threshold, regenerate with feedback
+ * Implements the Self-Refine pattern for improving generated site quality.
+ * This service receives already-generated HTML and iteratively improves it:
+ * 1. Evaluate design quality using LLM as Judge
+ * 2. If below threshold, regenerate with feedback
+ * 3. Repeat until threshold met or max iterations reached
  * 4. Return the best version
  *
  * This service is activated when `quality: "high"` is set in config.
  */
 
 import type { AIProviderInstance } from "../utils/ai-provider.js";
+import { cleanHtmlResponse } from "../utils/ai-response-cleaner.js";
 import {
   type DesignEvaluation,
   type EvaluationContext,
@@ -42,6 +44,36 @@ export const DEFAULT_SELF_REFINE_CONFIG: SelfRefineConfig = {
   maxIterations: 2,
   verbose: true,
 };
+
+/**
+ * Validate and normalize Self-Refine configuration
+ *
+ * @param config - Configuration to validate
+ * @returns Validated and normalized configuration
+ * @throws Error if configuration is invalid
+ *
+ * @example
+ * ```typescript
+ * const config = validateSelfRefineConfig({ threshold: 4.5, maxIterations: 3, verbose: false });
+ * ```
+ */
+export function validateSelfRefineConfig(
+  config: SelfRefineConfig
+): SelfRefineConfig {
+  if (config.threshold < 1 || config.threshold > 5) {
+    throw new Error(
+      `Invalid threshold: ${config.threshold}. Must be between 1 and 5.`
+    );
+  }
+
+  if (config.maxIterations < 1 || config.maxIterations > 10) {
+    throw new Error(
+      `Invalid maxIterations: ${config.maxIterations}. Must be between 1 and 10.`
+    );
+  }
+
+  return config;
+}
 
 /**
  * Result of a refinement attempt
@@ -87,6 +119,18 @@ export interface RefinementContext {
 
 /**
  * Evaluate a generated page using LLM as Judge
+ *
+ * @param html - The HTML content to evaluate
+ * @param context - Refinement context with repository and design info
+ * @param aiProvider - AI provider instance
+ * @returns Design evaluation with scores and feedback
+ * @throws Error if AI generation or response parsing fails
+ *
+ * @example
+ * ```typescript
+ * const evaluation = await evaluatePageDesign(html, context, aiProvider);
+ * console.log(`Score: ${evaluation.overallScore}/5`);
+ * ```
  */
 export async function evaluatePageDesign(
   html: string,
@@ -100,16 +144,38 @@ export async function evaluatePageDesign(
 
   const prompt = buildEvaluationPrompt(evalContext);
 
-  const result = await aiProvider.generateText({
-    prompt,
-    taskType: "evaluation",
-  });
+  try {
+    const result = await aiProvider.generateText({
+      prompt,
+      taskType: "evaluation",
+    });
 
-  return parseEvaluationResponse(result.text);
+    return parseEvaluationResponse(result.text);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `[self-refine] Failed to evaluate page design: ${errorMessage}`,
+      {
+        cause: error,
+      }
+    );
+  }
 }
 
 /**
  * Generate an improved page based on evaluation feedback
+ *
+ * @param currentHtml - The current HTML to improve
+ * @param evaluation - Evaluation with feedback to address
+ * @param context - Refinement context with repository and design info
+ * @param aiProvider - AI provider instance
+ * @returns Improved HTML content
+ * @throws Error if AI generation or HTML cleaning fails
+ *
+ * @example
+ * ```typescript
+ * const improvedHtml = await generateRefinedPage(html, evaluation, context, aiProvider);
+ * ```
  */
 export async function generateRefinedPage(
   currentHtml: string,
@@ -119,13 +185,23 @@ export async function generateRefinedPage(
 ): Promise<string> {
   const prompt = buildRefinementPrompt(currentHtml, evaluation, context);
 
-  const result = await aiProvider.generateText({
-    prompt,
-    taskType: "content",
-    maxOutputTokens: 4000,
-  });
+  try {
+    const result = await aiProvider.generateText({
+      prompt,
+      taskType: "content",
+      maxOutputTokens: 4000,
+    });
 
-  return cleanHtmlResponse(result.text);
+    return cleanHtmlResponse(result.text);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `[self-refine] Failed to generate refined page: ${errorMessage}`,
+      {
+        cause: error,
+      }
+    );
+  }
 }
 
 /**
@@ -221,33 +297,8 @@ function getWeakestCriteria(
   return criteria.sort((a, b) => a.score - b.score).slice(0, 3);
 }
 
-/**
- * Clean HTML response from AI
- */
-function cleanHtmlResponse(text: string): string {
-  let cleaned = text.trim();
-
-  // Remove markdown code blocks
-  if (cleaned.startsWith("```html")) {
-    cleaned = cleaned.slice(7);
-  }
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
-
-  // Ensure it starts with doctype
-  if (!cleaned.toLowerCase().startsWith("<!doctype")) {
-    const doctypeIndex = cleaned.toLowerCase().indexOf("<!doctype");
-    if (doctypeIndex > -1) {
-      cleaned = cleaned.slice(doctypeIndex);
-    }
-  }
-
-  return cleaned.trim();
-}
+/** Small epsilon for floating point comparisons */
+const EPSILON = 0.001;
 
 /**
  * Refine a generated page using the Self-Refine pattern
@@ -257,6 +308,17 @@ function cleanHtmlResponse(text: string): string {
  * @param aiProvider - AI provider instance
  * @param config - Self-Refine configuration
  * @returns Refinement result with the best HTML
+ * @throws Error if initial evaluation fails or configuration is invalid
+ *
+ * @example
+ * ```typescript
+ * const result = await refinePage(html, context, aiProvider, {
+ *   threshold: 4.0,
+ *   maxIterations: 3,
+ *   verbose: true,
+ * });
+ * console.log(`Final score: ${result.finalEvaluation.overallScore}/5`);
+ * ```
  */
 export async function refinePage(
   initialHtml: string,
@@ -264,6 +326,9 @@ export async function refinePage(
   aiProvider: AIProviderInstance,
   config: SelfRefineConfig = DEFAULT_SELF_REFINE_CONFIG
 ): Promise<RefinementResult> {
+  // Validate configuration
+  validateSelfRefineConfig(config);
+
   const log = config.verbose ? console.log : () => {};
 
   log("[self-refine] Evaluating initial generation...");
@@ -300,6 +365,8 @@ export async function refinePage(
   let bestHtml = initialHtml;
   let bestEvaluation = initialEvaluation;
   let iterations = 0;
+  let consecutiveFailures = 0;
+  const maxConsecutiveFailures = 2;
 
   while (iterations < config.maxIterations) {
     iterations++;
@@ -307,46 +374,67 @@ export async function refinePage(
       `[self-refine] Refinement iteration ${iterations}/${config.maxIterations}...`
     );
 
-    // Generate refined version
-    const refinedHtml = await generateRefinedPage(
-      currentHtml,
-      currentEvaluation,
-      context,
-      aiProvider
-    );
+    try {
+      // Generate refined version
+      const refinedHtml = await generateRefinedPage(
+        currentHtml,
+        currentEvaluation,
+        context,
+        aiProvider
+      );
 
-    // Evaluate the refined version
-    const refinedEvaluation = await evaluatePageDesign(
-      refinedHtml,
-      context,
-      aiProvider
-    );
+      // Evaluate the refined version
+      const refinedEvaluation = await evaluatePageDesign(
+        refinedHtml,
+        context,
+        aiProvider
+      );
 
-    log(
-      `[self-refine] Refined score: ${refinedEvaluation.overallScore}/5 (was: ${currentEvaluation.overallScore}/5)`
-    );
+      log(
+        `[self-refine] Refined score: ${refinedEvaluation.overallScore}/5 (was: ${currentEvaluation.overallScore}/5)`
+      );
 
-    // Keep track of the best version
-    if (refinedEvaluation.overallScore > bestEvaluation.overallScore) {
-      bestHtml = refinedHtml;
-      bestEvaluation = refinedEvaluation;
-      log("[self-refine] New best version found");
+      // Reset failure counter on success
+      consecutiveFailures = 0;
+
+      // Keep track of the best version
+      if (refinedEvaluation.overallScore > bestEvaluation.overallScore) {
+        bestHtml = refinedHtml;
+        bestEvaluation = refinedEvaluation;
+        log("[self-refine] New best version found");
+      }
+
+      // Check if we've reached the threshold
+      if (meetsQualityThreshold(refinedEvaluation, config.threshold)) {
+        log("[self-refine] Refined generation meets threshold");
+        break;
+      }
+
+      // Prepare for next iteration
+      currentHtml = refinedHtml;
+      currentEvaluation = refinedEvaluation;
+    } catch (error) {
+      consecutiveFailures++;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      log(`[self-refine] Iteration ${iterations} failed: ${errorMessage}`);
+
+      if (consecutiveFailures >= maxConsecutiveFailures) {
+        log(
+          `[self-refine] ${maxConsecutiveFailures} consecutive failures, stopping refinement`
+        );
+        break;
+      }
+
+      // Continue with current best version on next iteration
+      log("[self-refine] Continuing with current best version...");
     }
-
-    // Check if we've reached the threshold
-    if (meetsQualityThreshold(refinedEvaluation, config.threshold)) {
-      log("[self-refine] Refined generation meets threshold");
-      break;
-    }
-
-    // Prepare for next iteration
-    currentHtml = refinedHtml;
-    currentEvaluation = refinedEvaluation;
   }
 
   const scoreImprovement =
     bestEvaluation.overallScore - initialEvaluation.overallScore;
-  const improved = scoreImprovement > 0;
+  // Use epsilon for floating point comparison
+  const improved = scoreImprovement > EPSILON;
 
   log(
     `[self-refine] Complete. Final score: ${bestEvaluation.overallScore}/5, improvement: ${scoreImprovement > 0 ? "+" : ""}${scoreImprovement.toFixed(1)}`

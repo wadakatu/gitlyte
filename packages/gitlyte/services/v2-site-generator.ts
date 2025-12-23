@@ -8,6 +8,10 @@
  */
 
 import type { AIProviderInstance } from "../utils/ai-provider.js";
+import {
+  cleanHtmlResponse,
+  cleanJsonResponse,
+} from "../utils/ai-response-cleaner.js";
 import type { ResolvedConfigV2 } from "../types/v2-config.js";
 import {
   refinePage,
@@ -27,6 +31,8 @@ export interface RepositoryAnalysis {
   audience: "developers" | "designers" | "general" | "enterprise";
   style: "minimal" | "professional" | "creative" | "technical";
   keyFeatures: string[];
+  /** Indicates if fallback values were used due to AI parsing failure */
+  usedFallback?: boolean;
 }
 
 /**
@@ -45,6 +51,8 @@ export interface DesignSystem {
     bodyFont: string;
   };
   layout: "hero-centered" | "hero-split" | "minimal" | "feature-grid";
+  /** Indicates if fallback values were used due to AI parsing failure */
+  usedFallback?: boolean;
 }
 
 /**
@@ -106,13 +114,16 @@ Respond with JSON only (no markdown, no explanation):
   });
 
   try {
-    return JSON.parse(cleanJsonResponse(result.text)) as RepositoryAnalysis;
+    const parsed = JSON.parse(
+      cleanJsonResponse(result.text)
+    ) as RepositoryAnalysis;
+    return { ...parsed, usedFallback: false };
   } catch (error) {
-    // Log the error for debugging, then return fallback
+    // Log warning and return fallback with indicator
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.warn(
-      `[v2-site-generator] Failed to parse repository analysis for "${repoInfo.name}":`,
-      error instanceof Error ? error.message : error,
-      `\nRaw response (first 200 chars): ${result.text?.slice(0, 200)}`
+      `[v2-site-generator] Failed to parse repository analysis for "${repoInfo.name}": ${errorMessage}`,
+      `\n  Raw response (first 200 chars): ${result.text?.slice(0, 200)}`
     );
     return {
       name: repoInfo.name,
@@ -122,6 +133,7 @@ Respond with JSON only (no markdown, no explanation):
       audience: "developers",
       style: "professional",
       keyFeatures: [],
+      usedFallback: true,
     };
   }
 }
@@ -165,13 +177,14 @@ Respond with JSON only (no markdown, no explanation):
   });
 
   try {
-    return JSON.parse(cleanJsonResponse(result.text)) as DesignSystem;
+    const parsed = JSON.parse(cleanJsonResponse(result.text)) as DesignSystem;
+    return { ...parsed, usedFallback: false };
   } catch (error) {
-    // Log the error for debugging, then return fallback
+    // Log warning and return fallback with indicator
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.warn(
-      `[v2-site-generator] Failed to parse design system for "${analysis.name}":`,
-      error instanceof Error ? error.message : error,
-      `\nRaw response (first 200 chars): ${result.text?.slice(0, 200)}`
+      `[v2-site-generator] Failed to parse design system for "${analysis.name}": ${errorMessage}`,
+      `\n  Raw response (first 200 chars): ${result.text?.slice(0, 200)}`
     );
     return {
       colors: {
@@ -186,6 +199,7 @@ Respond with JSON only (no markdown, no explanation):
         bodyFont: "Inter, system-ui, sans-serif",
       },
       layout: "hero-centered",
+      usedFallback: true,
     };
   }
 }
@@ -391,52 +405,4 @@ OUTPUT: Return ONLY the complete HTML document. Start with <!DOCTYPE html>.`;
   });
 
   return cleanHtmlResponse(result.text);
-}
-
-/**
- * Clean JSON response from AI
- */
-function cleanJsonResponse(text: string): string {
-  let cleaned = text.trim();
-
-  // Remove markdown code blocks
-  if (cleaned.startsWith("```json")) {
-    cleaned = cleaned.slice(7);
-  }
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
-
-  return cleaned.trim();
-}
-
-/**
- * Clean HTML response from AI
- */
-function cleanHtmlResponse(text: string): string {
-  let cleaned = text.trim();
-
-  // Remove markdown code blocks
-  if (cleaned.startsWith("```html")) {
-    cleaned = cleaned.slice(7);
-  }
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
-
-  // Ensure it starts with doctype
-  if (!cleaned.toLowerCase().startsWith("<!doctype")) {
-    const doctypeIndex = cleaned.toLowerCase().indexOf("<!doctype");
-    if (doctypeIndex > -1) {
-      cleaned = cleaned.slice(doctypeIndex);
-    }
-  }
-
-  return cleaned.trim();
 }

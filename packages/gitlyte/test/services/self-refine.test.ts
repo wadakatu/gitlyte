@@ -4,6 +4,7 @@ import {
   generateRefinedPage,
   refinePage,
   shouldUseSelfRefine,
+  validateSelfRefineConfig,
   DEFAULT_SELF_REFINE_CONFIG,
   type RefinementContext,
 } from "../../services/self-refine.js";
@@ -286,6 +287,232 @@ describe("self-refine", () => {
       expect(DEFAULT_SELF_REFINE_CONFIG.threshold).toBe(3.5);
       expect(DEFAULT_SELF_REFINE_CONFIG.maxIterations).toBe(2);
       expect(DEFAULT_SELF_REFINE_CONFIG.verbose).toBe(true);
+    });
+  });
+
+  describe("validateSelfRefineConfig", () => {
+    it("should accept valid configuration", () => {
+      const config = { threshold: 4.0, maxIterations: 3, verbose: true };
+      expect(() => validateSelfRefineConfig(config)).not.toThrow();
+    });
+
+    it("should throw on threshold < 1", () => {
+      const config = { threshold: 0.5, maxIterations: 2, verbose: false };
+      expect(() => validateSelfRefineConfig(config)).toThrow(
+        "Invalid threshold: 0.5. Must be between 1 and 5."
+      );
+    });
+
+    it("should throw on threshold > 5", () => {
+      const config = { threshold: 6, maxIterations: 2, verbose: false };
+      expect(() => validateSelfRefineConfig(config)).toThrow(
+        "Invalid threshold: 6. Must be between 1 and 5."
+      );
+    });
+
+    it("should throw on maxIterations < 1", () => {
+      const config = { threshold: 3.5, maxIterations: 0, verbose: false };
+      expect(() => validateSelfRefineConfig(config)).toThrow(
+        "Invalid maxIterations: 0. Must be between 1 and 10."
+      );
+    });
+
+    it("should throw on maxIterations > 10", () => {
+      const config = { threshold: 3.5, maxIterations: 11, verbose: false };
+      expect(() => validateSelfRefineConfig(config)).toThrow(
+        "Invalid maxIterations: 11. Must be between 1 and 10."
+      );
+    });
+  });
+
+  describe("evaluatePageDesign error handling", () => {
+    it("should wrap AI provider errors with context", async () => {
+      vi.mocked(mockAIProvider.generateText).mockRejectedValueOnce(
+        new Error("API rate limit exceeded")
+      );
+
+      await expect(
+        evaluatePageDesign(
+          "<!DOCTYPE html><html></html>",
+          mockContext,
+          mockAIProvider
+        )
+      ).rejects.toThrow(
+        "[self-refine] Failed to evaluate page design: API rate limit exceeded"
+      );
+    });
+
+    it("should wrap parse errors with context", async () => {
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: "invalid json response",
+      });
+
+      await expect(
+        evaluatePageDesign(
+          "<!DOCTYPE html><html></html>",
+          mockContext,
+          mockAIProvider
+        )
+      ).rejects.toThrow("[self-refine] Failed to evaluate page design:");
+    });
+  });
+
+  describe("generateRefinedPage error handling", () => {
+    it("should wrap AI provider errors with context", async () => {
+      const mockEvaluation = createMockEvaluation(2.5);
+      vi.mocked(mockAIProvider.generateText).mockRejectedValueOnce(
+        new Error("Network timeout")
+      );
+
+      await expect(
+        generateRefinedPage(
+          "<!DOCTYPE html><html></html>",
+          mockEvaluation,
+          mockContext,
+          mockAIProvider
+        )
+      ).rejects.toThrow(
+        "[self-refine] Failed to generate refined page: Network timeout"
+      );
+    });
+
+    it("should wrap HTML cleaning errors with context", async () => {
+      const mockEvaluation = createMockEvaluation(2.5);
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: "I cannot generate HTML for this request.",
+      });
+
+      await expect(
+        generateRefinedPage(
+          "<!DOCTYPE html><html></html>",
+          mockEvaluation,
+          mockContext,
+          mockAIProvider
+        )
+      ).rejects.toThrow("[self-refine] Failed to generate refined page:");
+    });
+  });
+
+  describe("refinePage error recovery", () => {
+    it("should recover from single iteration failure and continue", async () => {
+      const lowScore = createMockEvaluation(2.0);
+      const highScore = createMockEvaluation(4.0);
+
+      vi.mocked(mockAIProvider.generateText)
+        // Initial evaluation
+        .mockResolvedValueOnce({ text: JSON.stringify(lowScore) })
+        // Iteration 1: generation fails
+        .mockRejectedValueOnce(new Error("Temporary failure"))
+        // Iteration 2: generation succeeds
+        .mockResolvedValueOnce({
+          text: "<!DOCTYPE html><html><body>Recovered</body></html>",
+        })
+        // Iteration 2: evaluation
+        .mockResolvedValueOnce({ text: JSON.stringify(highScore) });
+
+      const result = await refinePage(
+        "<!DOCTYPE html><html></html>",
+        mockContext,
+        mockAIProvider,
+        {
+          ...DEFAULT_SELF_REFINE_CONFIG,
+          threshold: 3.5,
+          maxIterations: 3,
+          verbose: false,
+        }
+      );
+
+      expect(result.iterations).toBe(2);
+      expect(result.html).toContain("Recovered");
+    });
+
+    it("should stop after consecutive failures", async () => {
+      const lowScore = createMockEvaluation(2.0);
+
+      vi.mocked(mockAIProvider.generateText)
+        // Initial evaluation
+        .mockResolvedValueOnce({ text: JSON.stringify(lowScore) })
+        // Iteration 1: fails
+        .mockRejectedValueOnce(new Error("Failure 1"))
+        // Iteration 2: fails
+        .mockRejectedValueOnce(new Error("Failure 2"));
+
+      const result = await refinePage(
+        "<!DOCTYPE html><html><body>Original</body></html>",
+        mockContext,
+        mockAIProvider,
+        {
+          ...DEFAULT_SELF_REFINE_CONFIG,
+          threshold: 5.0,
+          maxIterations: 5,
+          verbose: false,
+        }
+      );
+
+      // Should stop after 2 consecutive failures
+      expect(result.iterations).toBe(2);
+      // Should return original HTML since no successful refinements
+      expect(result.html).toContain("Original");
+    });
+
+    it("should throw on invalid configuration", async () => {
+      await expect(
+        refinePage(
+          "<!DOCTYPE html><html></html>",
+          mockContext,
+          mockAIProvider,
+          { threshold: 0, maxIterations: 2, verbose: false }
+        )
+      ).rejects.toThrow("Invalid threshold");
+    });
+  });
+
+  describe("score regression scenario", () => {
+    it("should handle score regression across iterations", async () => {
+      const initialScore = createMockEvaluation(2.0);
+      const bestScore = createMockEvaluation(3.5);
+      const regressedScore = createMockEvaluation(2.5);
+      const finalScore = createMockEvaluation(3.0);
+
+      vi.mocked(mockAIProvider.generateText)
+        // Initial evaluation
+        .mockResolvedValueOnce({ text: JSON.stringify(initialScore) })
+        // Iteration 1: generation (best version)
+        .mockResolvedValueOnce({
+          text: "<!DOCTYPE html><html><body>Best</body></html>",
+        })
+        // Iteration 1: evaluation (high score)
+        .mockResolvedValueOnce({ text: JSON.stringify(bestScore) })
+        // Iteration 2: generation (regressed)
+        .mockResolvedValueOnce({
+          text: "<!DOCTYPE html><html><body>Regressed</body></html>",
+        })
+        // Iteration 2: evaluation (score dropped)
+        .mockResolvedValueOnce({ text: JSON.stringify(regressedScore) })
+        // Iteration 3: generation
+        .mockResolvedValueOnce({
+          text: "<!DOCTYPE html><html><body>Final</body></html>",
+        })
+        // Iteration 3: evaluation
+        .mockResolvedValueOnce({ text: JSON.stringify(finalScore) });
+
+      const result = await refinePage(
+        "<!DOCTYPE html><html><body>Original</body></html>",
+        mockContext,
+        mockAIProvider,
+        {
+          ...DEFAULT_SELF_REFINE_CONFIG,
+          threshold: 4.0,
+          maxIterations: 3,
+          verbose: false,
+        }
+      );
+
+      // Should keep the best version from iteration 1
+      expect(result.html).toContain("Best");
+      expect(result.finalEvaluation.overallScore).toBe(3.5);
+      expect(result.improved).toBe(true);
+      expect(result.scoreImprovement).toBeCloseTo(1.5);
     });
   });
 });

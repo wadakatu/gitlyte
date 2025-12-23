@@ -87,6 +87,32 @@ describe("v2-site-generator", () => {
       expect(result.audience).toBe("developers");
       expect(result.style).toBe("professional");
       expect(result.keyFeatures).toEqual([]);
+      expect(result.usedFallback).toBe(true);
+    });
+
+    it("should set usedFallback to false on successful parse", async () => {
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: "success-repo",
+          description: "Successfully parsed",
+          projectType: "library",
+          primaryLanguage: "TypeScript",
+          audience: "developers",
+          style: "minimal",
+          keyFeatures: ["feature1"],
+        }),
+      });
+
+      const result = await analyzeRepository(
+        {
+          name: "success-repo",
+          description: "Successfully parsed",
+          language: "TypeScript",
+        },
+        mockAIProvider
+      );
+
+      expect(result.usedFallback).toBe(false);
     });
 
     it("should include README in prompt when provided", async () => {
@@ -181,6 +207,43 @@ describe("v2-site-generator", () => {
         "Inter, system-ui, sans-serif"
       );
       expect(result.layout).toBe("hero-centered");
+      expect(result.usedFallback).toBe(true);
+    });
+
+    it("should set usedFallback to false on successful parse", async () => {
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          colors: {
+            primary: "green-600",
+            secondary: "teal-500",
+            accent: "cyan-400",
+            background: "gray-50",
+            text: "gray-800",
+          },
+          typography: {
+            headingFont: "Poppins",
+            bodyFont: "Open Sans",
+          },
+          layout: "feature-grid",
+        }),
+      });
+
+      const result = await generateDesignSystem(
+        {
+          name: "test",
+          description: "desc",
+          projectType: "webapp",
+          primaryLanguage: "JavaScript",
+          audience: "general",
+          style: "creative",
+          keyFeatures: [],
+        },
+        mockAIProvider
+      );
+
+      expect(result.usedFallback).toBe(false);
+      expect(result.colors.primary).toBe("green-600");
+      expect(result.layout).toBe("feature-grid");
     });
   });
 
