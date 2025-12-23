@@ -99,8 +99,13 @@ Respond with JSON only (no markdown, no explanation):
 
   try {
     return JSON.parse(cleanJsonResponse(result.text)) as RepositoryAnalysis;
-  } catch {
-    // Return fallback if parsing fails
+  } catch (error) {
+    // Log the error for debugging, then return fallback
+    console.warn(
+      `[v2-site-generator] Failed to parse repository analysis for "${repoInfo.name}":`,
+      error instanceof Error ? error.message : error,
+      `\nRaw response (first 200 chars): ${result.text?.slice(0, 200)}`
+    );
     return {
       name: repoInfo.name,
       description: repoInfo.description,
@@ -153,8 +158,13 @@ Respond with JSON only (no markdown, no explanation):
 
   try {
     return JSON.parse(cleanJsonResponse(result.text)) as DesignSystem;
-  } catch {
-    // Return fallback design system
+  } catch (error) {
+    // Log the error for debugging, then return fallback
+    console.warn(
+      `[v2-site-generator] Failed to parse design system for "${analysis.name}":`,
+      error instanceof Error ? error.message : error,
+      `\nRaw response (first 200 chars): ${result.text?.slice(0, 200)}`
+    );
     return {
       colors: {
         primary: "blue-600",

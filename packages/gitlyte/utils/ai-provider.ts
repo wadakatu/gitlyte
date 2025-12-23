@@ -14,11 +14,15 @@ import type { AIProvider, QualityMode } from "../types/v2-config.js";
 
 /**
  * Model configurations for each provider
+ *
+ * Note: Currently "standard" and "high" quality modes use the same models.
+ * In the future, "high" mode may use more capable models or additional
+ * processing steps like iterative refinement.
  */
 const MODEL_CONFIG = {
   anthropic: {
     standard: "claude-sonnet-4-20250514",
-    high: "claude-sonnet-4-20250514", // Same model, but with self-refine
+    high: "claude-sonnet-4-20250514",
   },
   openai: {
     standard: "gpt-4o",
@@ -93,7 +97,16 @@ export function createAIProvider(
   quality: QualityMode = "standard",
   apiKey?: string
 ): AIProviderInstance {
-  const model = getModel(provider, quality, apiKey);
+  // Validate API key exists
+  const effectiveApiKey = apiKey ?? process.env[getApiKeyEnvVar(provider)];
+  if (!effectiveApiKey) {
+    throw new Error(
+      `API key not found for provider "${provider}". ` +
+        `Set ${getApiKeyEnvVar(provider)} environment variable or pass apiKey parameter.`
+    );
+  }
+
+  const model = getModel(provider, quality, effectiveApiKey);
 
   return {
     provider,
@@ -104,24 +117,32 @@ export function createAIProvider(
       const temperature =
         options.temperature ?? TEMPERATURE[options.taskType ?? "content"];
 
-      const result = await generateText({
-        model,
-        prompt: options.prompt,
-        system: options.system,
-        temperature,
-        maxOutputTokens: options.maxOutputTokens,
-      });
+      try {
+        const result = await generateText({
+          model,
+          prompt: options.prompt,
+          system: options.system,
+          temperature,
+          maxOutputTokens: options.maxOutputTokens,
+        });
 
-      return {
-        text: result.text,
-        usage: result.usage
-          ? {
-              promptTokens: result.usage.inputTokens ?? 0,
-              completionTokens: result.usage.outputTokens ?? 0,
-              totalTokens: result.usage.totalTokens ?? 0,
-            }
-          : undefined,
-      };
+        return {
+          text: result.text,
+          usage: result.usage
+            ? {
+                promptTokens: result.usage.inputTokens ?? 0,
+                completionTokens: result.usage.outputTokens ?? 0,
+                totalTokens: result.usage.totalTokens ?? 0,
+              }
+            : undefined,
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(`[${provider}] AI generation failed: ${errorMessage}`, {
+          cause: error,
+        });
+      }
     },
   };
 }
@@ -132,27 +153,21 @@ export function createAIProvider(
 function getModel(
   provider: AIProvider,
   quality: QualityMode,
-  apiKey?: string
+  apiKey: string
 ): LanguageModel {
   const modelId = MODEL_CONFIG[provider][quality];
 
   switch (provider) {
     case "anthropic": {
-      const anthropic = createAnthropic({
-        apiKey: apiKey ?? process.env.ANTHROPIC_API_KEY,
-      });
+      const anthropic = createAnthropic({ apiKey });
       return anthropic(modelId);
     }
     case "openai": {
-      const openai = createOpenAI({
-        apiKey: apiKey ?? process.env.OPENAI_API_KEY,
-      });
+      const openai = createOpenAI({ apiKey });
       return openai(modelId);
     }
     case "google": {
-      const google = createGoogleGenerativeAI({
-        apiKey: apiKey ?? process.env.GOOGLE_API_KEY,
-      });
+      const google = createGoogleGenerativeAI({ apiKey });
       return google(modelId);
     }
     default: {

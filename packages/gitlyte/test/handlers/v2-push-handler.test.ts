@@ -315,11 +315,13 @@ describe("v2-push-handler", () => {
 
       await expect(
         handlePushV2(mockContext as Parameters<typeof handlePushV2>[0])
-      ).rejects.toThrow("Git API error");
+      ).rejects.toThrow(
+        "Failed to deploy to owner/test-repo@main: Git API error"
+      );
 
       expect(mockContext.log.error).toHaveBeenCalledWith(
         expect.stringContaining("Site generation failed"),
-        error
+        expect.any(Error)
       );
     });
 
@@ -349,6 +351,36 @@ describe("v2-push-handler", () => {
       expect(mockContext.log.info).toHaveBeenCalledWith(
         expect.stringContaining("Deploying to public/")
       );
+    });
+
+    it("should handle invalid JSON in config file and use defaults", async () => {
+      mockContext.octokit.repos.getContent.mockResolvedValue({
+        data: {
+          type: "file",
+          content: Buffer.from("{ invalid json }").toString("base64"),
+        },
+      });
+
+      await handlePushV2(mockContext as Parameters<typeof handlePushV2>[0]);
+
+      // Should warn about the error and use defaults
+      expect(mockContext.log.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Error loading config"),
+        expect.any(Error)
+      );
+      // Should still proceed with generation using defaults
+      expect(mockContext.log.info).toHaveBeenCalledWith(
+        expect.stringContaining("Starting site generation")
+      );
+    });
+
+    it("should handle deployment failure with context", async () => {
+      const deployError = new Error("Permission denied");
+      mockContext.octokit.git.createTree.mockRejectedValue(deployError);
+
+      await expect(
+        handlePushV2(mockContext as Parameters<typeof handlePushV2>[0])
+      ).rejects.toThrow("Failed to deploy to owner/test-repo@main");
     });
   });
 });

@@ -221,5 +221,42 @@ describe("ai-provider", () => {
       expect(result.text).toBe("Response without usage");
       expect(result.usage).toBeUndefined();
     });
+
+    it("should throw error when API key is missing", () => {
+      vi.unstubAllEnvs();
+
+      expect(() => createAIProvider("anthropic")).toThrow(
+        'API key not found for provider "anthropic"'
+      );
+      expect(() => createAIProvider("anthropic")).toThrow("ANTHROPIC_API_KEY");
+    });
+
+    it("should throw error with provider context when AI generation fails", async () => {
+      const { generateText } = await import("ai");
+      vi.mocked(generateText).mockRejectedValueOnce(
+        new Error("API rate limit exceeded")
+      );
+
+      const provider = createAIProvider();
+      await expect(
+        provider.generateText({ prompt: "Test prompt" })
+      ).rejects.toThrow(
+        "[anthropic] AI generation failed: API rate limit exceeded"
+      );
+    });
+
+    it("should include original error as cause when AI generation fails", async () => {
+      const { generateText } = await import("ai");
+      const originalError = new Error("Network timeout");
+      vi.mocked(generateText).mockRejectedValueOnce(originalError);
+
+      const provider = createAIProvider();
+      try {
+        await provider.generateText({ prompt: "Test prompt" });
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect((error as Error).cause).toBe(originalError);
+      }
+    });
   });
 });
