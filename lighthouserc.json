@@ -2,7 +2,10 @@
   "ci": {
     "collect": {
       "staticDistDir": "./packages/gitlyte/eval-output",
-      "numberOfRuns": 1
+      "numberOfRuns": 1,
+      "settings": {
+        "chromeFlags": "--headless --no-sandbox --disable-gpu"
+      }
     },
     "assert": {
       "assertions": {

@@ -147,9 +147,8 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          echo "Design evaluation placeholder - will be implemented in Phase 0 completion"
           mkdir -p eval-results
-          echo '{"status": "placeholder", "message": "Design evaluation not yet implemented"}' > eval-results/design-eval.json
+          node --loader ts-node/esm eval/run-eval.ts --design-only > eval-results/design-eval.json 2>&1 || true
 
       - name: Upload design evaluation results
         uses: actions/upload-artifact@v4
