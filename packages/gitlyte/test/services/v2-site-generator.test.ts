@@ -87,6 +87,32 @@ describe("v2-site-generator", () => {
       expect(result.audience).toBe("developers");
       expect(result.style).toBe("professional");
       expect(result.keyFeatures).toEqual([]);
+      expect(result.usedFallback).toBe(true);
+    });
+
+    it("should set usedFallback to false on successful parse", async () => {
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: "success-repo",
+          description: "Successfully parsed",
+          projectType: "library",
+          primaryLanguage: "TypeScript",
+          audience: "developers",
+          style: "minimal",
+          keyFeatures: ["feature1"],
+        }),
+      });
+
+      const result = await analyzeRepository(
+        {
+          name: "success-repo",
+          description: "Successfully parsed",
+          language: "TypeScript",
+        },
+        mockAIProvider
+      );
+
+      expect(result.usedFallback).toBe(false);
     });
 
     it("should include README in prompt when provided", async () => {
@@ -181,6 +207,43 @@ describe("v2-site-generator", () => {
         "Inter, system-ui, sans-serif"
       );
       expect(result.layout).toBe("hero-centered");
+      expect(result.usedFallback).toBe(true);
+    });
+
+    it("should set usedFallback to false on successful parse", async () => {
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          colors: {
+            primary: "green-600",
+            secondary: "teal-500",
+            accent: "cyan-400",
+            background: "gray-50",
+            text: "gray-800",
+          },
+          typography: {
+            headingFont: "Poppins",
+            bodyFont: "Open Sans",
+          },
+          layout: "feature-grid",
+        }),
+      });
+
+      const result = await generateDesignSystem(
+        {
+          name: "test",
+          description: "desc",
+          projectType: "webapp",
+          primaryLanguage: "JavaScript",
+          audience: "general",
+          style: "creative",
+          keyFeatures: [],
+        },
+        mockAIProvider
+      );
+
+      expect(result.usedFallback).toBe(false);
+      expect(result.colors.primary).toBe("green-600");
+      expect(result.layout).toBe("feature-grid");
     });
   });
 
@@ -529,6 +592,130 @@ describe("v2-site-generator", () => {
           prompt: expect.stringContaining("README"),
         })
       );
+    });
+
+    it("should apply Self-Refine when quality is 'high'", async () => {
+      const mockEvaluation = {
+        overallScore: 4.5,
+        criteria: {
+          aesthetics: { score: 4, reasoning: "Good" },
+          modernity: { score: 4, reasoning: "Good" },
+          repositoryFit: { score: 5, reasoning: "Great fit" },
+          usability: { score: 4, reasoning: "Good" },
+          consistency: { score: 5, reasoning: "Very consistent" },
+        },
+        reasoning: "Overall good design",
+        suggestions: [],
+      };
+
+      // Mock for analyzeRepository
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: "test",
+          description: "desc",
+          projectType: "library",
+          primaryLanguage: "TypeScript",
+          audience: "developers",
+          style: "professional",
+          keyFeatures: ["feature1"],
+        }),
+      });
+
+      // Mock for generateDesignSystem
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          colors: {
+            primary: "blue-600",
+            secondary: "indigo-500",
+            accent: "purple-400",
+            background: "white",
+            text: "gray-900",
+          },
+          typography: {
+            headingFont: "Inter",
+            bodyFont: "Inter",
+          },
+          layout: "hero-centered",
+        }),
+      });
+
+      // Mock for generateIndexPage
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: "<!DOCTYPE html><html><head><script src='https://cdn.tailwindcss.com'></script></head><body>Index</body></html>",
+      });
+
+      // Mock for Self-Refine evaluation (high score, no refinement needed)
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify(mockEvaluation),
+      });
+
+      const result = await generateSite(
+        {
+          name: "test",
+          description: "desc",
+          url: "https://github.com/user/test",
+        },
+        resolveConfigV2({ ai: { quality: "high" } }),
+        mockAIProvider
+      );
+
+      expect(result.pages).toHaveLength(1);
+      expect(result.refinement).toBeDefined();
+      expect(result.refinement?.iterations).toBe(0); // No refinement needed
+      expect(result.refinement?.finalEvaluation.overallScore).toBe(4.5);
+    });
+
+    it("should not apply Self-Refine when quality is 'standard'", async () => {
+      // Mock for analyzeRepository
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: "test",
+          description: "desc",
+          projectType: "library",
+          primaryLanguage: "TypeScript",
+          audience: "developers",
+          style: "professional",
+          keyFeatures: [],
+        }),
+      });
+
+      // Mock for generateDesignSystem
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          colors: {
+            primary: "blue-600",
+            secondary: "indigo-500",
+            accent: "purple-400",
+            background: "white",
+            text: "gray-900",
+          },
+          typography: {
+            headingFont: "Inter",
+            bodyFont: "Inter",
+          },
+          layout: "hero-centered",
+        }),
+      });
+
+      // Mock for generateIndexPage
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: "<!DOCTYPE html><html><head><script src='https://cdn.tailwindcss.com'></script></head><body>Index</body></html>",
+      });
+
+      const result = await generateSite(
+        {
+          name: "test",
+          description: "desc",
+          url: "https://github.com/user/test",
+        },
+        resolveConfigV2({ ai: { quality: "standard" } }),
+        mockAIProvider
+      );
+
+      expect(result.pages).toHaveLength(1);
+      expect(result.refinement).toBeUndefined();
+      // Only 3 calls: analyze, design, index page (no evaluation)
+      expect(mockAIProvider.generateText).toHaveBeenCalledTimes(3);
     });
   });
 });

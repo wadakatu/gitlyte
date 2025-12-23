@@ -15,9 +15,12 @@ import type { AIProvider, QualityMode } from "../types/v2-config.js";
 /**
  * Model configurations for each provider
  *
- * Note: Currently "standard" and "high" quality modes use the same models.
- * In the future, "high" mode may use more capable models or additional
- * processing steps like iterative refinement.
+ * Note: Both "standard" and "high" quality modes use the same AI models.
+ * The quality difference is in post-processing:
+ * - "standard": Single-pass generation
+ * - "high": Uses Self-Refine pattern (LLM as Judge + iterative improvement)
+ *
+ * @see services/self-refine.ts for the Self-Refine implementation
  */
 const MODEL_CONFIG = {
   anthropic: {
