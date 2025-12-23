@@ -530,5 +530,129 @@ describe("v2-site-generator", () => {
         })
       );
     });
+
+    it("should apply Self-Refine when quality is 'high'", async () => {
+      const mockEvaluation = {
+        overallScore: 4.5,
+        criteria: {
+          aesthetics: { score: 4, reasoning: "Good" },
+          modernity: { score: 4, reasoning: "Good" },
+          repositoryFit: { score: 5, reasoning: "Great fit" },
+          usability: { score: 4, reasoning: "Good" },
+          consistency: { score: 5, reasoning: "Very consistent" },
+        },
+        reasoning: "Overall good design",
+        suggestions: [],
+      };
+
+      // Mock for analyzeRepository
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: "test",
+          description: "desc",
+          projectType: "library",
+          primaryLanguage: "TypeScript",
+          audience: "developers",
+          style: "professional",
+          keyFeatures: ["feature1"],
+        }),
+      });
+
+      // Mock for generateDesignSystem
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          colors: {
+            primary: "blue-600",
+            secondary: "indigo-500",
+            accent: "purple-400",
+            background: "white",
+            text: "gray-900",
+          },
+          typography: {
+            headingFont: "Inter",
+            bodyFont: "Inter",
+          },
+          layout: "hero-centered",
+        }),
+      });
+
+      // Mock for generateIndexPage
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: "<!DOCTYPE html><html><head><script src='https://cdn.tailwindcss.com'></script></head><body>Index</body></html>",
+      });
+
+      // Mock for Self-Refine evaluation (high score, no refinement needed)
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify(mockEvaluation),
+      });
+
+      const result = await generateSite(
+        {
+          name: "test",
+          description: "desc",
+          url: "https://github.com/user/test",
+        },
+        resolveConfigV2({ ai: { quality: "high" } }),
+        mockAIProvider
+      );
+
+      expect(result.pages).toHaveLength(1);
+      expect(result.refinement).toBeDefined();
+      expect(result.refinement?.iterations).toBe(0); // No refinement needed
+      expect(result.refinement?.finalEvaluation.overallScore).toBe(4.5);
+    });
+
+    it("should not apply Self-Refine when quality is 'standard'", async () => {
+      // Mock for analyzeRepository
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: "test",
+          description: "desc",
+          projectType: "library",
+          primaryLanguage: "TypeScript",
+          audience: "developers",
+          style: "professional",
+          keyFeatures: [],
+        }),
+      });
+
+      // Mock for generateDesignSystem
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: JSON.stringify({
+          colors: {
+            primary: "blue-600",
+            secondary: "indigo-500",
+            accent: "purple-400",
+            background: "white",
+            text: "gray-900",
+          },
+          typography: {
+            headingFont: "Inter",
+            bodyFont: "Inter",
+          },
+          layout: "hero-centered",
+        }),
+      });
+
+      // Mock for generateIndexPage
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: "<!DOCTYPE html><html><head><script src='https://cdn.tailwindcss.com'></script></head><body>Index</body></html>",
+      });
+
+      const result = await generateSite(
+        {
+          name: "test",
+          description: "desc",
+          url: "https://github.com/user/test",
+        },
+        resolveConfigV2({ ai: { quality: "standard" } }),
+        mockAIProvider
+      );
+
+      expect(result.pages).toHaveLength(1);
+      expect(result.refinement).toBeUndefined();
+      // Only 3 calls: analyze, design, index page (no evaluation)
+      expect(mockAIProvider.generateText).toHaveBeenCalledTimes(3);
+    });
   });
 });

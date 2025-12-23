@@ -9,6 +9,12 @@
 
 import type { AIProviderInstance } from "../utils/ai-provider.js";
 import type { ResolvedConfigV2 } from "../types/v2-config.js";
+import {
+  refinePage,
+  shouldUseSelfRefine,
+  type RefinementContext,
+  type RefinementResult,
+} from "./self-refine.js";
 
 /**
  * Repository analysis result
@@ -58,6 +64,8 @@ export interface GeneratedSite {
     path: string;
     content: string | Buffer;
   }>;
+  /** Refinement result (only present when quality: "high") */
+  refinement?: RefinementResult;
 }
 
 /**
@@ -283,14 +291,43 @@ export async function generateSite(
 
   // Step 3: Generate pages
   const pages: GeneratedPage[] = [];
+  let refinementResult: RefinementResult | undefined;
 
   // Always generate index page
-  const indexHtml = await generateIndexPage(
-    analysis,
-    design,
-    config,
-    aiProvider
-  );
+  let indexHtml = await generateIndexPage(analysis, design, config, aiProvider);
+
+  // Step 4: Apply Self-Refine if quality mode is "high"
+  if (shouldUseSelfRefine(config.ai.quality)) {
+    console.log(
+      "[v2-site-generator] Quality mode is 'high', applying Self-Refine..."
+    );
+
+    const refinementContext: RefinementContext = {
+      analysis,
+      design,
+      repositoryInfo: {
+        name: repoInfo.name,
+        description: repoInfo.description,
+        language: repoInfo.language || "Unknown",
+        topics: repoInfo.topics || [],
+      },
+    };
+
+    refinementResult = await refinePage(
+      indexHtml,
+      refinementContext,
+      aiProvider
+    );
+
+    indexHtml = refinementResult.html;
+
+    console.log(
+      `[v2-site-generator] Self-Refine complete. Score: ${refinementResult.finalEvaluation.overallScore}/5, ` +
+        `Iterations: ${refinementResult.iterations}, ` +
+        `Improved: ${refinementResult.improved ? "Yes" : "No"}`
+    );
+  }
+
   pages.push({
     path: "index.html",
     html: indexHtml,
@@ -313,6 +350,7 @@ export async function generateSite(
   return {
     pages,
     assets: [], // Assets would be handled separately (logo, favicon, etc.)
+    refinement: refinementResult,
   };
 }
 
