@@ -37,7 +37,10 @@ describe("v2-push-handler", () => {
         getRef: ReturnType<typeof vi.fn>;
         createTree: ReturnType<typeof vi.fn>;
         createCommit: ReturnType<typeof vi.fn>;
-        updateRef: ReturnType<typeof vi.fn>;
+        createRef: ReturnType<typeof vi.fn>;
+      };
+      pulls: {
+        create: ReturnType<typeof vi.fn>;
       };
     };
     payload: {
@@ -80,7 +83,10 @@ describe("v2-push-handler", () => {
           getRef: vi.fn(),
           createTree: vi.fn(),
           createCommit: vi.fn(),
-          updateRef: vi.fn(),
+          createRef: vi.fn(),
+        },
+        pulls: {
+          create: vi.fn(),
         },
       },
       payload: {
@@ -119,7 +125,13 @@ describe("v2-push-handler", () => {
     mockContext.octokit.git.createCommit.mockResolvedValue({
       data: { sha: "commit-sha" },
     });
-    mockContext.octokit.git.updateRef.mockResolvedValue({});
+    mockContext.octokit.git.createRef.mockResolvedValue({});
+    mockContext.octokit.pulls.create.mockResolvedValue({
+      data: {
+        number: 42,
+        html_url: "https://github.com/owner/test-repo/pull/42",
+      },
+    });
   });
 
   describe("handlePushV2", () => {
@@ -290,15 +302,28 @@ describe("v2-push-handler", () => {
       );
     });
 
-    it("should update ref after creating commit", async () => {
+    it("should create branch and PR after creating commit", async () => {
       await handlePushV2(mockContext as Parameters<typeof handlePushV2>[0]);
 
-      expect(mockContext.octokit.git.updateRef).toHaveBeenCalledWith({
-        owner: "owner",
-        repo: "test-repo",
-        ref: "heads/main",
-        sha: "commit-sha",
-      });
+      // Should create a new branch
+      expect(mockContext.octokit.git.createRef).toHaveBeenCalledWith(
+        expect.objectContaining({
+          owner: "owner",
+          repo: "test-repo",
+          ref: expect.stringMatching(/^refs\/heads\/gitlyte\/update-site-/),
+          sha: "commit-sha",
+        })
+      );
+
+      // Should create a PR
+      expect(mockContext.octokit.pulls.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          owner: "owner",
+          repo: "test-repo",
+          title: "chore: update GitLyte generated site",
+          base: "main",
+        })
+      );
     });
 
     it("should log success message with duration", async () => {
@@ -316,7 +341,7 @@ describe("v2-push-handler", () => {
       await expect(
         handlePushV2(mockContext as Parameters<typeof handlePushV2>[0])
       ).rejects.toThrow(
-        "Failed to deploy to owner/test-repo@main: Git API error"
+        "Failed to create PR for owner/test-repo: Git API error"
       );
 
       expect(mockContext.log.error).toHaveBeenCalledWith(
@@ -336,7 +361,7 @@ describe("v2-push-handler", () => {
       );
     });
 
-    it("should deploy to configured output directory", async () => {
+    it("should create PR for configured output directory", async () => {
       mockContext.octokit.repos.getContent.mockResolvedValue({
         data: {
           type: "file",
@@ -349,7 +374,7 @@ describe("v2-push-handler", () => {
       await handlePushV2(mockContext as Parameters<typeof handlePushV2>[0]);
 
       expect(mockContext.log.info).toHaveBeenCalledWith(
-        expect.stringContaining("Deploying to public/")
+        expect.stringContaining("Creating PR for public/")
       );
     });
 
@@ -374,13 +399,13 @@ describe("v2-push-handler", () => {
       );
     });
 
-    it("should handle deployment failure with context", async () => {
-      const deployError = new Error("Permission denied");
-      mockContext.octokit.git.createTree.mockRejectedValue(deployError);
+    it("should handle PR creation failure with context", async () => {
+      const prError = new Error("Permission denied");
+      mockContext.octokit.pulls.create.mockRejectedValue(prError);
 
       await expect(
         handlePushV2(mockContext as Parameters<typeof handlePushV2>[0])
-      ).rejects.toThrow("Failed to deploy to owner/test-repo@main");
+      ).rejects.toThrow("Failed to create PR for owner/test-repo");
     });
   });
 });
