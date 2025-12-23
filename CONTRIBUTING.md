@@ -8,12 +8,12 @@ Hi there! We're thrilled that you'd like to contribute to this project. Your hel
 
 Please note that this project is released with a [Contributor Code of Conduct][code-of-conduct]. By participating in this project you agree to abide by its terms.
 
-## 🚀 Development Setup
+## Development Setup
 
 ### Prerequisites
-- Node.js 20.18.0+ (managed via mise)
-- pnpm 10.12.1+ (managed via mise)
-- Anthropic API key for AI-powered design generation
+- Node.js 24.12.0+ (managed via mise)
+- pnpm 10.25.0+ (managed via mise)
+- API key for AI provider (Anthropic, OpenAI, or Google)
 
 ### Environment Setup
 
@@ -34,14 +34,16 @@ pnpm install
 # Copy environment template
 cp .env.example .env
 
-# Add your Anthropic API key to .env
+# Add your API key to .env (choose one)
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+# or OPENAI_API_KEY=your_openai_api_key_here
+# or GOOGLE_API_KEY=your_google_api_key_here
 
 # Run the bot
 pnpm start
 ```
 
-## 🛠 Development Commands
+## Development Commands
 
 ### Build and Run
 ```sh
@@ -76,28 +78,33 @@ mise run lint        # Run linter
 mise run format      # Format code
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 packages/
-└── gitlyte/                 # Main GitHub App
-    ├── handlers/               # Event handlers
-    │   ├── pr-handler.ts          # PR merge events
-    │   └── comment-handler.ts     # Comment command processing
-    ├── services/               # Core services  
-    │   ├── trigger-controller.ts  # Generation trigger logic
-    │   ├── repository-analyzer.ts # Repository analysis AI
-    │   ├── site-generator.ts      # Site generation orchestration  
-    │   └── static-file-deployer.ts # File deployment
-    ├── utils/                  # Utilities
-    │   ├── github-api.ts          # GitHub API interactions
-    │   └── deployment-guard.ts    # Deployment conflict prevention
-    ├── test/                   # Comprehensive test suites
-    ├── templates/              # HTML/CSS generation templates
-    └── types/                  # TypeScript definitions
+└── gitlyte/                    # Main GitHub App
+    ├── index.ts                   # Probot app entry point
+    ├── handlers/
+    │   └── v2-push-handler.ts     # Push event handler
+    ├── services/
+    │   ├── v2-site-generator.ts   # Site generation orchestrator
+    │   └── self-refine.ts         # Self-Refine quality improvement
+    ├── utils/
+    │   ├── ai-provider.ts         # Multi-provider AI SDK wrapper
+    │   ├── ai-response-cleaner.ts # AI response sanitization
+    │   └── deployment-guard.ts    # Concurrent deployment prevention
+    ├── types/
+    │   └── v2-config.ts           # Configuration schema
+    ├── eval/                      # Evaluation system
+    │   ├── index.ts               # Main evaluation entry point
+    │   ├── lighthouse.ts          # Lighthouse CI integration
+    │   ├── llm-judge.ts           # LLM-based design evaluation
+    │   ├── run-eval.ts            # CLI evaluation runner
+    │   └── benchmarks/            # Benchmark definitions
+    └── test/                      # Comprehensive test suites
 ```
 
-## 🧪 Test-Driven Development (TDD) Policy
+## Test-Driven Development (TDD) Policy
 
 **MANDATORY**: ALL new feature development and refactoring MUST follow Test-Driven Development (TDD):
 
@@ -116,11 +123,11 @@ packages/
 
 #### For Bug Fixes:
 1. **Write tests** that reproduce the original issue
-2. **Verify the fix** resolves the issue  
+2. **Verify the fix** resolves the issue
 3. **Ensure tests fail** without the fix (to confirm they catch the problem)
 4. **Test edge cases** and related scenarios
 
-## 📋 PR Creation Guidelines
+## PR Creation Guidelines
 
 **MANDATORY**: Before creating any Pull Request or committing changes, ALWAYS run the following commands in sequence:
 
@@ -128,7 +135,7 @@ packages/
 pnpm run format:fix  # Fix code formatting across all packages
 pnpm run lint:fix    # Fix linting issues across all packages
 pnpm run build       # Check TypeScript compilation for all packages
-pnpm exec vitest run # Run all tests (currently in @gitlyte/core only)
+pnpm exec vitest run # Run all tests
 ```
 
 For convenience, you can also use the CI check command:
@@ -146,7 +153,7 @@ pnpm run ci:check    # Runs all required checks in sequence
 
 This ensures code quality and prevents CI/CD failures across the entire workspace.
 
-## 🔄 Submitting a Pull Request
+## Submitting a Pull Request
 
 1. [Fork][fork] and clone the repository
 2. Set up development environment (see above)
@@ -165,31 +172,33 @@ Here are a few things you can do that will increase the likelihood of your pull 
 
 Work in Progress pull requests are also welcome to get feedback early on.
 
-## 🏗 Architecture Overview
+## Architecture Overview
 
-GitLyte uses a three-stage AI pipeline:
+GitLyte uses AI to generate custom websites from repository data.
 
-### Core Flow
-1. **Event Trigger**: PR with `enhancement` or `feat` label is merged
-2. **AI Analysis**: Repository is analyzed using OpenAI API to determine project characteristics
-3. **Design Generation**: AI creates custom design strategy (colors, typography, layout)
-4. **Code Generation**: Astro components are generated with custom styling
-5. **Deployment**: Files are batch-committed and deployed via GitHub Actions
+### Core Flow (v2)
+1. **Push Event**: Push to default branch triggers site generation
+2. **Repository Analysis**: README and repository metadata are analyzed
+3. **Design Generation**: AI creates custom design with Tailwind CSS
+4. **HTML Generation**: Complete HTML pages are generated
+5. **Self-Refine** (optional): Quality improvement through iterative refinement
+6. **Deployment**: Files are batch-committed via GitHub Tree API
 
 ### Key Components
 
-**Event Handling**: `packages/gitlyte/handlers/pr-handler.ts` - Orchestrates the entire generation process
+**Event Handling**: `packages/gitlyte/handlers/v2-push-handler.ts` - Handles push events to default branch
 
-**AI Services**:
-- `packages/gitlyte/services/ai-analyzer.ts` - Repository analysis and design strategy generation using OpenAI
-- `packages/gitlyte/services/ai-code-generator.ts` - Astro component generation with custom styling
-- `packages/gitlyte/services/astro-generator.ts` - Orchestrates AI generation and file deployment
+**Services**:
+- `packages/gitlyte/services/v2-site-generator.ts` - Site generation orchestrator
+- `packages/gitlyte/services/self-refine.ts` - Self-Refine pattern implementation
+
+**AI Integration**:
+- `packages/gitlyte/utils/ai-provider.ts` - Multi-provider support (Anthropic, OpenAI, Google)
 
 **Utilities**:
-- `packages/gitlyte/utils/github.ts` - GitHub API operations and repository data collection
-- `packages/gitlyte/utils/batch-commit.ts` - Efficient batch file commits using GitHub Tree API
+- `packages/gitlyte/utils/deployment-guard.ts` - Prevents concurrent deployments
 
-## 📚 Resources
+## Resources
 
 - [How to Contribute to Open Source](https://opensource.guide/how-to-contribute/)
 - [Using Pull Requests](https://help.github.com/articles/about-pull-requests/)
