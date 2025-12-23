@@ -5,10 +5,10 @@ GitLyte is a GitHub App built with [Probot](https://github.com/probot/probot) th
 ## System Overview
 
 ```
-Push Event → Repository Analysis → AI Design Generation → HTML Creation → GitHub Commit
+Push Event → Repository Analysis → AI Design Generation → HTML Creation → Pull Request
      ↓              ↓                    ↓                    ↓              ↓
-  Default       README/Code          Multi-Provider        Tailwind      Tree API
-  Branch        Analysis             AI (Claude/GPT)       CSS           Batch Commit
+  Default       README/Code          Multi-Provider        Tailwind      Create Branch
+  Branch        Analysis             AI (Claude/GPT)       CSS           + Open PR
 ```
 
 ## Project Structure
@@ -71,10 +71,12 @@ When `ai.quality: "high"` is configured:
 - If score is below threshold, regenerates with feedback
 - Iterates until quality threshold is met or max iterations reached
 
-### 6. Deployment
+### 6. Deployment via Pull Request
+- Creates a new branch (`gitlyte/update-site-<timestamp>`)
 - Commits files via GitHub Tree API (batch operation)
-- Updates ref to new commit
-- Files are immediately available on GitHub Pages
+- Opens a Pull Request to the default branch
+- Works with branch protection rules enabled
+- Files are available on GitHub Pages after PR merge
 
 ## AI Integration
 

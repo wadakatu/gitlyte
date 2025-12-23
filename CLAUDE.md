@@ -53,7 +53,7 @@ GitLyte is a GitHub App built with Probot that automatically generates static we
    - Generates design system with AI
    - Creates HTML with Tailwind CSS
 3. **Self-Refine** (`services/self-refine.ts`) optionally improves quality through iterative refinement
-4. **Deployment** commits files via GitHub Tree API
+4. **Deployment** creates a branch and opens a Pull Request via GitHub API
 
 ### Key Files
 - `packages/gitlyte/index.ts` - Probot app entry point
