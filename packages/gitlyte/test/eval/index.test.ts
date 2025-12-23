@@ -149,6 +149,26 @@ describe("eval/index", () => {
       expect(report.overallPassed).toBe(false);
     });
 
+    it("should handle invalid JSON response from LLM evaluator", async () => {
+      const { runLighthouse } = await import("../../eval/lighthouse.js");
+      vi.mocked(runLighthouse).mockResolvedValue(mockLighthouseResult);
+      // Return invalid JSON that will cause parse error
+      mockLlmEvaluator.mockResolvedValue("This is not valid JSON {broken");
+
+      const report = await evaluateSite(
+        "/test/index.html",
+        "<!DOCTYPE html><html></html>",
+        "gitlyte",
+        mockLlmEvaluator
+      );
+
+      // Should gracefully handle JSON parse error
+      expect(report.designEvaluation).toBeUndefined();
+      expect(report.errors).toBeDefined();
+      expect(report.errors?.[0].component).toBe("design");
+      expect(report.overallPassed).toBe(false);
+    });
+
     it("should generate summary with both evaluations", async () => {
       const { runLighthouse } = await import("../../eval/lighthouse.js");
       vi.mocked(runLighthouse).mockResolvedValue(mockLighthouseResult);
@@ -233,6 +253,22 @@ describe("eval/index", () => {
 
     it("should handle site generation failure", async () => {
       mockGenerateSite.mockRejectedValue(new Error("Generation failed"));
+
+      const reports = await evaluateAllBenchmarks(
+        mockGenerateSite,
+        mockLlmEvaluator,
+        { runLighthouse: false, runDesignEvaluation: false }
+      );
+
+      expect(reports.length).toBeGreaterThan(0);
+      expect(reports[0].overallPassed).toBe(false);
+      expect(reports[0].summary).toContain("Evaluation failed");
+    });
+
+    it("should handle missing mock data error specifically", async () => {
+      mockGenerateSite.mockRejectedValue(
+        new Error("No mock data found for benchmark: unknown-benchmark")
+      );
 
       const reports = await evaluateAllBenchmarks(
         mockGenerateSite,

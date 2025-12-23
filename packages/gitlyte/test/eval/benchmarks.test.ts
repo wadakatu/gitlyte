@@ -106,7 +106,7 @@ describe("benchmarks", () => {
 
   describe("MOCK_REPOSITORY_DATA", () => {
     it("should have mock data for gitlyte", () => {
-      const mockData = MOCK_REPOSITORY_DATA["gitlyte"];
+      const mockData = MOCK_REPOSITORY_DATA.gitlyte;
       expect(mockData).toBeDefined();
       expect(mockData.name).toBe("GitLyte");
       expect(mockData.language).toBe("TypeScript");
@@ -125,7 +125,7 @@ describe("benchmarks", () => {
     });
 
     it("should have mock data for webapp", () => {
-      const mockData = MOCK_REPOSITORY_DATA["webapp"];
+      const mockData = MOCK_REPOSITORY_DATA.webapp;
       expect(mockData).toBeDefined();
       expect(mockData.language).toBe("TypeScript");
     });

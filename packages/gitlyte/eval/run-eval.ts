@@ -12,8 +12,8 @@
  *   --output <file>   Output file for JSON results (default: stdout)
  */
 
-import { writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   evaluateSite,
@@ -35,29 +35,8 @@ interface CLIArgs {
   outputFile?: string;
 }
 
-function parseArgs(): CLIArgs {
-  const args = process.argv.slice(2);
-  const result: CLIArgs = {
-    designOnly: false,
-    lighthouseOnly: false,
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    switch (args[i]) {
-      case "--design-only":
-        result.designOnly = true;
-        break;
-      case "--lighthouse-only":
-        result.lighthouseOnly = true;
-        break;
-      case "--benchmark":
-        result.benchmarkId = args[++i];
-        break;
-      case "--output":
-        result.outputFile = args[++i];
-        break;
-      case "--help":
-        console.log(`
+function showHelp(): void {
+  console.log(`
 GitLyte Evaluation Runner
 
 Usage:
@@ -73,8 +52,72 @@ Options:
 Available benchmarks:
 ${ALL_BENCHMARKS.map((b) => `  - ${b.id}: ${b.name}`).join("\n")}
 `);
+}
+
+function parseArgs(): CLIArgs {
+  const args = process.argv.slice(2);
+  const result: CLIArgs = {
+    designOnly: false,
+    lighthouseOnly: false,
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    switch (arg) {
+      case "--design-only":
+        result.designOnly = true;
+        break;
+      case "--lighthouse-only":
+        result.lighthouseOnly = true;
+        break;
+      case "--benchmark":
+        // Validate that a value follows
+        if (i + 1 >= args.length || args[i + 1].startsWith("--")) {
+          console.error("Error: --benchmark requires a benchmark ID value");
+          console.error("Example: --benchmark gitlyte");
+          console.error(
+            `Available benchmarks: ${ALL_BENCHMARKS.map((b) => b.id).join(", ")}`
+          );
+          process.exit(1);
+        }
+        result.benchmarkId = args[++i];
+        break;
+      case "--output":
+        // Validate that a value follows
+        if (i + 1 >= args.length || args[i + 1].startsWith("--")) {
+          console.error("Error: --output requires a file path");
+          console.error("Example: --output results.json");
+          process.exit(1);
+        }
+        result.outputFile = args[++i];
+        break;
+      case "--help":
+        showHelp();
         process.exit(0);
+        break;
+      default:
+        // Reject unknown arguments
+        if (arg.startsWith("--")) {
+          console.error(`Error: Unknown option: ${arg}`);
+          console.error("Use --help to see available options.");
+          process.exit(1);
+        }
+        // Reject unexpected positional arguments
+        console.error(`Error: Unexpected argument: ${arg}`);
+        console.error("Use --help to see available options.");
+        process.exit(1);
     }
+  }
+
+  // Validate conflicting options
+  if (result.designOnly && result.lighthouseOnly) {
+    console.error(
+      "Error: --design-only and --lighthouse-only cannot be used together."
+    );
+    console.error(
+      "These options are mutually exclusive. Choose one or use neither for full evaluation."
+    );
+    process.exit(1);
   }
 
   return result;
@@ -91,18 +134,58 @@ async function createLlmEvaluator(): Promise<
   const client = new Anthropic({ apiKey });
 
   return async (prompt: string): Promise<string> => {
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      messages: [{ role: "user", content: prompt }],
-    });
+    try {
+      const response = await client.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        messages: [{ role: "user", content: prompt }],
+      });
 
-    const textBlock = response.content.find((block) => block.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      throw new Error("No text response from LLM");
+      const textBlock = response.content.find((block) => block.type === "text");
+      if (!textBlock || textBlock.type !== "text") {
+        const contentTypes = response.content.map((b) => b.type).join(", ");
+        throw new Error(
+          `Unexpected LLM response format: expected text content but received: [${contentTypes || "empty"}]. ` +
+            `Stop reason: ${response.stop_reason}`
+        );
+      }
+
+      return textBlock.text;
+    } catch (error) {
+      // Handle Anthropic-specific errors with better messages
+      if (error instanceof Anthropic.RateLimitError) {
+        throw new Error(
+          `Anthropic rate limit exceeded. Please wait before retrying. Details: ${error.message}`
+        );
+      }
+      if (error instanceof Anthropic.AuthenticationError) {
+        throw new Error(
+          "Anthropic authentication failed. Please verify your ANTHROPIC_API_KEY is valid."
+        );
+      }
+      if (error instanceof Anthropic.BadRequestError) {
+        throw new Error(`Anthropic bad request: ${error.message}`);
+      }
+      if (error instanceof Anthropic.APIConnectionError) {
+        throw new Error(
+          "Failed to connect to Anthropic API. Please check your network connection."
+        );
+      }
+      throw error;
     }
+  };
+}
 
-    return textBlock.text;
+/**
+ * Creates a mock evaluator that throws an error if called.
+ * Used when --lighthouse-only mode is active to catch configuration bugs.
+ */
+function createMockEvaluator(): (prompt: string) => Promise<string> {
+  return async () => {
+    throw new Error(
+      "LLM evaluator was called but --lighthouse-only mode is active. " +
+        "This indicates a bug: design evaluation should be disabled."
+    );
   };
 }
 
@@ -188,7 +271,63 @@ async function generateSampleSite(
     `${benchmarkId}.html`
   );
 
+  // Write file to disk for Lighthouse evaluation
+  mkdirSync(dirname(outputPath), { recursive: true });
+  writeFileSync(outputPath, html);
+
   return { path: outputPath, content: html };
+}
+
+function writeOutputFile(filePath: string, content: string): boolean {
+  try {
+    mkdirSync(dirname(filePath), { recursive: true });
+    writeFileSync(filePath, content);
+    return true;
+  } catch (writeError) {
+    console.error(`\n⚠️ Warning: Failed to write results to ${filePath}`);
+    console.error(
+      `Reason: ${writeError instanceof Error ? writeError.message : "Unknown error"}`
+    );
+    return false;
+  }
+}
+
+function handleError(error: unknown): never {
+  if (error instanceof Anthropic.APIError) {
+    if (error.status === 401) {
+      console.error(
+        "Error: Invalid ANTHROPIC_API_KEY. Please check your API key."
+      );
+    } else if (error.status === 429) {
+      console.error(
+        "Error: Rate limited by Anthropic API. Please wait and retry."
+      );
+    } else {
+      console.error(
+        `Error: Anthropic API error (${error.status}): ${error.message}`
+      );
+    }
+  } else if (error instanceof Error) {
+    if (error.message.includes("ENOENT")) {
+      console.error(`Error: File not found - ${error.message}`);
+    } else if (
+      error.message.includes("EACCES") ||
+      error.message.includes("EPERM")
+    ) {
+      console.error(`Error: Permission denied - ${error.message}`);
+    } else if (error.message.includes("ENOSPC")) {
+      console.error(`Error: Disk full - ${error.message}`);
+    } else {
+      console.error(`Error: ${error.message}`);
+    }
+    // Log stack trace for debugging
+    if (process.env.DEBUG) {
+      console.error("\nStack trace:", error.stack);
+    }
+  } else {
+    console.error("Error: An unexpected error occurred:", error);
+  }
+  process.exit(1);
 }
 
 async function main() {
@@ -206,8 +345,9 @@ async function main() {
   let reports: EvaluationReport[];
 
   try {
+    // Use mock evaluator for lighthouse-only mode (will throw if accidentally called)
     const llmEvaluator = args.lighthouseOnly
-      ? async () => ""
+      ? createMockEvaluator()
       : await createLlmEvaluator();
 
     if (args.benchmarkId) {
@@ -252,8 +392,14 @@ async function main() {
     const jsonOutput = JSON.stringify(output, null, 2);
 
     if (args.outputFile) {
-      writeFileSync(args.outputFile, jsonOutput);
-      console.error(`\n✅ Results written to ${args.outputFile}`);
+      const writeSuccess = writeOutputFile(args.outputFile, jsonOutput);
+      if (writeSuccess) {
+        console.error(`\n✅ Results written to ${args.outputFile}`);
+      } else {
+        // Output to stdout as fallback
+        console.error("\nResults output to stdout instead:");
+        console.log(jsonOutput);
+      }
     } else {
       console.log(jsonOutput);
     }
@@ -271,8 +417,7 @@ async function main() {
 
     process.exit(passCount === reports.length ? 0 : 1);
   } catch (error) {
-    console.error("❌ Evaluation failed:", error);
-    process.exit(1);
+    handleError(error);
   }
 }
 
