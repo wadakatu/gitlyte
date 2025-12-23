@@ -26,9 +26,7 @@ import { createAIProvider } from "../utils/ai-provider.js";
  * Check if a push event contains only GitLyte-generated commits
  * This prevents infinite loops where GitLyte's own commits trigger new generations
  */
-function isGitLyteGeneratedPush(
-  commits: Array<{ message: string }>
-): boolean {
+function isGitLyteGeneratedPush(commits: Array<{ message: string }>): boolean {
   if (commits.length === 0) {
     return false;
   }
@@ -80,7 +78,7 @@ export async function handlePushV2(ctx: Context): Promise<void> {
     // Skip if all commits are GitLyte-generated (prevents infinite loop)
     if (isGitLyteGeneratedPush(payload.commits)) {
       ctx.log.info(
-        `⏭️ [v2] Skipping: GitLyte-generated commit detected (infinite loop prevention)`
+        "⏭️ [v2] Skipping: GitLyte-generated commit detected (infinite loop prevention)"
       );
       return;
     }
