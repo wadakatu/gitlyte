@@ -1,133 +1,71 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import app from "../../index.js";
 
 interface MockProbot {
   on: ReturnType<typeof vi.fn>;
-  load?: ReturnType<typeof vi.fn>;
 }
 
-// シンプルな統合テスト - アプリが正しく初期化されることを確認
-describe("GitLyte App Integration", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
+// v2 統合テスト - アプリが正しく初期化されることを確認
+describe("GitLyte App Integration (v2)", () => {
   describe("App Initialization", () => {
     it("should export the app function", () => {
       expect(app).toBeDefined();
       expect(typeof app).toBe("function");
     });
 
-    it("should be able to load the app into a mock probot", () => {
+    it("should register only push event handler", () => {
       const mockProbot: MockProbot = {
         on: vi.fn(),
-        load: vi.fn(),
-      };
-
-      // アプリ関数を呼び出して、Probotにイベントハンドラーが登録されることを確認
-      app(mockProbot as unknown as Parameters<typeof app>[0]);
-
-      expect(mockProbot.on).toHaveBeenCalledWith(
-        "pull_request.closed",
-        expect.any(Function)
-      );
-    });
-  });
-
-  describe("PR Handler Logic", () => {
-    it("should handle valid PR payload format", async () => {
-      const mockHandler = vi.fn();
-      const mockProbot = {
-        on: vi.fn().mockImplementation((event, handler) => {
-          if (event === "pull_request.closed") {
-            mockHandler.mockImplementation(handler);
-          }
-        }),
       };
 
       app(mockProbot as unknown as Parameters<typeof app>[0]);
 
-      // PRハンドラーが登録されていることを確認
-      expect(mockProbot.on).toHaveBeenCalledWith(
-        "pull_request.closed",
-        expect.any(Function)
-      );
-
-      // ハンドラー関数を取得
-      const handler = mockProbot.on.mock.calls[0][1];
-      expect(typeof handler).toBe("function");
+      // v2: Only push handler should be registered
+      expect(mockProbot.on).toHaveBeenCalledTimes(1);
+      expect(mockProbot.on).toHaveBeenCalledWith("push", expect.any(Function));
     });
 
-    it("should filter PRs correctly based on conditions", () => {
-      // PR filtering logic test
-      const testPRs = [
-        {
-          merged: true,
-          merged_at: "2023-01-01T00:00:00Z",
-          labels: [{ name: "enhancement" }],
-        },
-        {
-          merged: false,
-          merged_at: null,
-          labels: [{ name: "enhancement" }],
-        },
-        {
-          merged: true,
-          merged_at: "2023-01-01T00:00:00Z",
-          labels: [{ name: "bugfix" }],
-        },
-        {
-          merged: true,
-          merged_at: "2023-01-01T00:00:00Z",
-          labels: [{ name: "feat" }],
-        },
-      ];
-
-      const shouldProcess = (pr: {
-        merged: boolean;
-        merged_at: string | null;
-        labels: Array<{ name: string }>;
-      }) => {
-        if (!pr.merged || !pr.merged_at) return false;
-        return pr.labels.some((l: { name: string }) =>
-          /(enhancement|feat)/i.test(l.name)
-        );
+    it("should not register PR or comment handlers (v2)", () => {
+      const mockProbot: MockProbot = {
+        on: vi.fn(),
       };
 
-      const validPRs = testPRs.filter(shouldProcess);
+      app(mockProbot as unknown as Parameters<typeof app>[0]);
 
-      expect(validPRs).toHaveLength(2);
-      expect(validPRs[0].labels[0].name).toBe("enhancement");
-      expect(validPRs[1].labels[0].name).toBe("feat");
+      // v2: No PR or comment handlers
+      const registeredEvents = mockProbot.on.mock.calls.map(
+        (call) => call[0] as string
+      );
+
+      expect(registeredEvents).not.toContain("pull_request.closed");
+      expect(registeredEvents).not.toContain("issue_comment.created");
+      expect(registeredEvents).not.toContain("installation.created");
     });
   });
 
-  describe("Component Integration", () => {
-    it("should have all required service modules", async () => {
-      // 必要なサービスモジュールが存在することを確認
-      const repositoryAnalyzer = await import(
-        "../../services/repository-analyzer.js"
+  describe("v2 Service Modules", () => {
+    it("should have all required v2 service modules", async () => {
+      const v2SiteGenerator = await import(
+        "../../services/v2-site-generator.js"
       );
-      const siteGenerator = await import("../../services/site-generator.js");
-      const configurationLoader = await import(
-        "../../services/configuration-loader.js"
-      );
-      const staticFileDeployer = await import(
-        "../../services/static-file-deployer.js"
-      );
-      const githubUtils = await import("../../utils/github.js");
-      const batchCommit = await import("../../utils/batch-commit.js");
+      const selfRefine = await import("../../services/self-refine.js");
+      const aiProvider = await import("../../utils/ai-provider.js");
+      const deploymentGuard = await import("../../utils/deployment-guard.js");
 
-      expect(repositoryAnalyzer.RepositoryAnalyzer).toBeDefined();
-      expect(siteGenerator.SiteGenerator).toBeDefined();
-      expect(configurationLoader.ConfigurationLoader).toBeDefined();
-      expect(staticFileDeployer.StaticFileDeployer).toBeDefined();
-      expect(githubUtils.collectRepoData).toBeDefined();
-      expect(batchCommit.batchCommitFiles).toBeDefined();
+      expect(v2SiteGenerator.generateSite).toBeDefined();
+      expect(v2SiteGenerator.analyzeRepository).toBeDefined();
+      expect(v2SiteGenerator.generateDesignSystem).toBeDefined();
+      expect(selfRefine.refinePage).toBeDefined();
+      expect(selfRefine.shouldUseSelfRefine).toBeDefined();
+      expect(aiProvider.createAIProvider).toBeDefined();
+      expect(deploymentGuard.safeGenerateWithDeploymentGuard).toBeDefined();
+    });
+
+    it("should have v2 config types", async () => {
+      const v2Config = await import("../../types/v2-config.js");
+
+      expect(v2Config.resolveConfigV2).toBeDefined();
+      expect(v2Config.validateConfigV2).toBeDefined();
     });
   });
 });
