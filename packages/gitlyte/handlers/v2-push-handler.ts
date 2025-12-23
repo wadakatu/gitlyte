@@ -10,17 +10,18 @@
 import type { Context } from "probot";
 
 import { generateSite } from "../services/v2-site-generator.js";
-
-/**
- * Marker to identify GitLyte-generated commits and prevent infinite loops
- */
-const GITLYTE_COMMIT_MARKER = "[skip gitlyte]";
 import {
   type GitLyteConfigV2,
   resolveConfigV2,
   validateConfigV2,
 } from "../types/v2-config.js";
 import { createAIProvider } from "../utils/ai-provider.js";
+import { safeGenerateWithDeploymentGuard } from "../utils/deployment-guard.js";
+
+/**
+ * Marker to identify GitLyte-generated commits and prevent infinite loops
+ */
+const GITLYTE_COMMIT_MARKER = "[skip gitlyte]";
 
 /**
  * Check if a push event contains only GitLyte-generated commits
@@ -101,8 +102,10 @@ export async function handlePushV2(ctx: Context): Promise<void> {
     // Wait for GitHub API to sync after push
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Generate and deploy site
-    await generateAndDeploySiteV2(ctx, config, aiProvider);
+    // Generate and deploy site with deployment guard (prevents concurrent deployments)
+    await safeGenerateWithDeploymentGuard(ctx, async () => {
+      await generateAndDeploySiteV2(ctx, config, aiProvider);
+    });
 
     const duration = Date.now() - startTime;
     ctx.log.info(`✅ [v2] Site generated successfully in ${duration}ms`);
