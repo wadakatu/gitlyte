@@ -2,6 +2,11 @@ import type { Probot } from "probot";
 import { handlePushV2 } from "./handlers/v2-push-handler.js";
 
 export default function app(bot: Probot) {
+  // Debug: すべてのイベントをログ出力
+  bot.onAny(async (ctx) => {
+    bot.log.info(`🔍 Event received: ${ctx.name}`);
+  });
+
   // v2: デフォルトブランチへのpushのみを処理
   bot.on("push", async (ctx) => {
     const { ref, commits } = ctx.payload as {

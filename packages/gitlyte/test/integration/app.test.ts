@@ -3,6 +3,10 @@ import app from "../../index.js";
 
 interface MockProbot {
   on: ReturnType<typeof vi.fn>;
+  onAny: ReturnType<typeof vi.fn>;
+  log: {
+    info: ReturnType<typeof vi.fn>;
+  };
 }
 
 // v2 統合テスト - アプリが正しく初期化されることを確認
@@ -16,6 +20,10 @@ describe("GitLyte App Integration (v2)", () => {
     it("should register only push event handler", () => {
       const mockProbot: MockProbot = {
         on: vi.fn(),
+        onAny: vi.fn(),
+        log: {
+          info: vi.fn(),
+        },
       };
 
       app(mockProbot as unknown as Parameters<typeof app>[0]);
@@ -23,11 +31,17 @@ describe("GitLyte App Integration (v2)", () => {
       // v2: Only push handler should be registered
       expect(mockProbot.on).toHaveBeenCalledTimes(1);
       expect(mockProbot.on).toHaveBeenCalledWith("push", expect.any(Function));
+      // Debug handler should also be registered
+      expect(mockProbot.onAny).toHaveBeenCalledTimes(1);
     });
 
     it("should not register PR or comment handlers (v2)", () => {
       const mockProbot: MockProbot = {
         on: vi.fn(),
+        onAny: vi.fn(),
+        log: {
+          info: vi.fn(),
+        },
       };
 
       app(mockProbot as unknown as Parameters<typeof app>[0]);
