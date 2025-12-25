@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gitlyte - A GitHub App that automatically generates AI-powered websites from repository data with no coding required.</title>
+  <meta name="description" content="A GitHub App that automatically generates AI-powered websites from repository data with no coding required.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: 'blue-600',
+            secondary: 'slate-700',
+            accent: 'indigo-500',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <!-- Navigation -->
+  <nav class="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <a href="#" class="text-xl font-bold text-blue-600">gitlyte</a>
+        <div class="hidden md:flex space-x-8">
+          <a href="#hero" class="text-slate-900 hover:text-blue-600 transition-colors capitalize">hero</a>
+            <a href="#features" class="text-slate-900 hover:text-blue-600 transition-colors capitalize">features</a>
+            <a href="#installation" class="text-slate-900 hover:text-blue-600 transition-colors capitalize">installation</a>
+            <a href="#screenshots" class="text-slate-900 hover:text-blue-600 transition-colors capitalize">screenshots</a>
+            <a href="#cta" class="text-slate-900 hover:text-blue-600 transition-colors capitalize">cta</a>
+        </div>
+        <a href="https://github.com/wadakatu/gitlyte" target="_blank" rel="noopener" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity">
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="pt-16">
+  <section id="hero" class="relative bg-slate-50 overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-indigo-500/5 to-slate-700/5"></div>
+  <div class="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-600/10 to-transparent rounded-full blur-3xl transform translate-x-32 -translate-y-32"></div>
+  <div class="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-indigo-500/10 to-transparent rounded-full blur-3xl transform -translate-x-24 translate-y-24"></div>
+  
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+    <div class="text-center max-w-4xl mx-auto">
+      <div class="mb-8">
+        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-600/10 text-blue-600 border border-blue-600/20">
+          🚀 GitHub App
+        </span>
+      </div>
+      
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+        Turn Your
+        <span class="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
+          GitHub Repos
+        </span>
+        Into Stunning Websites
+      </h1>
+      
+      <p class="text-lg sm:text-xl text-slate-700 mb-10 max-w-2xl mx-auto leading-relaxed">
+        GitLyte automatically generates AI-powered websites from your repository data. No coding required, just install and watch your projects come to life.
+      </p>
+      
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <button class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+          Install GitHub App
+        </button>
+        <button class="w-full sm:w-auto bg-white hover:bg-slate-100 text-slate-700 px-8 py-4 rounded-lg font-semibold text-lg border-2 border-slate-200 hover:border-slate-300 transition-all duration-200">
+          View on GitHub
+        </button>
+      </div>
+      
+      <div class="mt-12 flex flex-wrap justify-center items-center gap-6 text-sm text-slate-600">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+          <span>AI-Powered Generation</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+          <span>Multi-AI Provider Support</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+          <span>Zero Configuration</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+  <section id="features" class="py-16 px-4 bg-slate-50">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Powerful Features</h2>
+      <p class="text-lg text-slate-700 max-w-2xl mx-auto">Transform your GitHub repositories into stunning websites with AI-powered automation and seamless integration.</p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <article class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-lg hover:border-blue-600 transition-all duration-300 hover:-translate-y-1">
+        <div class="text-4xl mb-4">🤖</div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-3">AI-Powered Generation</h3>
+        <p class="text-slate-700">Automatically create beautiful, responsive websites from your repository data using advanced AI algorithms that understand your project structure.</p>
+      </article>
+      
+      <article class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-lg hover:border-blue-600 transition-all duration-300 hover:-translate-y-1">
+        <div class="text-4xl mb-4">🔗</div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-3">GitHub App Integration</h3>
+        <p class="text-slate-700">Seamlessly connect with your GitHub repositories through our official app. No complex setup or API keys required - just install and go.</p>
+      </article>
+      
+      <article class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-lg hover:border-blue-600 transition-all duration-300 hover:-translate-y-1">
+        <div class="text-4xl mb-4">⚡</div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-3">Multi-AI Provider Support</h3>
+        <p class="text-slate-700">Choose from multiple AI providers to find the perfect fit for your needs. Switch between providers or use multiple models for optimal results.</p>
+      </article>
+      
+      <article class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-lg hover:border-blue-600 transition-all duration-300 hover:-translate-y-1">
+        <div class="text-4xl mb-4">🎨</div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-3">No Coding Required</h3>
+        <p class="text-slate-700">Create professional websites without writing a single line of code. Our AI handles all the technical details while you focus on your project.</p>
+      </article>
+      
+      <article class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-lg hover:border-blue-600 transition-all duration-300 hover:-translate-y-1">
+        <div class="text-4xl mb-4">📱</div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-3">Responsive Design</h3>
+        <p class="text-slate-700">Generated websites automatically adapt to all screen sizes and devices, ensuring your project looks perfect everywhere.</p>
+      </article>
+      
+      <article class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-lg hover:border-blue-600 transition-all duration-300 hover:-translate-y-1">
+        <div class="text-4xl mb-4">🚀</div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-3">Instant Deployment</h3>
+        <p class="text-slate-700">Deploy your generated website instantly with built-in hosting options. Share your project with the world in just a few clicks.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+  <section id="installation" class="py-16 px-4 bg-slate-50">
+  <div class="max-w-4xl mx-auto">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+        🚀 Quick Installation
+      </h2>
+      <p class="text-lg text-slate-700 max-w-2xl mx-auto">
+        Get GitLyte up and running in minutes with your preferred package manager
+      </p>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-3 mb-12">
+      <article class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-sm">npm</span>
+          </div>
+          <h3 class="font-semibold text-slate-900">npm</h3>
+        </div>
+        <div class="relative">
+          <pre class="bg-slate-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm font-mono"><code>npm install -g gitlyte</code></pre>
+          <button class="absolute top-2 right-2 p-2 text-slate-400 hover:text-white transition-colors duration-200" onclick="navigator.clipboard.writeText('npm install -g gitlyte')">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+          </button>
+        </div>
+      </article>
+
+      <article class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-sm">Y</span>
+          </div>
+          <h3 class="font-semibold text-slate-900">Yarn</h3>
+        </div>
+        <div class="relative">
+          <pre class="bg-slate-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm font-mono"><code>yarn global add gitlyte</code></pre>
+          <button class="absolute top-2 right-2 p-2 text-slate-400 hover:text-white transition-colors duration-200" onclick="navigator.clipboard.writeText('yarn global add gitlyte')">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+          </button>
+        </div>
+      </article>
+
+      <article class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-sm">P</span>
+          </div>
+          <h3 class="font-semibold text-slate-900">pnpm</h3>
+        </div>
+        <div class="relative">
+          <pre class="bg-slate-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm font-mono"><code>pnpm add -g gitlyte</code></pre>
+          <button class="absolute top-2 right-2 p-2 text-slate-400 hover:text-white transition-colors duration-200" onclick="navigator.clipboard.writeText('pnpm add -g gitlyte')">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-500 rounded-xl p-8 text-center text-white">
+      <h3 class="text-xl font-semibold mb-3">✨ Next Steps</h3>
+      <p class="text-blue-100 mb-4 max-w-2xl mx-auto">
+        Once installed, authenticate with GitHub and start generating beautiful websites from your repositories with a single command.
+      </p>
+      <div class="bg-black/20 rounded-lg p-4 max-w-md mx-auto">
+        <code class="text-sm font-mono">gitlyte init</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+  <section id="screenshots" class="py-16 bg-slate-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-slate-900 sm:text-4xl mb-4">See GitLyte in Action</h2>
+      <p class="text-lg text-slate-700 max-w-2xl mx-auto">Watch how GitLyte transforms your GitHub repositories into beautiful, AI-powered websites in minutes</p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <article class="group">
+        <div class="bg-gradient-to-br from-blue-600 to-indigo-500 rounded-xl p-8 h-64 flex items-center justify-center mb-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105">
+          <div class="text-center text-white">
+            <div class="text-4xl mb-3">🔗</div>
+            <div class="text-sm opacity-90">GitHub Integration</div>
+          </div>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-2">Connect Your Repository</h3>
+        <p class="text-slate-700">Seamlessly connect GitLyte to your GitHub repository with our easy-to-install GitHub App integration.</p>
+      </article>
+
+      <article class="group">
+        <div class="bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl p-8 h-64 flex items-center justify-center mb-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105">
+          <div class="text-center text-white">
+            <div class="text-4xl mb-3">🤖</div>
+            <div class="text-sm opacity-90">AI Processing</div>
+          </div>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-2">AI-Powered Analysis</h3>
+        <p class="text-slate-700">Our AI analyzes your repository structure, README, and code to understand your project and generate relevant content.</p>
+      </article>
+
+      <article class="group">
+        <div class="bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl p-8 h-64 flex items-center justify-center mb-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105">
+          <div class="text-center text-white">
+            <div class="text-4xl mb-3">✨</div>
+            <div class="text-sm opacity-90">Website Generation</div>
+          </div>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-2">Beautiful Website Created</h3>
+        <p class="text-slate-700">Get a fully responsive, professionally designed website showcasing your project with documentation and features.</p>
+      </article>
+
+      <article class="group md:col-span-2 lg:col-span-1">
+        <div class="bg-gradient-to-br from-blue-600 via-indigo-500 to-slate-700 rounded-xl p-8 h-64 flex items-center justify-center mb-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105">
+          <div class="text-center text-white">
+            <div class="text-4xl mb-3">🎨</div>
+            <div class="text-sm opacity-90">Customization Options</div>
+          </div>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-2">Customize & Deploy</h3>
+        <p class="text-slate-700">Fine-tune your website's appearance and content, then deploy instantly with automatic updates from your repository.</p>
+      </article>
+
+      <article class="group md:col-span-2">
+        <div class="bg-gradient-to-r from-slate-700 via-blue-600 to-indigo-500 rounded-xl p-12 h-80 flex items-center justify-center mb-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105">
+          <div class="text-center text-white">
+            <div class="text-6xl mb-4">🚀</div>
+            <div class="text-xl font-semibold mb-2">Live Demo Dashboard</div>
+            <div class="text-sm opacity-90">Complete GitLyte workflow visualization</div>
+          </div>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-2">Full Dashboard Experience</h3>
+        <p class="text-slate-700">Manage multiple projects, track website performance, and configure AI providers all from one intuitive dashboard interface.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+  <section id="cta" class="relative bg-gradient-to-br from-blue-600 via-indigo-500 to-slate-700 py-16 px-4 sm:py-24 sm:px-6 lg:px-8 overflow-hidden">
+  <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
+  <div class="relative max-w-4xl mx-auto text-center">
+    <div class="mb-6">
+      <span class="text-6xl">🚀</span>
+    </div>
+    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
+      Transform Your GitHub Repository into a Stunning Website
+    </h2>
+    <p class="text-lg sm:text-xl text-blue-100 mb-8 max-w-2xl mx-auto leading-relaxed">
+      No coding required. Just connect GitLyte to your repository and watch AI generate a professional website automatically. Deploy in minutes, not hours.
+    </p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+      <button class="w-full sm:w-auto bg-white text-blue-600 font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-white focus:ring-opacity-50">
+        Get Started Free
+      </button>
+      <button class="w-full sm:w-auto border-2 border-white text-white font-semibold px-8 py-4 rounded-lg hover:bg-white hover:text-blue-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white focus:ring-opacity-50">
+        View Demo
+      </button>
+    </div>
+    <p class="text-blue-200 text-sm mt-4">
+      ✨ No credit card required • 🔒 Secure GitHub integration • ⚡ Deploy instantly
+    </p>
+  </div>
+</section>
+
+  <section id="footer" class="bg-slate-700 text-slate-50 py-12">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div class="md:col-span-2">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-500 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-sm">G</span>
+          </div>
+          <h3 class="text-xl font-bold text-white">gitlyte</h3>
+        </div>
+        <p class="text-slate-300 text-sm leading-relaxed max-w-md">
+          AI-powered website generation from your GitHub repositories. No coding required.
+        </p>
+      </div>
+      
+      <nav class="space-y-3">
+        <h4 class="text-white font-semibold text-sm uppercase tracking-wider">Navigation</h4>
+        <ul class="space-y-2">
+          <li>
+            <a href="#" class="text-slate-300 hover:text-blue-400 text-sm transition-colors duration-200">Home</a>
+          </li>
+          <li>
+            <a href="#" class="text-slate-300 hover:text-blue-400 text-sm transition-colors duration-200">Documentation</a>
+          </li>
+          <li>
+            <a href="#" class="text-slate-300 hover:text-blue-400 text-sm transition-colors duration-200">GitHub</a>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="space-y-3">
+        <h4 class="text-white font-semibold text-sm uppercase tracking-wider">Connect</h4>
+        <div class="flex space-x-3">
+          <a href="#" class="w-8 h-8 bg-slate-600 hover:bg-blue-600 rounded-lg flex items-center justify-center transition-colors duration-200">
+            <span class="text-sm">🐙</span>
+          </a>
+          <a href="#" class="w-8 h-8 bg-slate-600 hover:bg-blue-600 rounded-lg flex items-center justify-center transition-colors duration-200">
+            <span class="text-sm">🐦</span>
+          </a>
+          <a href="#" class="w-8 h-8 bg-slate-600 hover:bg-blue-600 rounded-lg flex items-center justify-center transition-colors duration-200">
+            <span class="text-sm">💬</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="border-t border-slate-600 mt-8 pt-8 flex flex-col sm:flex-row justify-between items-center">
+      <p class="text-slate-400 text-sm">
+        © 2024 gitlyte. All rights reserved.
+      </p>
+      <p class="text-slate-400 text-sm mt-2 sm:mt-0">
+        Built with ❤️ for developers
+      </p>
+    </div>
+  </div>
+</section>
+  </main>
+</body>
+</html>
