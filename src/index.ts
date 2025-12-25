@@ -11,7 +11,7 @@ import {
   type QualityMode,
 } from "./ai-provider.js";
 
-async function run(): Promise<void> {
+export async function run(): Promise<void> {
   try {
     // Get inputs
     const apiKey = core.getInput("api-key", { required: true });
@@ -227,4 +227,7 @@ async function run(): Promise<void> {
   }
 }
 
-run();
+// Only run when not being tested
+if (!process.env.VITEST) {
+  run();
+}
