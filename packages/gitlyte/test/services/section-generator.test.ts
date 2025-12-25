@@ -190,6 +190,31 @@ describe("section-generator", () => {
       expect(result.html).not.toContain("```");
       expect(result.html).toContain("<section");
     });
+
+    it("should include light mode palette in AI prompt when themeMode is light", async () => {
+      const lightContext: SectionContext = {
+        ...mockSectionContext,
+        themeMode: "light",
+      };
+
+      const mockProvider = createMockAIProvider({
+        hero: '<section id="hero"><h1>Welcome</h1></section>',
+      });
+
+      await generateSection("hero", lightContext, 0, mockProvider);
+
+      expect(mockProvider.generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("light mode"),
+        })
+      );
+      // Light mode palette should have white background
+      expect(mockProvider.generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("Background: white"),
+        })
+      );
+    });
   });
 
   describe("generateSectionsParallel", () => {
@@ -338,6 +363,38 @@ describe("section-generator", () => {
       // Dark mode should use dark background colors
       expect(html).toContain("bg-gray-950");
       expect(html).toContain("bg-gray-900/90"); // dark mode nav background
+    });
+
+    it("should use correct GitHub button text color for light mode", () => {
+      const lightModeContext: SectionContext = {
+        ...mockSectionContext,
+        themeMode: "light",
+      };
+
+      const sections = [
+        { type: "hero" as const, html: "<section></section>", order: 0 },
+      ];
+
+      const html = assembleHtml(sections, lightModeContext, {});
+
+      // Light mode should use white text on colored buttons for contrast
+      expect(html).toContain("text-white");
+    });
+
+    it("should use correct GitHub button text color for dark mode", () => {
+      const darkModeContext: SectionContext = {
+        ...mockSectionContext,
+        themeMode: "dark",
+      };
+
+      const sections = [
+        { type: "hero" as const, html: "<section></section>", order: 0 },
+      ];
+
+      const html = assembleHtml(sections, darkModeContext, {});
+
+      // Dark mode should use dark text on colored buttons for contrast
+      expect(html).toContain("text-gray-900");
     });
   });
 });

@@ -39,6 +39,8 @@ export type SectionType =
 export interface SectionPlan {
   sections: SectionType[];
   reasoning: string;
+  /** Indicates if fallback sections were used due to parsing error */
+  usedFallback?: boolean;
 }
 
 /**
@@ -125,12 +127,18 @@ Respond with JSON only:
     if (!parsed.sections.includes("footer")) {
       parsed.sections.push("footer");
     }
-    return parsed;
-  } catch {
+    return { ...parsed, usedFallback: false };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[section-generator] Failed to parse section analysis: ${errorMessage}` +
+        `\n  Raw response (first 200 chars): ${result.text?.slice(0, 200)}`
+    );
     // Fallback to safe defaults
     return {
       sections: ["hero", "features", "installation", "footer"],
       reasoning: "Using default sections due to parsing error",
+      usedFallback: true,
     };
   }
 }
@@ -203,11 +211,36 @@ const SECTION_PROMPTS: Record<SectionType, string> = {
 - Social links placeholder`,
 };
 
+/** Default color palettes for fallback */
+const DEFAULT_PALETTES: Record<ThemeMode, ColorPalette> = {
+  light: {
+    primary: "blue-600",
+    secondary: "indigo-600",
+    accent: "purple-500",
+    background: "white",
+    text: "gray-900",
+  },
+  dark: {
+    primary: "blue-400",
+    secondary: "indigo-400",
+    accent: "purple-400",
+    background: "gray-950",
+    text: "gray-50",
+  },
+};
+
 /**
- * Get color palette for the current theme mode
+ * Get color palette for the current theme mode with fallback
  */
 function getPalette(design: DesignSystem, themeMode: ThemeMode): ColorPalette {
-  return design.colors[themeMode];
+  const palette = design.colors[themeMode];
+  if (!palette) {
+    console.warn(
+      `[section-generator] Missing color palette for mode "${themeMode}", using fallback`
+    );
+    return DEFAULT_PALETTES[themeMode];
+  }
+  return palette;
 }
 
 /**

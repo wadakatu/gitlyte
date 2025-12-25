@@ -114,7 +114,7 @@ export interface RefinementContext {
   design: DesignSystem;
 
   /** Theme mode for color palette selection */
-  themeMode?: ThemeMode;
+  themeMode: ThemeMode;
 
   /** Repository info for evaluation */
   repositoryInfo: {
@@ -125,12 +125,36 @@ export interface RefinementContext {
   };
 }
 
+/** Default color palettes for fallback */
+const DEFAULT_PALETTES: Record<ThemeMode, ColorPalette> = {
+  light: {
+    primary: "blue-600",
+    secondary: "indigo-600",
+    accent: "purple-500",
+    background: "white",
+    text: "gray-900",
+  },
+  dark: {
+    primary: "blue-400",
+    secondary: "indigo-400",
+    accent: "purple-400",
+    background: "gray-950",
+    text: "gray-50",
+  },
+};
+
 /**
- * Get the color palette for the current theme mode
+ * Get the color palette for the current theme mode with fallback
  */
 function getContextPalette(context: RefinementContext): ColorPalette {
-  const mode = context.themeMode || "dark";
-  return context.design.colors[mode];
+  const palette = context.design.colors[context.themeMode];
+  if (!palette) {
+    console.warn(
+      `[self-refine] Missing color palette for mode "${context.themeMode}", using fallback`
+    );
+    return DEFAULT_PALETTES[context.themeMode];
+  }
+  return palette;
 }
 
 /**
@@ -230,7 +254,6 @@ function buildRefinementPrompt(
 ): string {
   const weakestCriteria = getWeakestCriteria(evaluation);
   const palette = getContextPalette(context);
-  const themeMode = context.themeMode || "dark";
 
   return `You are an expert web designer. Improve the following HTML page based on feedback.
 
@@ -241,7 +264,7 @@ function buildRefinementPrompt(
 - Audience: ${context.analysis.audience}
 - Style: ${context.analysis.style}
 
-## Design System (${themeMode} mode)
+## Design System (${context.themeMode} mode)
 - Primary Color: ${palette.primary}
 - Secondary Color: ${palette.secondary}
 - Accent Color: ${palette.accent}
