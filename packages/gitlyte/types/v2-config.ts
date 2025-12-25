@@ -134,6 +134,19 @@ export interface GitLyteConfigV2 {
      */
     mode?: ThemeMode;
   };
+
+  /**
+   * Custom prompts configuration
+   */
+  prompts?: {
+    /**
+     * Custom instructions to include in all AI generation prompts.
+     * Use this to customize the tone, language, or style of the generated site.
+     * @example "技術的で簡潔なトーンで、日本語で生成してください"
+     * @example "Use a friendly, approachable tone suitable for beginners"
+     */
+    siteInstructions?: string;
+  };
 }
 
 /**
@@ -154,6 +167,9 @@ export const DEFAULT_CONFIG_V2 = {
   },
   theme: {
     mode: "dark" as const,
+  },
+  prompts: {
+    siteInstructions: undefined as string | undefined,
   },
 };
 
@@ -180,6 +196,9 @@ export interface ResolvedConfigV2 {
   };
   theme: {
     mode: ThemeMode;
+  };
+  prompts: {
+    siteInstructions?: string;
   };
 }
 
@@ -210,6 +229,9 @@ export function resolveConfigV2(
     },
     theme: {
       mode: config.theme?.mode ?? defaultThemeMode,
+    },
+    prompts: {
+      siteInstructions: config.prompts?.siteInstructions,
     },
   };
 }
@@ -352,6 +374,22 @@ export function validateConfigV2(config: unknown): ConfigValidationResult {
     }
   }
 
+  // Validate prompts
+  if (cfg.prompts !== undefined) {
+    if (typeof cfg.prompts !== "object" || cfg.prompts === null) {
+      errors.push("'prompts' must be an object");
+    } else {
+      const prompts = cfg.prompts as Record<string, unknown>;
+
+      if (
+        prompts.siteInstructions !== undefined &&
+        typeof prompts.siteInstructions !== "string"
+      ) {
+        errors.push("'prompts.siteInstructions' must be a string");
+      }
+    }
+  }
+
   // Check for unknown fields
   const knownFields = [
     "enabled",
@@ -362,6 +400,7 @@ export function validateConfigV2(config: unknown): ConfigValidationResult {
     "pages",
     "generation",
     "theme",
+    "prompts",
   ];
   for (const key of Object.keys(cfg)) {
     if (!knownFields.includes(key)) {

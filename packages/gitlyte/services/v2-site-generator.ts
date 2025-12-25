@@ -386,6 +386,7 @@ export async function generateSite(
       url: repoInfo.url,
     },
     themeMode: config.theme.mode,
+    siteInstructions: config.prompts.siteInstructions,
   };
 
   const sections = await generateSectionsParallel(

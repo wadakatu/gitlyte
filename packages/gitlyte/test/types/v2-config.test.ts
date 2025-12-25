@@ -92,6 +92,32 @@ describe("v2-config", () => {
 
       expect(result.theme.mode).toBe("dark"); // default
     });
+
+    it("should return undefined siteInstructions when not provided", () => {
+      const result = resolveConfigV2({});
+
+      expect(result.prompts.siteInstructions).toBeUndefined();
+    });
+
+    it("should preserve siteInstructions when provided", () => {
+      const result = resolveConfigV2({
+        prompts: {
+          siteInstructions: "技術的で簡潔なトーンで、日本語で生成してください",
+        },
+      });
+
+      expect(result.prompts.siteInstructions).toBe(
+        "技術的で簡潔なトーンで、日本語で生成してください"
+      );
+    });
+
+    it("should handle empty prompts object", () => {
+      const result = resolveConfigV2({
+        prompts: {},
+      });
+
+      expect(result.prompts.siteInstructions).toBeUndefined();
+    });
   });
 
   describe("validateConfigV2", () => {
@@ -316,6 +342,48 @@ describe("v2-config", () => {
         theme: {
           mode: "dark",
         },
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it("should return error for invalid prompts object", () => {
+      const result = validateConfigV2({
+        prompts: "custom instructions", // should be object
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain("'prompts' must be an object");
+    });
+
+    it("should return error for invalid prompts.siteInstructions type", () => {
+      const result = validateConfigV2({
+        prompts: {
+          siteInstructions: 123, // should be string
+        },
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "'prompts.siteInstructions' must be a string"
+      );
+    });
+
+    it("should validate valid prompts config", () => {
+      const result = validateConfigV2({
+        prompts: {
+          siteInstructions: "Use a friendly tone for beginners",
+        },
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it("should validate empty prompts object", () => {
+      const result = validateConfigV2({
+        prompts: {},
       });
 
       expect(result.valid).toBe(true);

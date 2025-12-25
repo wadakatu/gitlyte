@@ -65,6 +65,11 @@ export interface SectionContext {
     url: string;
   };
   themeMode: ThemeMode;
+  /**
+   * Custom instructions to include in AI prompts.
+   * Allows users to customize tone, language, or style.
+   */
+  siteInstructions?: string;
 }
 
 /**
@@ -255,6 +260,11 @@ export async function generateSection(
   const sectionPrompt = SECTION_PROMPTS[sectionType];
   const palette = getPalette(context.design, context.themeMode);
 
+  // Build custom instructions section if provided
+  const customInstructionsSection = context.siteInstructions
+    ? `\nCUSTOM INSTRUCTIONS (IMPORTANT - follow these closely):\n${context.siteInstructions}\n`
+    : "";
+
   const prompt = `Generate ONLY the HTML for a ${sectionType} section.
 
 PROJECT: ${context.analysis.name}
@@ -268,7 +278,7 @@ DESIGN SYSTEM (${context.themeMode} mode):
 - Accent: ${palette.accent}
 - Background: ${palette.background}
 - Text: ${palette.text}
-
+${customInstructionsSection}
 SECTION REQUIREMENTS:
 ${sectionPrompt}
 
