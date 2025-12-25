@@ -9,8 +9,13 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText, type LanguageModel } from "ai";
 
-export type AIProvider = "anthropic" | "openai" | "google";
-export type QualityMode = "standard" | "high";
+/** Valid AI provider values */
+export const AI_PROVIDERS = ["anthropic", "openai", "google"] as const;
+export type AIProvider = (typeof AI_PROVIDERS)[number];
+
+/** Valid quality mode values */
+export const QUALITY_MODES = ["standard", "high"] as const;
+export type QualityMode = (typeof QUALITY_MODES)[number];
 
 const MODEL_CONFIG = {
   anthropic: {
@@ -28,13 +33,13 @@ const MODEL_CONFIG = {
 } as const;
 
 export interface AIProviderInstance {
-  generateText: (options: {
+  readonly generateText: (options: {
     prompt: string;
     system?: string;
     temperature?: number;
   }) => Promise<{ text: string }>;
-  provider: AIProvider;
-  quality: QualityMode;
+  readonly provider: AIProvider;
+  readonly quality: QualityMode;
 }
 
 export function createAIProvider(
@@ -42,19 +47,35 @@ export function createAIProvider(
   quality: QualityMode,
   apiKey: string
 ): AIProviderInstance {
+  // Validate API key
+  if (!apiKey) {
+    throw new Error(
+      `API key is required for provider "${provider}". ` +
+        `Please set the 'api-key' input in your workflow.`
+    );
+  }
+
   const model = getModel(provider, quality, apiKey);
 
   return {
     provider,
     quality,
     generateText: async (options) => {
-      const result = await generateText({
-        model,
-        prompt: options.prompt,
-        system: options.system,
-        temperature: options.temperature ?? 0.7,
-      });
-      return { text: result.text };
+      try {
+        const result = await generateText({
+          model,
+          prompt: options.prompt,
+          system: options.system,
+          temperature: options.temperature ?? 0.7,
+        });
+        return { text: result.text };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(`[${provider}] AI generation failed: ${errorMessage}`, {
+          cause: error,
+        });
+      }
     },
   };
 }
@@ -78,6 +99,11 @@ function getModel(
     case "google": {
       const google = createGoogleGenerativeAI({ apiKey });
       return google(modelId);
+    }
+    default: {
+      // Exhaustive check - TypeScript will error if a new provider is added
+      const _exhaustive: never = provider;
+      throw new Error(`Unknown AI provider: ${_exhaustive}`);
     }
   }
 }

@@ -32,13 +32,22 @@ export interface GeneratedSite {
   assets: Array<{ path: string; content: string }>;
 }
 
+/** Valid project type values */
+type ProjectType = "library" | "tool" | "webapp" | "docs" | "other";
+
+/** Valid audience values */
+type Audience = "developers" | "designers" | "general" | "enterprise";
+
+/** Valid style values */
+type Style = "minimal" | "professional" | "creative" | "technical";
+
 interface RepositoryAnalysis {
   name: string;
   description: string;
-  projectType: string;
+  projectType: ProjectType;
   primaryLanguage: string;
-  audience: string;
-  style: string;
+  audience: Audience;
+  style: Style;
   keyFeatures: string[];
 }
 
@@ -128,7 +137,12 @@ Respond with JSON only (no markdown, no code blocks):
 
   try {
     return JSON.parse(cleanJsonResponse(result.text));
-  } catch {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[gitlyte-action] Failed to parse repository analysis: ${errorMessage}. Using fallback values.`,
+      `\n  Raw response (first 200 chars): ${result.text?.slice(0, 200)}`
+    );
     return {
       name: repoInfo.name,
       description: repoInfo.description || "A software project",
@@ -187,7 +201,12 @@ Respond with JSON only (no markdown, no code blocks):
 
   try {
     return JSON.parse(cleanJsonResponse(result.text));
-  } catch {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[gitlyte-action] Failed to parse design system: ${errorMessage}. Using fallback values.`,
+      `\n  Raw response (first 200 chars): ${result.text?.slice(0, 200)}`
+    );
     return {
       colors: {
         light: {
