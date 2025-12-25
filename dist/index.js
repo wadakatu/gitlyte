@@ -35009,12 +35009,216 @@ var github = __nccwpck_require__(4903);
 const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
 ;// CONCATENATED MODULE: external "node:path"
 const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
+;// CONCATENATED MODULE: ./src/self-refine.ts
+/**
+ * Self-Refine Pattern Implementation
+ *
+ * Implements LLM-as-Judge evaluation and iterative refinement
+ * for higher quality site generation.
+ */
+
+const DEFAULT_CONFIG = {
+    maxIterations: 3,
+    targetScore: 8,
+};
+/**
+ * Evaluate generated HTML using LLM-as-Judge pattern
+ */
+async function evaluateHtml(html, context, aiProvider) {
+    const prompt = `You are an expert web design evaluator. Evaluate this landing page HTML for a project called "${context.projectName}".
+
+PROJECT CONTEXT:
+${context.projectDescription}
+
+HTML TO EVALUATE:
+${html.slice(0, 8000)}
+
+EVALUATION CRITERIA:
+1. Visual Design (colors, typography, spacing, modern aesthetics)
+2. Content Quality (clear messaging, compelling copy, professional tone)
+3. User Experience (navigation, readability, call-to-action clarity)
+4. Technical Quality (semantic HTML, responsive design, accessibility)
+5. Brand Alignment (matches project purpose and audience)
+
+Respond with JSON only (no markdown, no code blocks):
+{
+  "score": 7,
+  "feedback": "Overall assessment in 2-3 sentences",
+  "strengths": ["strength1", "strength2"],
+  "improvements": ["specific improvement 1", "specific improvement 2"]
+}
+
+Be critical but constructive. Score 1-10 where:
+- 1-3: Poor, major issues
+- 4-5: Below average, needs work
+- 6-7: Average, acceptable but could improve
+- 8-9: Good, high quality
+- 10: Exceptional, production-ready`;
+    const result = await aiProvider.generateText({
+        prompt,
+        temperature: 0.3, // Lower temperature for consistent evaluation
+    });
+    try {
+        const parsed = JSON.parse(cleanJsonResponse(result.text));
+        return {
+            score: Math.min(10, Math.max(1, Number(parsed.score) || 5)),
+            feedback: String(parsed.feedback || "No feedback provided"),
+            strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+            improvements: Array.isArray(parsed.improvements)
+                ? parsed.improvements
+                : [],
+        };
+    }
+    catch (error) {
+        core.warning(`Failed to parse evaluation response, using default score. Error: ${error}`);
+        return {
+            score: 5,
+            feedback: "Evaluation parsing failed, using default score",
+            strengths: [],
+            improvements: [],
+        };
+    }
+}
+/**
+ * Refine HTML based on evaluation feedback
+ */
+async function refineHtml(html, evaluation, config, aiProvider) {
+    const improvementList = evaluation.improvements
+        .map((imp, i) => `${i + 1}. ${imp}`)
+        .join("\n");
+    const prompt = `You are improving a landing page HTML. The current version was evaluated and received feedback.
+
+PROJECT: ${config.projectName}
+DESCRIPTION: ${config.projectDescription}
+
+CURRENT EVALUATION:
+- Score: ${evaluation.score}/10
+- Feedback: ${evaluation.feedback}
+- Areas to improve:
+${improvementList}
+
+ORIGINAL REQUIREMENTS:
+${config.requirements}
+
+CURRENT HTML:
+${html.slice(0, 10000)}
+
+TASK: Regenerate the complete HTML page addressing ALL the improvement areas listed above.
+Keep what works well (strengths) but significantly improve the weak areas.
+
+OUTPUT: Return ONLY the complete HTML document starting with <!DOCTYPE html>.`;
+    const result = await aiProvider.generateText({
+        prompt,
+        temperature: 0.7,
+    });
+    return cleanHtmlResponse(result.text);
+}
+/**
+ * Self-refine HTML generation with iterative improvement
+ */
+async function selfRefine(initialHtml, config, aiProvider) {
+    const maxIterations = config.maxIterations ?? DEFAULT_CONFIG.maxIterations;
+    const targetScore = config.targetScore ?? DEFAULT_CONFIG.targetScore;
+    let currentHtml = initialHtml;
+    let bestHtml = initialHtml;
+    let bestEvaluation = null;
+    let iterations = 0;
+    core.info(`🔄 Starting Self-Refine (target score: ${targetScore}/10)`);
+    // Initial evaluation
+    let evaluation = await evaluateHtml(currentHtml, {
+        projectName: config.projectName,
+        projectDescription: config.projectDescription,
+    }, aiProvider);
+    core.info(`📊 Initial evaluation: ${evaluation.score}/10`);
+    core.info(`   Feedback: ${evaluation.feedback}`);
+    bestEvaluation = evaluation;
+    // Iterate until target score or max iterations
+    while (evaluation.score < targetScore && iterations < maxIterations) {
+        iterations++;
+        core.info(`🔧 Refinement iteration ${iterations}/${maxIterations}...`);
+        // Log improvements to make
+        if (evaluation.improvements.length > 0) {
+            core.info("   Improvements needed:");
+            for (const imp of evaluation.improvements) {
+                core.info(`   - ${imp}`);
+            }
+        }
+        // Refine based on feedback
+        currentHtml = await refineHtml(currentHtml, evaluation, config, aiProvider);
+        // Re-evaluate
+        evaluation = await evaluateHtml(currentHtml, {
+            projectName: config.projectName,
+            projectDescription: config.projectDescription,
+        }, aiProvider);
+        core.info(`📊 Iteration ${iterations} score: ${evaluation.score}/10`);
+        // Keep track of best version
+        if (evaluation.score > (bestEvaluation?.score ?? 0)) {
+            bestHtml = currentHtml;
+            bestEvaluation = evaluation;
+            core.info("   ✨ New best score!");
+        }
+    }
+    const improved = bestEvaluation.score > 5; // Consider improved if above average
+    const finalScore = bestEvaluation.score;
+    if (finalScore >= targetScore) {
+        core.info(`✅ Self-Refine complete! Final score: ${finalScore}/10`);
+    }
+    else {
+        core.info(`⚠️ Self-Refine complete. Best score: ${finalScore}/10 (target was ${targetScore})`);
+    }
+    return {
+        html: bestHtml,
+        evaluation: bestEvaluation,
+        iterations,
+        improved,
+    };
+}
+/**
+ * Clean JSON response from AI (remove markdown code blocks)
+ */
+function cleanJsonResponse(text) {
+    if (!text) {
+        return "";
+    }
+    let cleaned = text.trim();
+    if (cleaned.startsWith("```json")) {
+        cleaned = cleaned.slice(7);
+    }
+    else if (cleaned.startsWith("```")) {
+        cleaned = cleaned.slice(3);
+    }
+    if (cleaned.endsWith("```")) {
+        cleaned = cleaned.slice(0, -3);
+    }
+    return cleaned.trim();
+}
+/**
+ * Clean HTML response from AI (remove markdown code blocks)
+ */
+function cleanHtmlResponse(text) {
+    if (!text) {
+        return "";
+    }
+    let cleaned = text.trim();
+    if (cleaned.startsWith("```html")) {
+        cleaned = cleaned.slice(7);
+    }
+    else if (cleaned.startsWith("```")) {
+        cleaned = cleaned.slice(3);
+    }
+    if (cleaned.endsWith("```")) {
+        cleaned = cleaned.slice(0, -3);
+    }
+    return cleaned.trim();
+}
+
 ;// CONCATENATED MODULE: ./src/site-generator.ts
 /**
  * Simplified Site Generator for GitHub Action
  *
  * A standalone version of the site generator that works without Probot dependencies.
  */
+
 
 /**
  * Generate a complete site
@@ -35029,12 +35233,58 @@ async function generateSite(repoInfo, aiProvider, config) {
     const design = await generateDesignSystem(analysis, aiProvider);
     // Step 3: Generate index page
     core.info("Generating index page...");
-    const indexHtml = await generateIndexPage(repoInfo, analysis, design, config, aiProvider);
+    let indexHtml = await generateIndexPage(repoInfo, analysis, design, config, aiProvider);
+    // Step 4: Apply Self-Refine for high quality mode
+    if (aiProvider.quality === "high") {
+        core.info("🎯 High quality mode: applying Self-Refine...");
+        const palette = design.colors[config.theme.mode];
+        const requirements = buildRequirements(repoInfo, analysis, design, config, palette);
+        const refinementResult = await selfRefine(indexHtml, {
+            maxIterations: 3,
+            targetScore: 8,
+            projectName: analysis.name,
+            projectDescription: analysis.description,
+            requirements,
+        }, aiProvider);
+        indexHtml = refinementResult.html;
+        core.info(`📈 Self-Refine: ${refinementResult.iterations} iterations, ` +
+            `final score: ${refinementResult.evaluation.score}/10`);
+    }
     core.info("Site generation complete!");
     return {
         pages: [{ path: "index.html", html: indexHtml }],
         assets: [],
     };
+}
+/**
+ * Build requirements string for refinement context
+ */
+function buildRequirements(repoInfo, analysis, design, config, palette) {
+    return `PROJECT INFO:
+- Name: ${analysis.name}
+- Description: ${analysis.description}
+- Type: ${analysis.projectType}
+- Key Features: ${analysis.keyFeatures.join(", ") || "Various features"}
+- GitHub URL: ${repoInfo.htmlUrl}
+
+DESIGN SYSTEM (${config.theme.mode} mode):
+- Primary color: ${palette.primary}
+- Secondary color: ${palette.secondary}
+- Accent color: ${palette.accent}
+- Background: ${palette.background}
+- Text: ${palette.text}
+- Layout: ${design.layout}
+- Fonts: ${design.typography.headingFont}
+
+REQUIREMENTS:
+1. Use Tailwind CSS classes only (loaded via CDN)
+2. Include: hero section with project name and description, features section, footer with GitHub link
+3. Make it responsive (mobile-first)
+4. Use modern design patterns (gradients, shadows, rounded corners)
+5. Include smooth hover effects
+6. No external images - use gradients or emoji as placeholders
+7. Include a "View on GitHub" button linking to: ${repoInfo.htmlUrl}
+8. The page should work standalone without any build step`;
 }
 async function analyzeRepository(repoInfo, aiProvider) {
     const prompt = `Analyze this GitHub repository and determine its characteristics.
@@ -35060,7 +35310,7 @@ Respond with JSON only (no markdown, no code blocks):
         temperature: 0.3,
     });
     try {
-        const parsed = JSON.parse(cleanJsonResponse(result.text));
+        const parsed = JSON.parse(site_generator_cleanJsonResponse(result.text));
         // Validate and normalize the parsed result
         return {
             name: parsed.name || repoInfo.name,
@@ -35140,7 +35390,7 @@ Respond with JSON only (no markdown, no code blocks):
         temperature: 0.5,
     });
     try {
-        const parsed = JSON.parse(cleanJsonResponse(result.text));
+        const parsed = JSON.parse(site_generator_cleanJsonResponse(result.text));
         // Validate the required structure
         if (!parsed.colors?.light || !parsed.colors?.dark || !parsed.typography) {
             throw new Error("Missing required design system fields (colors.light, colors.dark, typography)");
@@ -35193,7 +35443,7 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
         prompt,
         temperature: 0.7,
     });
-    let html = cleanHtmlResponse(result.text);
+    let html = site_generator_cleanHtmlResponse(result.text);
     // Validate that we got valid HTML
     if (!html || html.length < 100) {
         throw new Error("Index page generation failed: AI returned empty or invalid response. " +
@@ -35222,7 +35472,7 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
 /**
  * Clean JSON response from AI (remove markdown code blocks)
  */
-function cleanJsonResponse(text) {
+function site_generator_cleanJsonResponse(text) {
     if (!text) {
         return "";
     }
@@ -35242,7 +35492,7 @@ function cleanJsonResponse(text) {
 /**
  * Clean HTML response from AI (remove markdown code blocks)
  */
-function cleanHtmlResponse(text) {
+function site_generator_cleanHtmlResponse(text) {
     if (!text) {
         return "";
     }
