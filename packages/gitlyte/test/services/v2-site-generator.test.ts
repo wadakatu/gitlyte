@@ -429,9 +429,10 @@ describe("v2-site-generator", () => {
 
   describe("generateSite", () => {
     it("should generate complete site with index page", async () => {
-      // Mock for analyzeRepository
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify({
+      // New architecture: analyze -> design -> analyzeSections -> generateSections (parallel)
+      const mockResponses = [
+        // 1. analyzeRepository
+        JSON.stringify({
           name: "test",
           description: "desc",
           projectType: "library",
@@ -440,11 +441,8 @@ describe("v2-site-generator", () => {
           style: "professional",
           keyFeatures: ["feature1"],
         }),
-      });
-
-      // Mock for generateDesignSystem
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify({
+        // 2. generateDesignSystem
+        JSON.stringify({
           colors: {
             primary: "blue-600",
             secondary: "indigo-500",
@@ -452,17 +450,25 @@ describe("v2-site-generator", () => {
             background: "white",
             text: "gray-900",
           },
-          typography: {
-            headingFont: "Inter",
-            bodyFont: "Inter",
-          },
+          typography: { headingFont: "Inter", bodyFont: "Inter" },
           layout: "hero-centered",
         }),
-      });
+        // 3. analyzeSections
+        JSON.stringify({
+          sections: ["hero", "features", "footer"],
+          reasoning: "Standard library sections",
+        }),
+        // 4-6. generateSection calls (hero, features, footer)
+        '<section id="hero"><h1>Welcome to test</h1></section>',
+        '<section id="features"><h2>Features</h2></section>',
+        '<section id="footer"><footer>Copyright</footer></section>',
+      ];
 
-      // Mock for generateIndexPage
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: "<!DOCTYPE html><html><head><script src='https://cdn.tailwindcss.com'></script></head><body>Index</body></html>",
+      let callIndex = 0;
+      vi.mocked(mockAIProvider.generateText).mockImplementation(async () => {
+        const response = mockResponses[callIndex] || "<section></section>";
+        callIndex++;
+        return { text: response };
       });
 
       const result = await generateSite(
@@ -478,13 +484,15 @@ describe("v2-site-generator", () => {
       expect(result.pages).toHaveLength(1);
       expect(result.pages[0].path).toBe("index.html");
       expect(result.pages[0].html).toContain("<!DOCTYPE html>");
+      expect(result.pages[0].html).toContain("tailwindcss");
       expect(result.assets).toEqual([]);
     });
 
     it("should generate additional pages when configured", async () => {
-      // Mock for analyzeRepository
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify({
+      // New architecture flow with additional legacy pages
+      const mockResponses = [
+        // 1. analyzeRepository
+        JSON.stringify({
           name: "test",
           description: "desc",
           projectType: "library",
@@ -493,11 +501,8 @@ describe("v2-site-generator", () => {
           style: "professional",
           keyFeatures: [],
         }),
-      });
-
-      // Mock for generateDesignSystem
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify({
+        // 2. generateDesignSystem
+        JSON.stringify({
           colors: {
             primary: "blue-600",
             secondary: "indigo-500",
@@ -505,22 +510,26 @@ describe("v2-site-generator", () => {
             background: "white",
             text: "gray-900",
           },
-          typography: {
-            headingFont: "Inter",
-            bodyFont: "Inter",
-          },
+          typography: { headingFont: "Inter", bodyFont: "Inter" },
           layout: "hero-centered",
         }),
-      });
+        // 3. analyzeSections
+        JSON.stringify({
+          sections: ["hero", "footer"],
+          reasoning: "Minimal sections",
+        }),
+        // 4-5. generateSection calls (hero, footer)
+        '<section id="hero"><h1>Welcome</h1></section>',
+        '<section id="footer"><footer>Footer</footer></section>',
+        // 6. Legacy additional page (features)
+        "<!DOCTYPE html><html><head></head><body>Features</body></html>",
+      ];
 
-      // Mock for generateIndexPage
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: "<!DOCTYPE html><html><head></head><body>Index</body></html>",
-      });
-
-      // Mock for features page
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: "<!DOCTYPE html><html><head></head><body>Features</body></html>",
+      let callIndex = 0;
+      vi.mocked(mockAIProvider.generateText).mockImplementation(async () => {
+        const response = mockResponses[callIndex] || "<section></section>";
+        callIndex++;
+        return { text: response };
       });
 
       const result = await generateSite(
@@ -539,9 +548,10 @@ describe("v2-site-generator", () => {
     });
 
     it("should include readme in analysis when provided", async () => {
-      // Mock for analyzeRepository
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify({
+      // New architecture: analyze -> design -> analyzeSections -> generateSections (parallel)
+      const mockResponses = [
+        // 1. analyzeRepository
+        JSON.stringify({
           name: "test",
           description: "A great project",
           projectType: "tool",
@@ -550,11 +560,8 @@ describe("v2-site-generator", () => {
           style: "technical",
           keyFeatures: ["fast", "reliable"],
         }),
-      });
-
-      // Mock for generateDesignSystem
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify({
+        // 2. generateDesignSystem
+        JSON.stringify({
           colors: {
             primary: "green-600",
             secondary: "teal-500",
@@ -562,17 +569,25 @@ describe("v2-site-generator", () => {
             background: "gray-50",
             text: "gray-800",
           },
-          typography: {
-            headingFont: "Fira Code",
-            bodyFont: "Inter",
-          },
+          typography: { headingFont: "Fira Code", bodyFont: "Inter" },
           layout: "minimal",
         }),
-      });
+        // 3. analyzeSections
+        JSON.stringify({
+          sections: ["hero", "features", "footer"],
+          reasoning: "Standard sections",
+        }),
+        // 4-6. generateSection calls (hero, features, footer)
+        '<section id="hero"><h1>Welcome</h1></section>',
+        '<section id="features"><h2>Features</h2></section>',
+        '<section id="footer"><footer>Footer</footer></section>',
+      ];
 
-      // Mock for generateIndexPage
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: "<!DOCTYPE html><html><head></head><body>Index</body></html>",
+      let callIndex = 0;
+      vi.mocked(mockAIProvider.generateText).mockImplementation(async () => {
+        const response = mockResponses[callIndex] || "<section></section>";
+        callIndex++;
+        return { text: response };
       });
 
       const result = await generateSite(
@@ -587,6 +602,7 @@ describe("v2-site-generator", () => {
       );
 
       expect(result.pages).toHaveLength(1);
+      expect(result.pages[0].html).toContain("<!DOCTYPE html>");
       expect(mockAIProvider.generateText).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: expect.stringContaining("README"),
@@ -608,9 +624,10 @@ describe("v2-site-generator", () => {
         suggestions: [],
       };
 
-      // Mock for analyzeRepository
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify({
+      // New architecture flow
+      const mockResponses = [
+        // 1. analyzeRepository
+        JSON.stringify({
           name: "test",
           description: "desc",
           projectType: "library",
@@ -619,11 +636,8 @@ describe("v2-site-generator", () => {
           style: "professional",
           keyFeatures: ["feature1"],
         }),
-      });
-
-      // Mock for generateDesignSystem
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify({
+        // 2. generateDesignSystem
+        JSON.stringify({
           colors: {
             primary: "blue-600",
             secondary: "indigo-500",
@@ -631,22 +645,26 @@ describe("v2-site-generator", () => {
             background: "white",
             text: "gray-900",
           },
-          typography: {
-            headingFont: "Inter",
-            bodyFont: "Inter",
-          },
+          typography: { headingFont: "Inter", bodyFont: "Inter" },
           layout: "hero-centered",
         }),
-      });
+        // 3. analyzeSections
+        JSON.stringify({
+          sections: ["hero", "footer"],
+          reasoning: "Minimal sections",
+        }),
+        // 4-5. generateSection calls (hero, footer)
+        '<section id="hero"><h1>Welcome</h1></section>',
+        '<section id="footer"><footer>Footer</footer></section>',
+        // 6. Self-Refine evaluation
+        JSON.stringify(mockEvaluation),
+      ];
 
-      // Mock for generateIndexPage
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: "<!DOCTYPE html><html><head><script src='https://cdn.tailwindcss.com'></script></head><body>Index</body></html>",
-      });
-
-      // Mock for Self-Refine evaluation (high score, no refinement needed)
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify(mockEvaluation),
+      let callIndex = 0;
+      vi.mocked(mockAIProvider.generateText).mockImplementation(async () => {
+        const response = mockResponses[callIndex] || "<section></section>";
+        callIndex++;
+        return { text: response };
       });
 
       const result = await generateSite(
@@ -666,9 +684,10 @@ describe("v2-site-generator", () => {
     });
 
     it("should not apply Self-Refine when quality is 'standard'", async () => {
-      // Mock for analyzeRepository
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify({
+      // New architecture flow
+      const mockResponses = [
+        // 1. analyzeRepository
+        JSON.stringify({
           name: "test",
           description: "desc",
           projectType: "library",
@@ -677,11 +696,8 @@ describe("v2-site-generator", () => {
           style: "professional",
           keyFeatures: [],
         }),
-      });
-
-      // Mock for generateDesignSystem
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: JSON.stringify({
+        // 2. generateDesignSystem
+        JSON.stringify({
           colors: {
             primary: "blue-600",
             secondary: "indigo-500",
@@ -689,17 +705,24 @@ describe("v2-site-generator", () => {
             background: "white",
             text: "gray-900",
           },
-          typography: {
-            headingFont: "Inter",
-            bodyFont: "Inter",
-          },
+          typography: { headingFont: "Inter", bodyFont: "Inter" },
           layout: "hero-centered",
         }),
-      });
+        // 3. analyzeSections
+        JSON.stringify({
+          sections: ["hero", "footer"],
+          reasoning: "Minimal sections",
+        }),
+        // 4-5. generateSection calls (hero, footer)
+        '<section id="hero"><h1>Welcome</h1></section>',
+        '<section id="footer"><footer>Footer</footer></section>',
+      ];
 
-      // Mock for generateIndexPage
-      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
-        text: "<!DOCTYPE html><html><head><script src='https://cdn.tailwindcss.com'></script></head><body>Index</body></html>",
+      let callIndex = 0;
+      vi.mocked(mockAIProvider.generateText).mockImplementation(async () => {
+        const response = mockResponses[callIndex] || "<section></section>";
+        callIndex++;
+        return { text: response };
       });
 
       const result = await generateSite(
@@ -714,8 +737,8 @@ describe("v2-site-generator", () => {
 
       expect(result.pages).toHaveLength(1);
       expect(result.refinement).toBeUndefined();
-      // Only 3 calls: analyze, design, index page (no evaluation)
-      expect(mockAIProvider.generateText).toHaveBeenCalledTimes(3);
+      // New architecture: analyze(1) + design(1) + analyzeSections(1) + sections(2) = 5
+      expect(mockAIProvider.generateText).toHaveBeenCalledTimes(5);
     });
   });
 });

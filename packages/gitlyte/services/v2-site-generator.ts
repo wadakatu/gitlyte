@@ -19,6 +19,12 @@ import {
   type RefinementContext,
   type RefinementResult,
 } from "./self-refine.js";
+import {
+  analyzeSections,
+  generateSectionsParallel,
+  assembleHtml,
+  type SectionContext,
+} from "./section-generator.js";
 
 /**
  * Repository analysis result
@@ -244,13 +250,23 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
   const result = await aiProvider.generateText({
     prompt,
     taskType: "content",
-    maxOutputTokens: 4000,
+    maxOutputTokens: 8000,
   });
 
   let html = result.text;
 
   // Clean up the response
   html = cleanHtmlResponse(html);
+
+  // Validate HTML completeness
+  if (!html.includes("</html>")) {
+    console.warn(
+      "[v2-site-generator] Generated HTML appears truncated (no </html> tag). " +
+        `Output length: ${html.length} chars. This may indicate maxOutputTokens is too low.`
+    );
+    // Attempt to close the HTML properly
+    html = `${html}\n</body>\n</html>`;
+  }
 
   // Ensure Tailwind CDN is included
   if (!html.includes("tailwindcss")) {
@@ -283,7 +299,15 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
 }
 
 /**
- * Generate a complete site
+ * Generate a complete site using section-based parallel generation
+ *
+ * Architecture:
+ * 1. Analyze repository to understand project context
+ * 2. Generate design system (shared across all sections)
+ * 3. Analyze which sections are needed based on project type
+ * 4. Generate all sections in parallel (each section is small, no truncation)
+ * 5. Assemble sections into final HTML
+ * 6. Optionally apply Self-Refine for quality improvement
  */
 export async function generateSite(
   repoInfo: {
@@ -297,23 +321,66 @@ export async function generateSite(
   config: ResolvedConfigV2,
   aiProvider: AIProviderInstance
 ): Promise<GeneratedSite> {
+  console.log("[v2-site-generator] Starting section-based site generation...");
+
   // Step 1: Analyze repository
+  console.log("[v2-site-generator] Step 1: Analyzing repository...");
   const analysis = await analyzeRepository(repoInfo, aiProvider);
 
   // Step 2: Generate design system
+  console.log("[v2-site-generator] Step 2: Generating design system...");
   const design = await generateDesignSystem(analysis, aiProvider);
 
-  // Step 3: Generate pages
+  // Step 3: Analyze which sections are needed
+  console.log("[v2-site-generator] Step 3: Analyzing needed sections...");
+  const sectionPlan = await analyzeSections(
+    analysis,
+    repoInfo.readme,
+    aiProvider
+  );
+  console.log(
+    `[v2-site-generator] Sections planned: ${sectionPlan.sections.join(", ")}`
+  );
+  console.log(`[v2-site-generator] Reasoning: ${sectionPlan.reasoning}`);
+
+  // Step 4: Generate all sections in parallel
+  console.log(
+    `[v2-site-generator] Step 4: Generating ${sectionPlan.sections.length} sections in parallel...`
+  );
+  const sectionContext: SectionContext = {
+    analysis,
+    design,
+    repoInfo: {
+      name: repoInfo.name,
+      description: repoInfo.description,
+      readme: repoInfo.readme,
+      url: repoInfo.url,
+    },
+  };
+
+  const sections = await generateSectionsParallel(
+    sectionPlan,
+    sectionContext,
+    aiProvider
+  );
+  console.log(
+    `[v2-site-generator] Generated ${sections.length} sections successfully`
+  );
+
+  // Step 5: Assemble final HTML
+  console.log("[v2-site-generator] Step 5: Assembling final HTML...");
+  let indexHtml = assembleHtml(sections, sectionContext, {
+    favicon: config.favicon,
+    logo: config.logo,
+  });
+
+  // Step 6: Apply Self-Refine if quality mode is "high"
   const pages: GeneratedPage[] = [];
   let refinementResult: RefinementResult | undefined;
 
-  // Always generate index page
-  let indexHtml = await generateIndexPage(analysis, design, config, aiProvider);
-
-  // Step 4: Apply Self-Refine if quality mode is "high"
   if (shouldUseSelfRefine(config.ai.quality)) {
     console.log(
-      "[v2-site-generator] Quality mode is 'high', applying Self-Refine..."
+      "[v2-site-generator] Step 6: Applying Self-Refine (quality: high)..."
     );
 
     const refinementContext: RefinementContext = {
@@ -347,7 +414,7 @@ export async function generateSite(
     html: indexHtml,
   });
 
-  // Generate additional pages based on config
+  // Generate additional pages based on config (legacy support)
   for (const pageName of config.pages) {
     const pageHtml = await generateAdditionalPage(
       pageName,
@@ -361,9 +428,11 @@ export async function generateSite(
     });
   }
 
+  console.log("[v2-site-generator] Site generation complete!");
+
   return {
     pages,
-    assets: [], // Assets would be handled separately (logo, favicon, etc.)
+    assets: [],
     refinement: refinementResult,
   };
 }
