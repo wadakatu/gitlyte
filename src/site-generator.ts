@@ -6,6 +6,8 @@
 
 import * as core from "@actions/core";
 import type { AIProviderInstance } from "./ai-provider.js";
+import { selfRefine } from "./self-refine.js";
+import { cleanJsonResponse, cleanHtmlResponse } from "./ai-response-utils.js";
 
 export interface RepoInfo {
   name: string;
@@ -92,7 +94,7 @@ export async function generateSite(
 
   // Step 3: Generate index page
   core.info("Generating index page...");
-  const indexHtml = await generateIndexPage(
+  let indexHtml = await generateIndexPage(
     repoInfo,
     analysis,
     design,
@@ -100,12 +102,81 @@ export async function generateSite(
     aiProvider
   );
 
+  // Step 4: Apply Self-Refine for high quality mode
+  if (aiProvider.quality === "high") {
+    core.info("🎯 High quality mode: applying Self-Refine...");
+
+    const palette = design.colors[config.theme.mode];
+    const requirements = buildRequirements(
+      repoInfo,
+      analysis,
+      design,
+      config,
+      palette
+    );
+
+    const refinementResult = await selfRefine(
+      indexHtml,
+      {
+        maxIterations: 3,
+        targetScore: 8,
+        projectName: analysis.name,
+        projectDescription: analysis.description,
+        requirements,
+      },
+      aiProvider
+    );
+
+    indexHtml = refinementResult.html;
+    core.info(
+      `📈 Self-Refine: ${refinementResult.iterations} iterations, ` +
+        `final score: ${refinementResult.evaluation.score}/10`
+    );
+  }
+
   core.info("Site generation complete!");
 
   return {
     pages: [{ path: "index.html", html: indexHtml }],
     assets: [],
   };
+}
+
+/**
+ * Build requirements string for refinement context
+ */
+function buildRequirements(
+  repoInfo: RepoInfo,
+  analysis: RepositoryAnalysis,
+  design: DesignSystem,
+  config: SiteConfig,
+  palette: ColorPalette
+): string {
+  return `PROJECT INFO:
+- Name: ${analysis.name}
+- Description: ${analysis.description}
+- Type: ${analysis.projectType}
+- Key Features: ${analysis.keyFeatures.join(", ") || "Various features"}
+- GitHub URL: ${repoInfo.htmlUrl}
+
+DESIGN SYSTEM (${config.theme.mode} mode):
+- Primary color: ${palette.primary}
+- Secondary color: ${palette.secondary}
+- Accent color: ${palette.accent}
+- Background: ${palette.background}
+- Text: ${palette.text}
+- Layout: ${design.layout}
+- Fonts: ${design.typography.headingFont}
+
+REQUIREMENTS:
+1. Use Tailwind CSS classes only (loaded via CDN)
+2. Include: hero section with project name and description, features section, footer with GitHub link
+3. Make it responsive (mobile-first)
+4. Use modern design patterns (gradients, shadows, rounded corners)
+5. Include smooth hover effects
+6. No external images - use gradients or emoji as placeholders
+7. Include a "View on GitHub" button linking to: ${repoInfo.htmlUrl}
+8. The page should work standalone without any build step`;
 }
 
 async function analyzeRepository(
@@ -336,50 +407,4 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
   }
 
   return html;
-}
-
-/**
- * Clean JSON response from AI (remove markdown code blocks)
- */
-function cleanJsonResponse(text: string | null | undefined): string {
-  if (!text) {
-    return "";
-  }
-  let cleaned = text.trim();
-
-  // Remove markdown code blocks
-  if (cleaned.startsWith("```json")) {
-    cleaned = cleaned.slice(7);
-  } else if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
-
-  return cleaned.trim();
-}
-
-/**
- * Clean HTML response from AI (remove markdown code blocks)
- */
-function cleanHtmlResponse(text: string | null | undefined): string {
-  if (!text) {
-    return "";
-  }
-  let cleaned = text.trim();
-
-  // Remove markdown code blocks
-  if (cleaned.startsWith("```html")) {
-    cleaned = cleaned.slice(7);
-  } else if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
-
-  return cleaned.trim();
 }

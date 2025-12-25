@@ -6,11 +6,17 @@ import {
   type GeneratedSite,
 } from "../src/site-generator.js";
 import type { AIProviderInstance } from "../src/ai-provider.js";
+import { selfRefine } from "../src/self-refine.js";
 
 // Mock @actions/core
 vi.mock("@actions/core", () => ({
   info: vi.fn(),
   warning: vi.fn(),
+}));
+
+// Mock self-refine module
+vi.mock("../src/self-refine.js", () => ({
+  selfRefine: vi.fn(),
 }));
 
 // Helper to create mock AI provider
@@ -636,6 +642,159 @@ describe("Site Generator", () => {
       const analysisPrompt = calls[0][0].prompt;
       // Should only include first 2000 chars
       expect(analysisPrompt.length).toBeLessThan(longReadme.length + 500);
+    });
+  });
+
+  describe("High Quality Mode", () => {
+    // Helper to create high quality provider
+    function createHighQualityProvider(
+      responses: Record<string, string>
+    ): AIProviderInstance {
+      let callCount = 0;
+      const responseArray = Object.values(responses);
+
+      return {
+        provider: "anthropic",
+        quality: "high",
+        generateText: vi.fn().mockImplementation(async () => {
+          const response = responseArray[callCount] ?? "{}";
+          callCount++;
+          return { text: response };
+        }),
+      };
+    }
+
+    it("should apply Self-Refine for high quality mode", async () => {
+      const mockProvider = createHighQualityProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      // Mock selfRefine to return improved HTML
+      const refinedHtml = "<!DOCTYPE html><html><body>Refined Content</body></html>";
+      vi.mocked(selfRefine).mockResolvedValue({
+        html: refinedHtml,
+        evaluation: {
+          score: 9,
+          feedback: "Excellent design",
+          strengths: ["Modern", "Responsive"],
+          improvements: [],
+        },
+        iterations: 2,
+        improved: true,
+      });
+
+      const result = await generateSite(
+        defaultRepoInfo,
+        mockProvider,
+        defaultConfig
+      );
+
+      expect(selfRefine).toHaveBeenCalled();
+      expect(result.pages[0].html).toBe(refinedHtml);
+    });
+
+    it("should not apply Self-Refine for standard quality mode", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      await generateSite(defaultRepoInfo, mockProvider, defaultConfig);
+
+      expect(selfRefine).not.toHaveBeenCalled();
+    });
+
+    it("should log Self-Refine progress for high quality mode", async () => {
+      const core = await import("@actions/core");
+      const mockProvider = createHighQualityProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      vi.mocked(selfRefine).mockResolvedValue({
+        html: "<!DOCTYPE html><html></html>",
+        evaluation: {
+          score: 8,
+          feedback: "Good",
+          strengths: [],
+          improvements: [],
+        },
+        iterations: 1,
+        improved: true,
+      });
+
+      await generateSite(defaultRepoInfo, mockProvider, defaultConfig);
+
+      expect(core.info).toHaveBeenCalledWith(
+        "🎯 High quality mode: applying Self-Refine..."
+      );
+      expect(core.info).toHaveBeenCalledWith(
+        expect.stringContaining("Self-Refine:")
+      );
+    });
+
+    it("should pass correct config to selfRefine", async () => {
+      const mockProvider = createHighQualityProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      vi.mocked(selfRefine).mockResolvedValue({
+        html: "<!DOCTYPE html><html></html>",
+        evaluation: {
+          score: 8,
+          feedback: "Good",
+          strengths: [],
+          improvements: [],
+        },
+        iterations: 0,
+        improved: true,
+      });
+
+      await generateSite(defaultRepoInfo, mockProvider, defaultConfig);
+
+      expect(selfRefine).toHaveBeenCalledWith(
+        expect.any(String), // Initial HTML
+        expect.objectContaining({
+          maxIterations: 3,
+          targetScore: 8,
+          projectName: expect.any(String),
+          projectDescription: expect.any(String),
+          requirements: expect.stringContaining("Tailwind CSS"),
+        }),
+        mockProvider
+      );
+    });
+
+    it("should use theme mode in requirements", async () => {
+      const mockProvider = createHighQualityProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      vi.mocked(selfRefine).mockResolvedValue({
+        html: "<!DOCTYPE html><html></html>",
+        evaluation: { score: 8, feedback: "", strengths: [], improvements: [] },
+        iterations: 0,
+        improved: true,
+      });
+
+      const lightConfig = { ...defaultConfig, theme: { mode: "light" as const } };
+      await generateSite(defaultRepoInfo, mockProvider, lightConfig);
+
+      expect(selfRefine).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          requirements: expect.stringContaining("light mode"),
+        }),
+        mockProvider
+      );
     });
   });
 });
