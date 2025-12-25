@@ -141,25 +141,44 @@ export async function handleCommentV2(ctx: Context): Promise<void> {
   if (command === "generate") {
     const startTime = Date.now();
 
-    // Post initial status comment
-    const statusComment = await ctx.octokit.issues.createComment({
-      owner,
-      repo,
-      issue_number: issueNumber,
-      body: "🚀 **GitLyte** Site generation starting...\n\n⏳ Please wait, this may take a minute.",
-    });
+    // Post initial status comment (with error handling)
+    let statusComment: { data: { id: number } };
+    try {
+      statusComment = await ctx.octokit.issues.createComment({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        body: "🚀 **GitLyte** Site generation starting...\n\n⏳ Please wait, this may take a minute.",
+      });
+    } catch (error) {
+      ctx.log.error(
+        "❌ [v2] Failed to post initial status comment",
+        error as Error
+      );
+      throw new Error(
+        `Failed to start generation: could not post status comment: ${(error as Error).message}`,
+        { cause: error }
+      );
+    }
 
     try {
       // Load configuration
       const config = await loadConfigV2(ctx);
 
       if (!config.enabled) {
-        await ctx.octokit.issues.updateComment({
-          owner,
-          repo,
-          comment_id: statusComment.data.id,
-          body: "⏭️ **GitLyte** Generation skipped: disabled in config (`enabled: false`)",
-        });
+        try {
+          await ctx.octokit.issues.updateComment({
+            owner,
+            repo,
+            comment_id: statusComment.data.id,
+            body: "⏭️ **GitLyte** Generation skipped: disabled in config (`enabled: false`)",
+          });
+        } catch (updateError) {
+          ctx.log.warn(
+            "⚠️ [v2] Failed to update status comment for disabled config",
+            updateError as Error
+          );
+        }
         return;
       }
 
@@ -179,13 +198,20 @@ export async function handleCommentV2(ctx: Context): Promise<void> {
 
         const duration = Date.now() - startTime;
 
-        // Update status comment with success
-        await ctx.octokit.issues.updateComment({
-          owner,
-          repo,
-          comment_id: statusComment.data.id,
-          body: `✅ **GitLyte** Site generated successfully!\n\n🔗 Pull Request: ${prUrl}\n⏱️ Duration: ${Math.round(duration / 1000)}s`,
-        });
+        // Update status comment with success (with error handling)
+        try {
+          await ctx.octokit.issues.updateComment({
+            owner,
+            repo,
+            comment_id: statusComment.data.id,
+            body: `✅ **GitLyte** Site generated successfully!\n\n🔗 Pull Request: ${prUrl}\n⏱️ Duration: ${Math.round(duration / 1000)}s`,
+          });
+        } catch (updateError) {
+          ctx.log.warn(
+            "⚠️ [v2] Failed to update status comment with success (PR was created)",
+            updateError as Error
+          );
+        }
 
         ctx.log.info(`✅ [v2] Site generated via comment in ${duration}ms`);
       });

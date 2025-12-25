@@ -452,5 +452,75 @@ describe("v2-comment-handler", () => {
         );
       });
     });
+
+    describe("error handling for status comments", () => {
+      it("should throw error when initial status comment fails", async () => {
+        const error = new Error("Comment creation failed");
+        mockContext.octokit.issues.createComment.mockRejectedValue(error);
+
+        await expect(
+          handleCommentV2(mockContext as Parameters<typeof handleCommentV2>[0])
+        ).rejects.toThrow("Failed to start generation");
+
+        expect(mockContext.log.error).toHaveBeenCalledWith(
+          expect.stringContaining("Failed to post initial status comment"),
+          expect.any(Error)
+        );
+      });
+
+      it("should handle disabled config comment update failure gracefully", async () => {
+        const { loadConfigV2 } = await import(
+          "../../handlers/v2-push-handler.js"
+        );
+        vi.mocked(loadConfigV2).mockResolvedValue({
+          enabled: false,
+          outputDirectory: "docs",
+          ai: { provider: "anthropic", quality: "standard" },
+          generation: { trigger: "manual" },
+          pages: [],
+        });
+
+        // First call succeeds (initial comment), second call fails (update)
+        mockContext.octokit.issues.createComment.mockResolvedValueOnce({
+          data: { id: 123 },
+        });
+        mockContext.octokit.issues.updateComment.mockRejectedValue(
+          new Error("Update failed")
+        );
+
+        // Should not throw - just log warning
+        await handleCommentV2(
+          mockContext as Parameters<typeof handleCommentV2>[0]
+        );
+
+        expect(mockContext.log.warn).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "Failed to update status comment for disabled config"
+          ),
+          expect.any(Error)
+        );
+      });
+
+      it("should handle success comment update failure gracefully", async () => {
+        // Success comment update fails
+        mockContext.octokit.issues.updateComment.mockRejectedValue(
+          new Error("Update failed")
+        );
+
+        // Should not throw - PR was created successfully
+        await handleCommentV2(
+          mockContext as Parameters<typeof handleCommentV2>[0]
+        );
+
+        expect(mockContext.log.warn).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "Failed to update status comment with success"
+          ),
+          expect.any(Error)
+        );
+        // PR was still created
+        expect(mockContext.octokit.pulls.create).toHaveBeenCalled();
+      });
+    });
   });
 });
