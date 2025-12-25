@@ -11,9 +11,8 @@ Please note that this project is released with a [Contributor Code of Conduct][c
 ## Development Setup
 
 ### Prerequisites
-- Node.js 24.12.0+ (managed via mise)
+- Node.js 20+ (managed via mise)
 - pnpm 10.25.0+ (managed via mise)
-- API key for AI provider (Anthropic, OpenAI, or Google)
 
 ### Environment Setup
 
@@ -31,112 +30,55 @@ mise install
 # Install dependencies
 pnpm install
 
-# Copy environment template
-cp .env.example .env
-
-# Add your API key to .env (choose one)
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-# or OPENAI_API_KEY=your_openai_api_key_here
-# or GOOGLE_API_KEY=your_google_api_key_here
-
-# Run the bot
-pnpm start
+# Build the action
+pnpm run build
 ```
 
 ## Development Commands
 
-### Build and Run
+### Build
 ```sh
-pnpm run build       # Build all packages
-pnpm start           # Start the GitHub App (requires .env setup)
+pnpm run build       # Bundle with ncc
 ```
 
 ### Code Quality
 ```sh
-pnpm run lint        # Run linter across all packages
-pnpm run lint:fix    # Run linter with auto-fix across all packages
-pnpm run format      # Check code formatting across all packages
-pnpm run format:fix  # Format code across all packages
-pnpm run check       # Run lint + format check across all packages
-pnpm run check:fix   # Run lint + format with auto-fix across all packages
+pnpm run lint        # Run linter
+pnpm run lint:fix    # Run linter with auto-fix
+pnpm run format      # Check code formatting
+pnpm run format:fix  # Format code
+pnpm run check       # Run lint + format check
+pnpm run check:fix   # Run lint + format with auto-fix
 ```
 
-### Testing
+### CI Check
 ```sh
-pnpm test            # Run all tests across packages in watch mode
-pnpm exec vitest run # Run tests once without watch mode (preferred for CI/development)
-pnpm run ci:check    # Runs all required checks in sequence
-```
-
-### Mise Tasks (Alternative)
-```sh
-mise run dev         # Start development server
-mise run build       # Build the project
-mise run test        # Run tests
-mise run lint        # Run linter
-mise run format      # Format code
+pnpm run ci:check    # Runs build + format + lint
 ```
 
 ## Project Structure
 
 ```
-packages/
-└── gitlyte/                    # Main GitHub App
-    ├── index.ts                   # Probot app entry point
-    ├── handlers/
-    │   ├── v2-push-handler.ts     # Push event handler (auto mode)
-    │   └── v2-comment-handler.ts  # Comment command handler (@gitlyte commands)
-    ├── services/
-    │   ├── v2-site-generator.ts   # Site generation orchestrator
-    │   ├── section-generator.ts   # Section-based parallel generation
-    │   └── self-refine.ts         # Self-Refine quality improvement
-    ├── utils/
-    │   ├── ai-provider.ts         # Multi-provider AI SDK wrapper
-    │   ├── ai-response-cleaner.ts # AI response sanitization
-    │   └── deployment-guard.ts    # Concurrent deployment prevention
-    ├── types/
-    │   └── v2-config.ts           # Configuration schema
-    ├── eval/                      # Evaluation system
-    │   ├── index.ts               # Main evaluation entry point
-    │   ├── lighthouse.ts          # Lighthouse CI integration
-    │   ├── llm-judge.ts           # LLM-based design evaluation
-    │   ├── run-eval.ts            # CLI evaluation runner
-    │   └── benchmarks/            # Benchmark definitions
-    └── test/                      # Comprehensive test suites
+gitlyte/
+├── src/                    # TypeScript source files
+│   ├── index.ts           # Action entry point
+│   ├── ai-provider.ts     # Multi-provider AI SDK wrapper
+│   └── site-generator.ts  # Site generation logic
+├── dist/                   # Bundled output (ncc)
+├── templates/              # Workflow templates
+│   └── gitlyte.yml        # Example workflow file
+├── action.yml             # GitHub Action definition
+└── tsconfig.json          # TypeScript config
 ```
-
-## Test-Driven Development (TDD) Policy
-
-**MANDATORY**: ALL new feature development and refactoring MUST follow Test-Driven Development (TDD):
-
-### TDD Cycle (Red-Green-Refactor)
-1. **Red**: Write a failing test first
-2. **Green**: Write minimal code to make the test pass
-3. **Refactor**: Improve the code while keeping tests green
-
-### TDD Implementation Rules
-
-#### For New Features:
-1. **Start with tests**: No production code without a failing test
-2. **One test at a time**: Focus on one behavior per test
-3. **Minimal implementation**: Write only enough code to pass the current test
-4. **Continuous refactoring**: Clean up after each green phase
-
-#### For Bug Fixes:
-1. **Write tests** that reproduce the original issue
-2. **Verify the fix** resolves the issue
-3. **Ensure tests fail** without the fix (to confirm they catch the problem)
-4. **Test edge cases** and related scenarios
 
 ## PR Creation Guidelines
 
-**MANDATORY**: Before creating any Pull Request or committing changes, ALWAYS run the following commands in sequence:
+**MANDATORY**: Before creating any Pull Request or committing changes, ALWAYS run the following commands:
 
 ```bash
-pnpm run format:fix  # Fix code formatting across all packages
-pnpm run lint:fix    # Fix linting issues across all packages
-pnpm run build       # Check TypeScript compilation for all packages
-pnpm exec vitest run # Run all tests
+pnpm run format:fix  # Fix code formatting
+pnpm run lint:fix    # Fix linting issues
+pnpm run build       # Bundle the action
 ```
 
 For convenience, you can also use the CI check command:
@@ -145,72 +87,59 @@ For convenience, you can also use the CI check command:
 pnpm run ci:check    # Runs all required checks in sequence
 ```
 
-**If any of these fail:**
-1. Fix TypeScript compilation errors manually
-2. Run `pnpm run format:fix` to auto-fix formatting across all packages
-3. Run `pnpm run lint:fix` to auto-fix linting issues across all packages
-4. Manually fix any remaining issues
-5. Re-run the checks until all pass
-
-This ensures code quality and prevents CI/CD failures across the entire workspace.
+**IMPORTANT**: The `dist/` directory must be committed. After running `pnpm run build`, make sure to commit the updated `dist/` folder.
 
 ## Submitting a Pull Request
 
 1. [Fork][fork] and clone the repository
 2. Set up development environment (see above)
 3. Create a new branch: `git checkout -b my-branch-name`
-4. Follow TDD process for your changes
-5. Ensure all tests pass and code quality checks pass
-6. Push to your fork and [submit a pull request][pr]
-7. Pat yourself on the back and wait for review
+4. Make your changes
+5. Run `pnpm run ci:check` to ensure all checks pass
+6. Commit changes including the updated `dist/` directory
+7. Push to your fork and [submit a pull request][pr]
+8. Wait for review
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
-- Follow TDD and write comprehensive tests
 - Keep your changes as focused as possible
 - Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
 - Ensure all CI checks pass
+- Include updated `dist/` directory
 
 Work in Progress pull requests are also welcome to get feedback early on.
 
 ## Architecture Overview
 
-GitLyte uses AI to generate custom websites from repository data.
+GitLyte is a GitHub Action that uses AI to generate custom websites from repository data.
 
-### Trigger Modes
-- **Manual** (default): Generate via `@gitlyte generate` command in Issue/PR comments
-- **Auto**: Generate on every push to default branch
+### Core Flow
+1. **Input Validation**: Validates API key, provider, quality mode
+2. **Repository Analysis**: Fetches repo metadata and README via GitHub API
+3. **Config Loading**: Loads `.gitlyte.json` if present
+4. **AI Analysis**: Analyzes repository purpose, audience, style
+5. **Design Generation**: Creates color palette and typography
+6. **HTML Generation**: Generates landing page with Tailwind CSS
+7. **File Output**: Writes generated files to output directory
 
-### Core Flow (v2)
-1. **Trigger**: Push event (auto mode) or comment command (manual mode)
-2. **Repository Analysis**: README and repository metadata are analyzed
-3. **Design Generation**: AI creates custom design system with Tailwind CSS
-4. **Section Generation**: Parallel generation of sections (hero, features, etc.)
-5. **Self-Refine** (optional): Quality improvement through iterative refinement
-6. **Deployment**: Creates branch and opens PR via GitHub API (batch commit via Tree API)
+### Key Files
 
-### Key Components
+- `action.yml` - GitHub Action metadata and inputs/outputs
+- `src/index.ts` - Main entry point, handles inputs and orchestrates generation
+- `src/ai-provider.ts` - Multi-provider AI abstraction (Anthropic, OpenAI, Google)
+- `src/site-generator.ts` - Site generation logic (analysis, design, HTML)
 
-**Event Handling**:
-- `packages/gitlyte/handlers/v2-push-handler.ts` - Handles push events (auto mode)
-- `packages/gitlyte/handlers/v2-comment-handler.ts` - Handles @gitlyte commands (manual mode)
+### AI Providers
 
-**Services**:
-- `packages/gitlyte/services/v2-site-generator.ts` - Site generation orchestrator
-- `packages/gitlyte/services/section-generator.ts` - Section-based parallel generation
-- `packages/gitlyte/services/self-refine.ts` - Self-Refine pattern implementation
-
-**AI Integration**:
-- `packages/gitlyte/utils/ai-provider.ts` - Multi-provider support (Anthropic, OpenAI, Google)
-
-**Utilities**:
-- `packages/gitlyte/utils/deployment-guard.ts` - Prevents concurrent deployments
+GitLyte supports multiple AI providers via Vercel AI SDK:
+- **Anthropic**: Claude Sonnet 4 (default)
+- **OpenAI**: GPT-4o
+- **Google**: Gemini 2.0 Flash
 
 ## Resources
 
 - [How to Contribute to Open Source](https://opensource.guide/how-to-contribute/)
 - [Using Pull Requests](https://help.github.com/articles/about-pull-requests/)
 - [GitHub Help](https://help.github.com)
-- [Architecture Documentation](docs/ARCHITECTURE.md)
 - [Security Policy](SECURITY.md)
 - [Changelog](CHANGELOG.md)

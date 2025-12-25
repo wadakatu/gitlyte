@@ -2,7 +2,7 @@
 
 > Instantly turn your GitHub repo into a live website with AI-powered design - no code needed.
 
-A GitHub App built with [Probot](https://github.com/probot/probot) that automatically generates beautiful, custom websites from your repository data using AI analysis.
+A GitHub Action that automatically generates beautiful, custom landing pages from your repository data using AI analysis.
 
 ## Features
 
@@ -10,88 +10,98 @@ A GitHub App built with [Probot](https://github.com/probot/probot) that automati
 - **Static HTML Sites**: Modern, fast static sites with Tailwind CSS
 - **Unique Styling**: Every site gets a custom color scheme and layout based on your project
 - **Responsive Design**: Looks great on all devices
-- **Auto-Deploy**: Push to main and your site is generated
-- **Self-Refine Mode**: Optional high-quality mode that iteratively improves generated sites
 - **Multi-Provider Support**: Works with Anthropic, OpenAI, or Google AI
+- **GitHub Pages Ready**: Output is ready for GitHub Pages deployment
 
 ## Quick Start
 
-1. **Install the GitLyte GitHub App** on your repository
-2. **Trigger site generation** (see [Trigger Modes](#trigger-modes) below)
-3. **Review the auto-generated PR** with your new site
-4. **Merge the PR** to deploy your site
-5. **Enable GitHub Pages**: Settings > Pages > Source: Deploy from a branch > Branch: main > Folder: /docs
+### 1. Add the workflow file
 
-That's it! GitLyte works out of the box with zero configuration.
+Create `.github/workflows/gitlyte.yml`:
 
-## Trigger Modes
+```yaml
+name: Generate Site with GitLyte
 
-GitLyte supports two trigger modes (configured via `generation.trigger`):
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
-### Manual Mode (Default)
-Generate site only via comment commands:
-- `@gitlyte generate` - Trigger site generation
-- `@gitlyte help` - Show available commands
+permissions:
+  contents: write
+  pull-requests: write
 
-```json
-{
-  "generation": {
-    "trigger": "manual"
-  }
-}
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Site
+        uses: wadakatu/gitlyte@v1
+        with:
+          api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          provider: anthropic
+          quality: standard
+          output-directory: docs
+
+      - name: Commit and Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git diff --staged --quiet || git commit -m "chore: update GitLyte generated site"
+          git push
 ```
 
-### Auto Mode
-Automatically generate site on every push to the default branch:
+### 2. Add your API key as a secret
 
-```json
-{
-  "generation": {
-    "trigger": "auto"
-  }
-}
-```
+1. Go to your repository Settings > Secrets and variables > Actions
+2. Click "New repository secret"
+3. Add your AI provider's API key:
+   - Name: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_API_KEY`
+   - Value: Your API key
 
-## How It Works
+### 3. Enable GitHub Pages
 
-GitLyte uses AI to analyze your repository and create a custom website:
+1. Go to Settings > Pages
+2. Source: "Deploy from a branch"
+3. Branch: `main`, Folder: `/docs`
+4. Click "Save"
 
-1. **Analyzes** your repository (README, tech stack, purpose, audience)
-2. **Generates** a custom design with AI-crafted Tailwind CSS
-3. **Creates** HTML pages with unique styling
-4. **Opens a Pull Request** with the generated site
+That's it! Push to main and your site will be generated automatically.
 
-Every push to the default branch triggers a new site generation. The generated site is submitted as a PR for review, making it compatible with branch protection rules.
+## Inputs
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `api-key` | Yes | - | API key for the AI provider |
+| `provider` | No | `anthropic` | AI provider: `anthropic`, `openai`, or `google` |
+| `quality` | No | `standard` | Quality mode: `standard` or `high` |
+| `output-directory` | No | `docs` | Output directory for generated files |
+| `github-token` | No | `${{ github.token }}` | GitHub token for API access |
+
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| `output-directory` | Directory where the site was generated |
+| `pages-count` | Number of pages generated |
 
 ## Configuration
 
-Create a `.gitlyte.json` file in your repository root to customize behavior:
+Create a `.gitlyte.json` file in your repository root to customize generation:
 
 ```json
 {
   "enabled": true,
   "outputDirectory": "docs",
-  "ai": {
-    "provider": "anthropic",
-    "quality": "standard"
-  },
-  "generation": {
-    "trigger": "manual"
-  },
   "theme": {
     "mode": "dark"
   },
   "prompts": {
     "siteInstructions": "Use a friendly, approachable tone"
-  },
-  "logo": {
-    "path": "./assets/logo.svg",
-    "alt": "MyProject Logo"
-  },
-  "favicon": {
-    "path": "./assets/favicon.ico"
-  },
-  "pages": ["features", "docs"]
+  }
 }
 ```
 
@@ -101,110 +111,99 @@ Create a `.gitlyte.json` file in your repository root to customize behavior:
 |--------|------|---------|-------------|
 | `enabled` | boolean | `true` | Enable/disable site generation |
 | `outputDirectory` | string | `"docs"` | Output directory for generated files |
-| `ai.provider` | string | `"anthropic"` | AI provider: `"anthropic"`, `"openai"`, or `"google"` |
-| `ai.quality` | string | `"standard"` | Quality mode: `"standard"` or `"high"` |
-| `generation.trigger` | string | `"manual"` | Trigger mode: `"manual"` or `"auto"` |
 | `theme.mode` | string | `"dark"` | Theme mode: `"light"` or `"dark"` |
 | `prompts.siteInstructions` | string | - | Custom instructions for AI generation (tone, language, style) |
-| `logo.path` | string | - | Path to logo image (relative to repo root) |
-| `logo.alt` | string | - | Alt text for logo |
-| `favicon.path` | string | - | Path to favicon file |
-| `pages` | array | `[]` | Additional pages: `"features"`, `"docs"`, `"api"`, `"examples"`, `"changelog"` |
 
-### Quality Modes
+## AI Providers
 
-- **standard** (default): Single generation pass - fast and cost-effective
-- **high**: Uses Self-Refine pattern to iteratively improve the site - better quality but uses more API calls
+GitLyte supports multiple AI providers:
 
-### AI Providers
+| Provider | Secret Name | Model |
+|----------|-------------|-------|
+| Anthropic (default) | `ANTHROPIC_API_KEY` | Claude Sonnet 4 |
+| OpenAI | `OPENAI_API_KEY` | GPT-4o |
+| Google | `GOOGLE_API_KEY` | Gemini 2.0 Flash |
 
-GitLyte supports multiple AI providers. Set the appropriate environment variable:
+### Using a different provider
 
-| Provider | Environment Variable |
-|----------|---------------------|
-| Anthropic (default) | `ANTHROPIC_API_KEY` |
-| OpenAI | `OPENAI_API_KEY` |
-| Google | `GOOGLE_API_KEY` |
+```yaml
+- uses: wadakatu/gitlyte@v1
+  with:
+    api-key: ${{ secrets.OPENAI_API_KEY }}
+    provider: openai
+```
 
 ## Examples
 
-### Minimal (Zero Config)
-```bash
-# Just install the app and push to main
-# GitLyte uses smart defaults
+### Minimal Setup
+
+```yaml
+- uses: wadakatu/gitlyte@v1
+  with:
+    api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
 ### Custom Output Directory
-```json
-{
-  "outputDirectory": "public"
-}
+
+```yaml
+- uses: wadakatu/gitlyte@v1
+  with:
+    api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    output-directory: public
 ```
 
 ### High Quality Mode
-```json
-{
-  "ai": {
-    "quality": "high"
-  }
-}
+
+```yaml
+- uses: wadakatu/gitlyte@v1
+  with:
+    api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    quality: high
 ```
 
-### Using OpenAI
-```json
-{
-  "ai": {
-    "provider": "openai"
-  }
-}
+### Create PR Instead of Direct Commit
+
+```yaml
+name: Generate Site with GitLyte
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Site
+        uses: wadakatu/gitlyte@v1
+        with:
+          api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "chore: update GitLyte generated site"
+          commit-message: "chore: update GitLyte generated site"
+          branch: gitlyte/update-site
+          delete-branch: true
 ```
 
-### Disable Generation
-```json
-{
-  "enabled": false
-}
-```
+## How It Works
 
-### With Logo and Favicon
-```json
-{
-  "logo": {
-    "path": "./assets/logo.png",
-    "alt": "My Project"
-  },
-  "favicon": {
-    "path": "./assets/favicon.ico"
-  }
-}
-```
+GitLyte uses AI to analyze your repository and create a custom website:
 
-### Light Theme
-```json
-{
-  "theme": {
-    "mode": "light"
-  }
-}
-```
+1. **Analyzes** your repository (README, tech stack, purpose, audience)
+2. **Generates** a custom design system with colors and typography
+3. **Creates** HTML pages with Tailwind CSS styling
+4. **Outputs** files to your specified directory
 
-### Auto Generation on Push
-```json
-{
-  "generation": {
-    "trigger": "auto"
-  }
-}
-```
-
-### Custom Tone/Language
-```json
-{
-  "prompts": {
-    "siteInstructions": "技術的で簡潔なトーンで、日本語で生成してください"
-  }
-}
-```
+The AI reads your README and repository metadata to understand your project, then generates a unique landing page tailored to your project's purpose.
 
 ## Development
 
@@ -215,16 +214,12 @@ pnpm install
 # Build
 pnpm run build
 
-# Run tests
-pnpm test
+# Lint
+pnpm run lint
 
-# Start the app
-pnpm run start
+# Format
+pnpm run format
 ```
-
-## Architecture
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for technical details.
 
 ## Contributing
 

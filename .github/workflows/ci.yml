@@ -2,170 +2,111 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  install:
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install mise
-      uses: jdx/mise-action@v2
-      with:
-        cache: 'true'
-        install: 'true'
+      - name: Install mise
+        uses: jdx/mise-action@v2
+        with:
+          cache: "true"
+          install: "true"
 
-    - name: Setup tools with mise
-      run: mise install
+      - name: Setup tools with mise
+        run: mise install
 
-    - name: Generate cache key
-      id: cache-key
-      run: echo "key=${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        id: pnpm-cache
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
-    - name: Cache pnpm store
-      uses: actions/cache@v4
-      id: pnpm-cache
-      with:
-        path: ~/.local/share/pnpm/store
-        key: ${{ steps.cache-key.outputs.key }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-store-
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-    - name: Install dependencies
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
 
-  # GitLyte Core (メインアプリケーション) のCI
-  core-lint:
+      - name: Verify dist is up to date
+        run: |
+          git diff --exit-code dist/ || (echo "dist/ is out of date. Run pnpm run build and commit the changes." && exit 1)
+
+  lint:
     runs-on: ubuntu-latest
-    needs: install
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install mise
-      uses: jdx/mise-action@v2
-      with:
-        cache: 'true'
-        install: 'true'
+      - name: Install mise
+        uses: jdx/mise-action@v2
+        with:
+          cache: "true"
+          install: "true"
 
-    - name: Cache pnpm store
-      uses: actions/cache@v4
-      id: pnpm-cache
-      with:
-        path: ~/.local/share/pnpm/store
-        key: ${{ needs.install.outputs.cache-key }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-store-
+      - name: Setup tools with mise
+        run: mise install
 
-    - name: Install dependencies
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      run: pnpm install --frozen-lockfile
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        id: pnpm-cache
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
-    - name: Run Core lint check
-      run: pnpm --filter @gitlyte/core lint
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-  core-format:
+      - name: Lint
+        run: pnpm run lint
+
+  format:
     runs-on: ubuntu-latest
-    needs: install
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install mise
-      uses: jdx/mise-action@v2
-      with:
-        cache: 'true'
-        install: 'true'
+      - name: Install mise
+        uses: jdx/mise-action@v2
+        with:
+          cache: "true"
+          install: "true"
 
-    - name: Cache pnpm store
-      uses: actions/cache@v4
-      id: pnpm-cache
-      with:
-        path: ~/.local/share/pnpm/store
-        key: ${{ needs.install.outputs.cache-key }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-store-
+      - name: Setup tools with mise
+        run: mise install
 
-    - name: Install dependencies
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      run: pnpm install --frozen-lockfile
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        id: pnpm-cache
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
-    - name: Run Core format check
-      run: pnpm --filter @gitlyte/core format
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-  core-build:
-    runs-on: ubuntu-latest
-    needs: install
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Format check
+        run: pnpm run format
 
-    - name: Install mise
-      uses: jdx/mise-action@v2
-      with:
-        cache: 'true'
-        install: 'true'
-
-    - name: Cache pnpm store
-      uses: actions/cache@v4
-      id: pnpm-cache
-      with:
-        path: ~/.local/share/pnpm/store
-        key: ${{ needs.install.outputs.cache-key }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-store-
-
-    - name: Install dependencies
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      run: pnpm install --frozen-lockfile
-
-    - name: Run Core TypeScript build check
-      run: pnpm --filter @gitlyte/core build
-
-  core-test:
-    runs-on: ubuntu-latest
-    needs: install
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install mise
-      uses: jdx/mise-action@v2
-      with:
-        cache: 'true'
-        install: 'true'
-
-    - name: Cache pnpm store
-      uses: actions/cache@v4
-      id: pnpm-cache
-      with:
-        path: ~/.local/share/pnpm/store
-        key: ${{ needs.install.outputs.cache-key }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-store-
-
-    - name: Install dependencies
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      run: pnpm install --frozen-lockfile
-
-    - name: Run Core tests
-      run: pnpm --filter @gitlyte/core test
-
-  # 最終的な統合チェック
   ci-success:
     runs-on: ubuntu-latest
-    needs: 
-      - core-lint
-      - core-format
-      - core-build
-      - core-test
+    needs:
+      - build
+      - lint
+      - format
     steps:
-    - name: CI Success
-      run: echo "✅ All CI checks passed successfully!"
+      - name: CI Success
+        run: echo "All CI checks passed successfully!"

@@ -19,8 +19,8 @@ lerna-debug.log*
 
 # Build output
 lib/
-dist/
 coverage/
+# Note: dist/ is NOT ignored - it must be committed for GitHub Actions
 
 # TypeScript cache
 *.tsbuildinfo
@@ -54,13 +54,6 @@ pids
 # Optional npm cache directory
 .npm
 
-# pnpm cache directory
-tools/
-
 # Temporary folders
 temp/
 tmp/
-
-# Astro build output (in templates)
-templates/*/dist/
-templates/*/node_modules/

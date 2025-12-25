@@ -8,17 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install dependencies
 pnpm install
 
-# Build TypeScript
+# Build (bundle with ncc)
 pnpm run build
-
-# Run tests (watch mode)
-pnpm test
-
-# Run tests once (CI mode)
-pnpm exec vitest run
-
-# Run a single test file
-pnpm exec vitest run path/to/test.test.ts
 
 # Lint code
 pnpm run lint
@@ -28,78 +19,78 @@ pnpm run lint:fix
 pnpm run format
 pnpm run format:fix
 
-# CI check (build + format + lint + tests)
+# CI check (build + format + lint)
 pnpm run ci:check
-
-# Start the Probot app
-pnpm run start
-
-# Run evaluation
-node --loader ts-node/esm packages/gitlyte/eval/run-eval.ts --help
 ```
 
 ## Architecture Overview
 
-GitLyte is a GitHub App built with Probot that automatically generates static websites from repository data using AI (Anthropic, OpenAI, or Google).
+GitLyte is a GitHub Action that automatically generates static websites from repository data using AI (Anthropic, OpenAI, or Google).
 
-### Monorepo Structure
-- `packages/gitlyte/` - Main GitHub App (`@gitlyte/core`)
+### Project Structure
 
-### Core Flow (v2)
-1. **Push Handler** (`handlers/v2-push-handler.ts`) receives push events to default branch
-2. **Site Generator** (`services/v2-site-generator.ts`) orchestrates the generation:
-   - Analyzes repository (README, structure, tech stack)
-   - Generates design system with AI
-   - Creates HTML with Tailwind CSS
-3. **Self-Refine** (`services/self-refine.ts`) optionally improves quality through iterative refinement
-4. **Deployment** creates a branch and opens a Pull Request via GitHub API
+```
+gitlyte/
+├── src/                    # TypeScript source files
+│   ├── index.ts           # Action entry point
+│   ├── ai-provider.ts     # Multi-provider AI SDK wrapper
+│   └── site-generator.ts  # Site generation logic
+├── dist/                   # Bundled output (ncc)
+├── templates/              # Workflow templates
+│   └── gitlyte.yml        # Example workflow file
+├── action.yml             # GitHub Action definition
+└── tsconfig.json          # TypeScript config
+```
 
 ### Key Files
-- `packages/gitlyte/index.ts` - Probot app entry point
-- `packages/gitlyte/handlers/v2-push-handler.ts` - Push event handler (auto mode)
-- `packages/gitlyte/handlers/v2-comment-handler.ts` - Comment command handler (@gitlyte commands)
-- `packages/gitlyte/services/v2-site-generator.ts` - Site generation orchestrator
-- `packages/gitlyte/services/self-refine.ts` - Self-Refine pattern implementation
-- `packages/gitlyte/utils/ai-provider.ts` - Multi-provider AI SDK wrapper
-- `packages/gitlyte/types/v2-config.ts` - Configuration schema (`.gitlyte.json`)
 
-### Generation Trigger
-Two trigger modes are available (configured via `generation.trigger` in `.gitlyte.json`):
+- `action.yml` - GitHub Action metadata and inputs/outputs
+- `src/index.ts` - Main entry point, handles inputs and orchestrates generation
+- `src/ai-provider.ts` - Multi-provider AI abstraction (Anthropic, OpenAI, Google)
+- `src/site-generator.ts` - Site generation logic (analysis, design, HTML)
 
-- **manual** (default): Generate only via `@gitlyte generate` command in Issue/PR comments
-- **auto**: Generate on every push to default branch
+### How It Works
 
-Comment commands:
-- `@gitlyte generate` - Trigger site generation
-- `@gitlyte help` - Show help message
+1. **Input Validation** - Validates API key, provider, quality mode
+2. **Repository Analysis** - Fetches repo metadata and README via GitHub API
+3. **Config Loading** - Loads `.gitlyte.json` if present
+4. **AI Analysis** - Analyzes repository purpose, audience, style
+5. **Design Generation** - Creates color palette and typography
+6. **HTML Generation** - Generates landing page with Tailwind CSS
+7. **File Output** - Writes generated files to output directory
 
 ### AI Integration
+
 Uses Vercel AI SDK for multi-provider support:
-- **Anthropic**: `claude-sonnet-4-20250514` (default)
-- **OpenAI**: `gpt-4o`
-- **Google**: `gemini-2.0-flash`
 
-Quality modes:
-- `standard`: Single generation pass
-- `high`: Self-Refine pattern with LLM-as-Judge evaluation
+| Provider | Model | Default |
+|----------|-------|---------|
+| Anthropic | claude-sonnet-4-20250514 | Yes |
+| OpenAI | gpt-4o | No |
+| Google | gemini-2.0-flash | No |
 
-### Evaluation System
-Located in `packages/gitlyte/eval/`:
-- `index.ts` - Main evaluation entry point
-- `lighthouse.ts` - Lighthouse CI integration
-- `llm-judge.ts` - LLM-based design quality evaluation
-- `run-eval.ts` - CLI for running evaluations
-- `benchmarks/` - Benchmark repository definitions
-- `prompts/` - Prompt templates for evaluation
-- `promptfoo.yaml` - Prompt regression testing
+### Configuration
 
-## Testing
+Users can customize via `.gitlyte.json`:
 
-Tests use Vitest with:
-- `nock` for mocking GitHub API
-- Mock responses for AI providers
+```json
+{
+  "enabled": true,
+  "outputDirectory": "docs",
+  "theme": { "mode": "dark" },
+  "prompts": { "siteInstructions": "..." }
+}
+```
 
-Test files are in `packages/gitlyte/test/` with the pattern `*.test.ts`.
+## Building
+
+The action is bundled using `@vercel/ncc`:
+
+```bash
+pnpm run build
+```
+
+This creates a single-file bundle in `dist/index.js` that includes all dependencies.
 
 ## Code Style
 
@@ -108,4 +99,4 @@ Uses Biome for linting and formatting:
 - Double quotes
 - Semicolons required
 - ES5 trailing commas
-- `noExplicitAny` enforced (except in test files)
+- `noExplicitAny` enforced
