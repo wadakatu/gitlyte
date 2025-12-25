@@ -57,14 +57,22 @@ GitLyte is a GitHub App built with Probot that automatically generates static we
 
 ### Key Files
 - `packages/gitlyte/index.ts` - Probot app entry point
-- `packages/gitlyte/handlers/v2-push-handler.ts` - Push event handler
+- `packages/gitlyte/handlers/v2-push-handler.ts` - Push event handler (auto mode)
+- `packages/gitlyte/handlers/v2-comment-handler.ts` - Comment command handler (@gitlyte commands)
 - `packages/gitlyte/services/v2-site-generator.ts` - Site generation orchestrator
 - `packages/gitlyte/services/self-refine.ts` - Self-Refine pattern implementation
 - `packages/gitlyte/utils/ai-provider.ts` - Multi-provider AI SDK wrapper
 - `packages/gitlyte/types/v2-config.ts` - Configuration schema (`.gitlyte.json`)
 
 ### Generation Trigger
-- **Push to default branch**: Only trigger - simple and predictable
+Two trigger modes are available (configured via `generation.trigger` in `.gitlyte.json`):
+
+- **manual** (default): Generate only via `@gitlyte generate` command in Issue/PR comments
+- **auto**: Generate on every push to default branch
+
+Comment commands:
+- `@gitlyte generate` - Trigger site generation
+- `@gitlyte help` - Show help message
 
 ### AI Integration
 Uses Vercel AI SDK for multi-provider support:
