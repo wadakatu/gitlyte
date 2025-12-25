@@ -809,5 +809,69 @@ describe("v2-site-generator", () => {
       // Light mode should use light background
       expect(result.pages[0].html).toContain("bg-white");
     });
+
+    it("should pass siteInstructions from config to section generator", async () => {
+      const customInstructions =
+        "技術的で簡潔なトーンで、日本語で生成してください";
+
+      const mockResponses = [
+        // 1. analyzeRepository
+        JSON.stringify({
+          name: "test",
+          description: "desc",
+          projectType: "library",
+          primaryLanguage: "TypeScript",
+          audience: "developers",
+          style: "professional",
+          keyFeatures: [],
+        }),
+        // 2. generateDesignSystem
+        mockDesignSystemResponse,
+        // 3. analyzeSections
+        JSON.stringify({
+          sections: ["hero", "footer"],
+          reasoning: "Minimal sections",
+        }),
+        // 4-5. generateSection calls (hero, footer)
+        '<section id="hero"><h1>ようこそ</h1></section>',
+        '<section id="footer"><footer>フッター</footer></section>',
+      ];
+
+      let callIndex = 0;
+      vi.mocked(mockAIProvider.generateText).mockImplementation(async () => {
+        const response = mockResponses[callIndex] || "<section></section>";
+        callIndex++;
+        return { text: response };
+      });
+
+      await generateSite(
+        {
+          name: "test",
+          description: "desc",
+          url: "https://github.com/user/test",
+        },
+        resolveConfigV2({
+          prompts: { siteInstructions: customInstructions },
+        }),
+        mockAIProvider
+      );
+
+      // Verify section generation calls include custom instructions
+      const calls = vi.mocked(mockAIProvider.generateText).mock.calls;
+      // Section generation calls are after analyze(1), design(1), analyzeSections(1)
+      // So calls[3] and calls[4] should be section generation calls
+      const sectionCalls = calls.slice(3);
+
+      // At least one section call should include the custom instructions
+      const hasCustomInstructions = sectionCalls.some((call) => {
+        const prompt = (call[0] as { prompt: string }).prompt;
+        return (
+          prompt.includes("CUSTOM INSTRUCTIONS") &&
+          prompt.includes(customInstructions)
+        );
+      });
+
+      expect(hasCustomInstructions).toBe(true);
+    });
   });
 });

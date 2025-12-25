@@ -92,6 +92,32 @@ describe("v2-config", () => {
 
       expect(result.theme.mode).toBe("dark"); // default
     });
+
+    it("should return undefined siteInstructions when not provided", () => {
+      const result = resolveConfigV2({});
+
+      expect(result.prompts.siteInstructions).toBeUndefined();
+    });
+
+    it("should preserve siteInstructions when provided", () => {
+      const result = resolveConfigV2({
+        prompts: {
+          siteInstructions: "技術的で簡潔なトーンで、日本語で生成してください",
+        },
+      });
+
+      expect(result.prompts.siteInstructions).toBe(
+        "技術的で簡潔なトーンで、日本語で生成してください"
+      );
+    });
+
+    it("should handle empty prompts object", () => {
+      const result = resolveConfigV2({
+        prompts: {},
+      });
+
+      expect(result.prompts.siteInstructions).toBeUndefined();
+    });
   });
 
   describe("validateConfigV2", () => {
@@ -320,6 +346,76 @@ describe("v2-config", () => {
 
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
+    });
+
+    it("should return error for invalid prompts object", () => {
+      const result = validateConfigV2({
+        prompts: "custom instructions", // should be object
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain("'prompts' must be an object");
+    });
+
+    it("should return error for invalid prompts.siteInstructions type", () => {
+      const result = validateConfigV2({
+        prompts: {
+          siteInstructions: 123, // should be string
+        },
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "'prompts.siteInstructions' must be a string"
+      );
+    });
+
+    it("should validate valid prompts config", () => {
+      const result = validateConfigV2({
+        prompts: {
+          siteInstructions: "Use a friendly tone for beginners",
+        },
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it("should validate empty prompts object", () => {
+      const result = validateConfigV2({
+        prompts: {},
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it("should return warning for very long siteInstructions", () => {
+      const longInstructions = "a".repeat(2500); // 2500 characters
+
+      const result = validateConfigV2({
+        prompts: {
+          siteInstructions: longInstructions,
+        },
+      });
+
+      expect(result.valid).toBe(true); // warnings don't invalidate
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain("2500 characters");
+      expect(result.warnings[0]).toContain("token limit");
+    });
+
+    it("should not warn for siteInstructions under 2000 characters", () => {
+      const shortInstructions = "a".repeat(1999);
+
+      const result = validateConfigV2({
+        prompts: {
+          siteInstructions: shortInstructions,
+        },
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
     });
   });
 });

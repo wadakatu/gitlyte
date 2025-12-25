@@ -215,6 +215,104 @@ describe("section-generator", () => {
         })
       );
     });
+
+    it("should include siteInstructions in AI prompt when provided", async () => {
+      const contextWithInstructions: SectionContext = {
+        ...mockSectionContext,
+        siteInstructions: "技術的で簡潔なトーンで、日本語で生成してください",
+      };
+
+      const mockProvider = createMockAIProvider({
+        hero: '<section id="hero"><h1>ようこそ</h1></section>',
+      });
+
+      await generateSection("hero", contextWithInstructions, 0, mockProvider);
+
+      expect(mockProvider.generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("CUSTOM INSTRUCTIONS"),
+        })
+      );
+      expect(mockProvider.generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining(
+            "技術的で簡潔なトーンで、日本語で生成してください"
+          ),
+        })
+      );
+    });
+
+    it("should not include CUSTOM INSTRUCTIONS section when siteInstructions is not provided", async () => {
+      const contextWithoutInstructions: SectionContext = {
+        ...mockSectionContext,
+        siteInstructions: undefined,
+      };
+
+      const mockProvider = createMockAIProvider({
+        hero: '<section id="hero"><h1>Welcome</h1></section>',
+      });
+
+      await generateSection(
+        "hero",
+        contextWithoutInstructions,
+        0,
+        mockProvider
+      );
+
+      expect(mockProvider.generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.not.stringContaining("CUSTOM INSTRUCTIONS"),
+        })
+      );
+    });
+
+    it("should not include CUSTOM INSTRUCTIONS section when siteInstructions is empty string", async () => {
+      const contextWithEmptyInstructions: SectionContext = {
+        ...mockSectionContext,
+        siteInstructions: "",
+      };
+
+      const mockProvider = createMockAIProvider({
+        hero: '<section id="hero"><h1>Welcome</h1></section>',
+      });
+
+      await generateSection(
+        "hero",
+        contextWithEmptyInstructions,
+        0,
+        mockProvider
+      );
+
+      expect(mockProvider.generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.not.stringContaining("CUSTOM INSTRUCTIONS"),
+        })
+      );
+    });
+
+    it("should not include CUSTOM INSTRUCTIONS section when siteInstructions is whitespace only", async () => {
+      const contextWithWhitespaceInstructions: SectionContext = {
+        ...mockSectionContext,
+        siteInstructions: "   \n\t  ",
+      };
+
+      const mockProvider = createMockAIProvider({
+        hero: '<section id="hero"><h1>Welcome</h1></section>',
+      });
+
+      await generateSection(
+        "hero",
+        contextWithWhitespaceInstructions,
+        0,
+        mockProvider
+      );
+
+      expect(mockProvider.generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.not.stringContaining("CUSTOM INSTRUCTIONS"),
+        })
+      );
+    });
   });
 
   describe("generateSectionsParallel", () => {
