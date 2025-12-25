@@ -115,8 +115,15 @@ describe("v2-push-handler", () => {
       },
     };
 
-    // Default mocks
-    mockContext.octokit.repos.getContent.mockRejectedValue({ status: 404 });
+    // Default mocks - config with auto trigger for generation tests
+    mockContext.octokit.repos.getContent.mockResolvedValue({
+      data: {
+        type: "file",
+        content: Buffer.from(
+          JSON.stringify({ generation: { trigger: "auto" } })
+        ).toString("base64"),
+      },
+    });
     mockContext.octokit.repos.getReadme.mockRejectedValue({ status: 404 });
     mockContext.octokit.git.getRef.mockResolvedValue({
       data: { object: { sha: "parent-sha" } },
@@ -219,9 +226,28 @@ describe("v2-push-handler", () => {
       expect(mockContext.log.info).toHaveBeenCalledWith(
         expect.stringContaining("No .gitlyte.json found, using defaults")
       );
+      // Default trigger is "manual", so generation should be skipped
       expect(mockContext.log.info).toHaveBeenCalledWith(
-        expect.stringContaining("Starting site generation")
+        expect.stringContaining("manual trigger mode")
       );
+    });
+
+    it("should skip when trigger mode is manual (default)", async () => {
+      mockContext.octokit.repos.getContent.mockResolvedValue({
+        data: {
+          type: "file",
+          content: Buffer.from(
+            JSON.stringify({ generation: { trigger: "manual" } })
+          ).toString("base64"),
+        },
+      });
+
+      await handlePushV2(mockContext as Parameters<typeof handlePushV2>[0]);
+
+      expect(mockContext.log.info).toHaveBeenCalledWith(
+        expect.stringContaining("manual trigger mode")
+      );
+      expect(mockContext.octokit.git.createCommit).not.toHaveBeenCalled();
     });
 
     it("should load and use custom config", async () => {
@@ -233,6 +259,7 @@ describe("v2-push-handler", () => {
               enabled: true,
               outputDirectory: "public",
               ai: { provider: "openai", quality: "high" },
+              generation: { trigger: "auto" },
             })
           ).toString("base64"),
         },
@@ -256,6 +283,7 @@ describe("v2-push-handler", () => {
             JSON.stringify({
               enabled: true,
               unknownField: "value",
+              generation: { trigger: "auto" },
             })
           ).toString("base64"),
         },
@@ -369,7 +397,10 @@ describe("v2-push-handler", () => {
         data: {
           type: "file",
           content: Buffer.from(
-            JSON.stringify({ outputDirectory: "public" })
+            JSON.stringify({
+              outputDirectory: "public",
+              generation: { trigger: "auto" },
+            })
           ).toString("base64"),
         },
       });
@@ -396,9 +427,9 @@ describe("v2-push-handler", () => {
         expect.stringContaining("Error loading config"),
         expect.any(Error)
       );
-      // Should still proceed with generation using defaults
+      // Default trigger is "manual", so generation should be skipped
       expect(mockContext.log.info).toHaveBeenCalledWith(
-        expect.stringContaining("Starting site generation")
+        expect.stringContaining("manual trigger mode")
       );
     });
 

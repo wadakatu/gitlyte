@@ -171,7 +171,7 @@ describe("Deployment Guard", () => {
       ); // Very short timeout
 
       expect(mockContext.log.warn).toHaveBeenCalledWith(
-        "⚠️ Timeout waiting for deployment completion, proceeding anyway"
+        expect.stringContaining("Timeout waiting for deployment completion")
       );
     });
   });
