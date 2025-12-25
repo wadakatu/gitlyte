@@ -1,47 +1,51 @@
 {
-  "name": "gitlyte-workspace",
+  "name": "gitlyte",
   "version": "1.0.0",
   "private": true,
-  "description": "Instantly turn your GitHub repo into a live website — no code needed.",
+  "description": "GitHub Action to generate beautiful static websites from your repository using AI",
   "author": "wadakatu",
   "license": "ISC",
-  "homepage": "https://github.com//",
+  "homepage": "https://github.com/wadakatu/gitlyte",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wadakatu/gitlyte.git"
+  },
   "keywords": [
-    "probot",
-    "github",
-    "probot-app"
+    "github-action",
+    "ai",
+    "static-site-generator",
+    "landing-page",
+    "anthropic",
+    "openai",
+    "google-ai"
   ],
+  "main": "dist/index.js",
   "scripts": {
-    "build": "pnpm -r run build",
-    "start": "pnpm --filter @gitlyte/core start",
-    "test": "pnpm -r run test",
-    "lint": "pnpm -r run lint",
-    "lint:fix": "pnpm -r run lint:fix",
-    "format": "pnpm -r run format",
-    "format:fix": "pnpm -r run format:fix",
-    "check": "pnpm -r run check",
-    "check:fix": "pnpm -r run check:fix",
-    "ci:check": "pnpm --filter @gitlyte/core ci:check"
+    "build": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --fix .",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
+    "check": "biome check .",
+    "check:fix": "biome check --fix .",
+    "ci:check": "pnpm run build && pnpm run format && pnpm run lint"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0",
+    "@ai-sdk/anthropic": "^3.0.1",
+    "@ai-sdk/google": "^3.0.1",
+    "@ai-sdk/openai": "^3.0.1",
+    "ai": "^6.0.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.10",
-    "@lhci/cli": "^0.15.1",
     "@types/node": "^20.19.27",
-    "promptfoo": "^0.120.8",
+    "@vercel/ncc": "^0.38.3",
     "typescript": "^5.9.3"
   },
-  "pnpm": {
-    "overrides": {
-      "@types/pg": "8.15.1",
-      "esbuild": ">=0.25.0",
-      "tmp": ">=0.2.4"
-    }
-  },
   "engines": {
-    "node": ">= 24"
+    "node": ">= 20"
   },
-  "type": "module",
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.55.1"
-  }
+  "type": "module"
 }
