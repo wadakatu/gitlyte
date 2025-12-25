@@ -244,10 +244,9 @@ async function generateAndDeploySiteV2(
     if (status === 404) {
       ctx.log.info("ℹ️ [v2] No README found");
     } else {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
       ctx.log.warn(
-        `⚠️ [v2] Failed to fetch README (proceeding without it): ${errorMessage}`
+        { err: error },
+        "⚠️ [v2] Failed to fetch README (proceeding without it)"
       );
     }
   }
@@ -349,6 +348,7 @@ This PR updates the generated site in \`${config.outputDirectory}/\`.
     } catch (prError) {
       // Attempt to clean up the orphaned branch
       ctx.log.error(
+        { err: prError },
         `❌ [v2] PR creation failed, attempting to clean up branch ${prBranch}`
       );
       try {

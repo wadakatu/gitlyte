@@ -472,6 +472,7 @@ describe("v2-push-handler", () => {
       await handlePushV2(mockContext as Parameters<typeof handlePushV2>[0]);
 
       expect(mockContext.log.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ err: expect.any(Error) }),
         expect.stringContaining(
           "Failed to fetch README (proceeding without it)"
         )
