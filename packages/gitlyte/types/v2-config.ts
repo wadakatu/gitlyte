@@ -7,19 +7,31 @@
  * - Multiple AI provider support
  */
 
+/** Valid AI provider values */
+export const AI_PROVIDERS = ["anthropic", "openai", "google"] as const;
 /** AI Provider options */
-export type AIProvider = "anthropic" | "openai" | "google";
+export type AIProvider = (typeof AI_PROVIDERS)[number];
 
+/** Valid quality mode values */
+export const QUALITY_MODES = ["standard", "high"] as const;
 /** Quality mode for generation */
-export type QualityMode = "standard" | "high";
+export type QualityMode = (typeof QUALITY_MODES)[number];
 
+/** Valid trigger mode values */
+export const TRIGGER_MODES = ["auto", "manual"] as const;
+/** Trigger mode for site generation */
+export type TriggerMode = (typeof TRIGGER_MODES)[number];
+
+/** Valid generatable page values */
+export const GENERATABLE_PAGES = [
+  "features",
+  "docs",
+  "api",
+  "examples",
+  "changelog",
+] as const;
 /** Additional pages that can be generated */
-export type GeneratablePage =
-  | "features"
-  | "docs"
-  | "api"
-  | "examples"
-  | "changelog";
+export type GeneratablePage = (typeof GENERATABLE_PAGES)[number];
 
 /**
  * GitLyte v2 Configuration
@@ -91,6 +103,19 @@ export interface GitLyteConfigV2 {
    * @default []
    */
   pages?: GeneratablePage[];
+
+  /**
+   * Generation trigger configuration
+   */
+  generation?: {
+    /**
+     * Trigger mode for site generation
+     * - auto: Generate on every push to default branch
+     * - manual: Generate only via @gitlyte generate command
+     * @default "manual"
+     */
+    trigger?: TriggerMode;
+  };
 }
 
 /**
@@ -106,6 +131,9 @@ export const DEFAULT_CONFIG_V2 = {
     quality: "standard" as const,
   },
   pages: [] as GeneratablePage[],
+  generation: {
+    trigger: "manual" as const,
+  },
 };
 
 /**
@@ -126,6 +154,9 @@ export interface ResolvedConfigV2 {
     quality: QualityMode;
   };
   pages: GeneratablePage[];
+  generation: {
+    trigger: TriggerMode;
+  };
 }
 
 /**
@@ -136,6 +167,7 @@ export function resolveConfigV2(
 ): ResolvedConfigV2 {
   const defaultProvider: AIProvider = DEFAULT_CONFIG_V2.ai.provider;
   const defaultQuality: QualityMode = DEFAULT_CONFIG_V2.ai.quality;
+  const defaultTrigger: TriggerMode = DEFAULT_CONFIG_V2.generation.trigger;
 
   return {
     enabled: config.enabled ?? DEFAULT_CONFIG_V2.enabled,
@@ -148,6 +180,9 @@ export function resolveConfigV2(
       quality: config.ai?.quality ?? defaultQuality,
     },
     pages: config.pages ?? DEFAULT_CONFIG_V2.pages,
+    generation: {
+      trigger: config.generation?.trigger ?? defaultTrigger,
+    },
   };
 }
 
@@ -220,24 +255,18 @@ export function validateConfigV2(config: unknown): ConfigValidationResult {
       errors.push("'ai' must be an object");
     } else {
       const ai = cfg.ai as Record<string, unknown>;
-      const validProviders = ["anthropic", "openai", "google"];
-      const validQualities = ["standard", "high"];
 
       if (
         ai.provider !== undefined &&
-        !validProviders.includes(ai.provider as string)
+        !(AI_PROVIDERS as readonly string[]).includes(ai.provider as string)
       ) {
-        errors.push(
-          `'ai.provider' must be one of: ${validProviders.join(", ")}`
-        );
+        errors.push(`'ai.provider' must be one of: ${AI_PROVIDERS.join(", ")}`);
       }
       if (
         ai.quality !== undefined &&
-        !validQualities.includes(ai.quality as string)
+        !(QUALITY_MODES as readonly string[]).includes(ai.quality as string)
       ) {
-        errors.push(
-          `'ai.quality' must be one of: ${validQualities.join(", ")}`
-        );
+        errors.push(`'ai.quality' must be one of: ${QUALITY_MODES.join(", ")}`);
       }
     }
   }
@@ -247,13 +276,34 @@ export function validateConfigV2(config: unknown): ConfigValidationResult {
     if (!Array.isArray(cfg.pages)) {
       errors.push("'pages' must be an array");
     } else {
-      const validPages = ["features", "docs", "api", "examples", "changelog"];
       for (const page of cfg.pages) {
-        if (!validPages.includes(page as string)) {
+        if (
+          !(GENERATABLE_PAGES as readonly string[]).includes(page as string)
+        ) {
           warnings.push(
-            `Unknown page type: '${page}'. Valid types: ${validPages.join(", ")}`
+            `Unknown page type: '${page}'. Valid types: ${GENERATABLE_PAGES.join(", ")}`
           );
         }
+      }
+    }
+  }
+
+  // Validate generation
+  if (cfg.generation !== undefined) {
+    if (typeof cfg.generation !== "object" || cfg.generation === null) {
+      errors.push("'generation' must be an object");
+    } else {
+      const generation = cfg.generation as Record<string, unknown>;
+
+      if (
+        generation.trigger !== undefined &&
+        !(TRIGGER_MODES as readonly string[]).includes(
+          generation.trigger as string
+        )
+      ) {
+        errors.push(
+          `'generation.trigger' must be one of: ${TRIGGER_MODES.join(", ")}`
+        );
       }
     }
   }
@@ -266,6 +316,7 @@ export function validateConfigV2(config: unknown): ConfigValidationResult {
     "favicon",
     "ai",
     "pages",
+    "generation",
   ];
   for (const key of Object.keys(cfg)) {
     if (!knownFields.includes(key)) {

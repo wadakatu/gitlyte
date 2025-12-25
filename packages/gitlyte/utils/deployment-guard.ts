@@ -35,11 +35,43 @@ export async function checkDeploymentStatus(ctx: Context): Promise<boolean> {
 
     return isInProgress;
   } catch (error) {
+    const status = (error as { status?: number }).status;
+
+    // Authentication/permission errors - log at error level but continue
+    // (might indicate app permissions need updating)
+    if (status === 401 || status === 403) {
+      ctx.log.error(
+        "❌ Authentication/permission error checking deployment status. " +
+          "Check GitHub App permissions. Proceeding without deployment check.",
+        error as Error
+      );
+      return false;
+    }
+
+    // Rate limiting - log warning
+    if (status === 429) {
+      ctx.log.warn(
+        "⚠️ Rate limited while checking deployment status, proceeding anyway:",
+        error as Error
+      );
+      return false;
+    }
+
+    // Transient errors (502, 503, 504) - log and proceed
+    if (status === 502 || status === 503 || status === 504) {
+      ctx.log.warn(
+        "⚠️ Transient error checking deployment status, proceeding with caution:",
+        error as Error
+      );
+      return false;
+    }
+
+    // Other errors - log warning and proceed (but with more context)
     ctx.log.warn(
-      "Failed to check deployment status, proceeding anyway:",
-      error
+      `⚠️ Failed to check deployment status (status: ${status}), proceeding anyway:`,
+      error as Error
     );
-    return false; // エラーの場合は進行
+    return false;
   }
 }
 
@@ -70,7 +102,10 @@ export async function waitForDeploymentCompletion(
   }
 
   ctx.log.warn(
-    "⚠️ Timeout waiting for deployment completion, proceeding anyway"
+    "⚠️ Timeout waiting for deployment completion after " +
+      `${Math.round(maxWaitTime / 60000)} minutes. ` +
+      "A deployment may still be in progress. Proceeding with caution - " +
+      "if you experience issues, check GitHub Actions status and retry."
   );
 }
 

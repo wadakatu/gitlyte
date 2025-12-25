@@ -16,12 +16,8 @@ import {
   validateConfigV2,
 } from "../types/v2-config.js";
 import { createAIProvider } from "../utils/ai-provider.js";
+import { GITLYTE_COMMIT_MARKER } from "../utils/constants.js";
 import { safeGenerateWithDeploymentGuard } from "../utils/deployment-guard.js";
-
-/**
- * Marker to identify GitLyte-generated commits and prevent infinite loops
- */
-const GITLYTE_COMMIT_MARKER = "[skip gitlyte]";
 
 /**
  * Check if a push event contains only GitLyte-generated commits
@@ -92,6 +88,26 @@ export async function handlePushV2(ctx: Context): Promise<void> {
       return;
     }
 
+    // Check trigger mode - only proceed if auto mode
+    switch (config.generation.trigger) {
+      case "auto":
+        // Continue with site generation
+        break;
+      case "manual":
+        ctx.log.info(
+          "⏭️ [v2] Skipping: manual trigger mode (use @gitlyte generate command)"
+        );
+        return;
+      default: {
+        // Exhaustiveness check - TypeScript will error if a new mode is added
+        const exhaustiveCheck: never = config.generation.trigger;
+        ctx.log.warn(
+          `⚠️ [v2] Unknown trigger mode: ${exhaustiveCheck}, skipping`
+        );
+        return;
+      }
+    }
+
     ctx.log.info(
       `🚀 [v2] Starting site generation (provider: ${config.ai.provider}, quality: ${config.ai.quality})`
     );
@@ -126,7 +142,7 @@ export async function handlePushV2(ctx: Context): Promise<void> {
 /**
  * Load v2 configuration from repository
  */
-async function loadConfigV2(
+export async function loadConfigV2(
   ctx: Context
 ): Promise<ReturnType<typeof resolveConfigV2>> {
   const payload = ctx.payload as {

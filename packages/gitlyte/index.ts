@@ -1,4 +1,5 @@
 import type { Probot } from "probot";
+import { handleCommentV2 } from "./handlers/v2-comment-handler.js";
 import { handlePushV2 } from "./handlers/v2-push-handler.js";
 
 export default function app(bot: Probot) {
@@ -19,5 +20,10 @@ export default function app(bot: Probot) {
       `📤 Push event received: branch=${branchName}, commits=${commits.length}`
     );
     await handlePushV2(ctx);
+  });
+
+  // v2: Issue/PRコメントで @gitlyte コマンドを処理
+  bot.on("issue_comment.created", async (ctx) => {
+    await handleCommentV2(ctx);
   });
 }
