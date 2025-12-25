@@ -2,7 +2,12 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { generateSite, type ThemeMode } from "./site-generator.js";
+import {
+  generateSite,
+  THEME_MODES,
+  isValidThemeMode,
+  type ThemeMode,
+} from "./site-generator.js";
 import {
   createAIProvider,
   AI_PROVIDERS,
@@ -11,9 +16,6 @@ import {
   type QualityMode,
 } from "./ai-provider.js";
 
-/** Valid theme mode values */
-const THEME_MODES: ThemeMode[] = ["light", "dark", "auto"];
-
 export async function run(): Promise<void> {
   try {
     // Get inputs
@@ -21,8 +23,15 @@ export async function run(): Promise<void> {
     const provider = core.getInput("provider") as AIProvider;
     const quality = core.getInput("quality") as QualityMode;
     const outputDirectory = core.getInput("output-directory") || "docs";
-    const themeMode = (core.getInput("theme-mode") || "dark") as ThemeMode;
-    const themeToggle = core.getInput("theme-toggle") === "true";
+
+    // Theme inputs with explicit detection for proper config merging
+    const themeModeInput = core.getInput("theme-mode");
+    const themeModeExplicit = themeModeInput !== "";
+    const themeModeRaw = themeModeInput || "dark";
+
+    const themeToggleInput = core.getInput("theme-toggle");
+    const themeToggleExplicit = themeToggleInput !== "";
+    const themeToggle = themeToggleInput === "true";
 
     // Validate provider
     if (!AI_PROVIDERS.includes(provider)) {
@@ -38,12 +47,13 @@ export async function run(): Promise<void> {
       );
     }
 
-    // Validate theme mode
-    if (!THEME_MODES.includes(themeMode)) {
+    // Validate theme mode using type guard
+    if (!isValidThemeMode(themeModeRaw)) {
       throw new Error(
-        `Invalid theme-mode: ${themeMode}. Must be one of: ${THEME_MODES.join(", ")}`
+        `Invalid theme-mode: ${themeModeRaw}. Must be one of: ${THEME_MODES.join(", ")}`
       );
     }
+    const themeMode: ThemeMode = themeModeRaw;
 
     // Validate GitHub token
     const githubToken =
@@ -113,15 +123,39 @@ export async function run(): Promise<void> {
         ).toString("utf-8");
         try {
           const parsedConfig = JSON.parse(configContent);
-          // Merge config file with action inputs (action inputs take precedence for theme)
+
+          // Validate config file theme mode if present
           const fileThemeMode = parsedConfig.theme?.mode;
+          if (fileThemeMode !== undefined && !isValidThemeMode(fileThemeMode)) {
+            throw new Error(
+              `Invalid theme mode "${fileThemeMode}" in .gitlyte.json. ` +
+                `Must be one of: ${THEME_MODES.join(", ")}`
+            );
+          }
+
+          // Validate config file toggle type if present
           const fileThemeToggle = parsedConfig.theme?.toggle;
+          if (
+            fileThemeToggle !== undefined &&
+            typeof fileThemeToggle !== "boolean"
+          ) {
+            throw new Error(
+              `Invalid theme.toggle value "${fileThemeToggle}" in .gitlyte.json. ` +
+                "Must be a boolean (true or false)."
+            );
+          }
+
+          // Merge config: explicit action input > config file > default
           config = {
             outputDirectory: parsedConfig.outputDirectory || outputDirectory,
             theme: {
-              // Action input takes precedence, then config file, then default
-              mode: themeMode !== "dark" ? themeMode : fileThemeMode || "dark",
-              toggle: themeToggle || fileThemeToggle || false,
+              // If action input was explicitly provided, use it; otherwise use config file or default
+              mode: themeModeExplicit
+                ? themeMode
+                : (fileThemeMode ?? themeMode),
+              toggle: themeToggleExplicit
+                ? themeToggle
+                : (fileThemeToggle ?? themeToggle),
             },
             prompts: {
               siteInstructions: parsedConfig.prompts?.siteInstructions,
@@ -136,10 +170,12 @@ export async function run(): Promise<void> {
         }
       }
     } catch (error) {
-      // Check if it's our JSON parse error (re-throw it)
+      // Check if it's a config validation error (re-throw it)
       if (
         error instanceof Error &&
-        error.message.startsWith("Invalid JSON in .gitlyte.json")
+        (error.message.startsWith("Invalid JSON in .gitlyte.json") ||
+          error.message.startsWith("Invalid theme mode") ||
+          error.message.startsWith("Invalid theme.toggle"))
       ) {
         throw error;
       }

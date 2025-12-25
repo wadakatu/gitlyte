@@ -13,8 +13,14 @@ export interface RepoInfo {
     topics: string[];
     readme?: string;
 }
-/** Theme mode options */
-export type ThemeMode = "light" | "dark" | "auto";
+/** Valid theme mode values - single source of truth */
+export declare const THEME_MODES: readonly ["light", "dark", "auto"];
+/** Theme mode options - derived from THEME_MODES array */
+export type ThemeMode = (typeof THEME_MODES)[number];
+/**
+ * Type guard to validate if a value is a valid ThemeMode
+ */
+export declare function isValidThemeMode(value: unknown): value is ThemeMode;
 export interface SiteConfig {
     outputDirectory: string;
     theme: {

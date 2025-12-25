@@ -43,6 +43,9 @@ vi.mock("node:fs", () => ({
 
 vi.mock("../src/site-generator.js", () => ({
   generateSite: (...args: unknown[]) => mockGenerateSite(...args),
+  THEME_MODES: ["light", "dark", "auto"],
+  isValidThemeMode: (value: unknown) =>
+    typeof value === "string" && ["light", "dark", "auto"].includes(value),
 }));
 
 vi.mock("../src/ai-provider.js", () => ({
@@ -83,14 +86,16 @@ describe("GitHub Action Entry Point", () => {
     delete process.env.GITHUB_TOKEN;
 
     // Setup default mocks
+    // Note: theme-mode and theme-toggle return "" to simulate "not explicitly set"
+    // This allows config file values to take precedence
     mockGetInput.mockImplementation((name: string) => {
       const inputs: Record<string, string> = {
         "api-key": "test-api-key",
         provider: "anthropic",
         quality: "standard",
         "output-directory": "docs",
-        "theme-mode": "dark",
-        "theme-toggle": "false",
+        "theme-mode": "", // Empty = not explicitly set, defaults to "dark"
+        "theme-toggle": "", // Empty = not explicitly set, defaults to false
         "github-token": "test-github-token",
       };
       return inputs[name] || "";
@@ -413,6 +418,95 @@ describe("GitHub Action Entry Point", () => {
         expect.anything(),
         expect.objectContaining({
           theme: { mode: "light", toggle: true },
+        })
+      );
+    });
+
+    it("should reject invalid theme mode in config file", async () => {
+      const invalidConfig = {
+        theme: { mode: "night" }, // Invalid mode
+      };
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(invalidConfig)).toString(
+                "base64"
+              ),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid theme mode "night" in .gitlyte.json')
+      );
+    });
+
+    it("should reject non-boolean toggle in config file", async () => {
+      const invalidConfig = {
+        theme: { mode: "dark", toggle: "true" }, // String instead of boolean
+      };
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(invalidConfig)).toString(
+                "base64"
+              ),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid theme.toggle value "true" in .gitlyte.json')
+      );
+    });
+
+    it("should allow explicit action input to override config file", async () => {
+      // Config has light mode
+      const configWithLight = {
+        theme: { mode: "light", toggle: true },
+      };
+
+      // But action input explicitly sets dark mode
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "theme-mode") return "dark"; // Explicit dark
+        if (name === "theme-toggle") return "false"; // Explicit false
+        return "";
+      });
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithLight)).toString(
+                "base64"
+              ),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      // Explicit action input should override config file
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          theme: { mode: "dark", toggle: false },
         })
       );
     });

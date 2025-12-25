@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   generateSite,
+  THEME_MODES,
+  isValidThemeMode,
   type RepoInfo,
   type SiteConfig,
   type GeneratedSite,
@@ -883,6 +885,57 @@ describe("Site Generator", () => {
       const prompt = htmlPromptCall[0].prompt;
 
       expect(prompt).toContain("system preference");
+    });
+
+    it("should emit warning when auto mode is used without toggle", async () => {
+      const core = await import("@actions/core");
+      const mockWarning = vi.mocked(core.warning);
+      mockWarning.mockClear();
+
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const autoNoToggleConfig: SiteConfig = {
+        ...defaultConfig,
+        theme: { mode: "auto", toggle: false },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, autoNoToggleConfig);
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining('Theme mode "auto" requires toggle to be enabled')
+      );
+    });
+  });
+
+  describe("isValidThemeMode", () => {
+    it("should return true for valid theme modes", () => {
+      expect(isValidThemeMode("light")).toBe(true);
+      expect(isValidThemeMode("dark")).toBe(true);
+      expect(isValidThemeMode("auto")).toBe(true);
+    });
+
+    it("should return false for invalid theme modes", () => {
+      expect(isValidThemeMode("night")).toBe(false);
+      expect(isValidThemeMode("purple")).toBe(false);
+      expect(isValidThemeMode("")).toBe(false);
+      expect(isValidThemeMode(null)).toBe(false);
+      expect(isValidThemeMode(undefined)).toBe(false);
+      expect(isValidThemeMode(123)).toBe(false);
+    });
+  });
+
+  describe("THEME_MODES", () => {
+    it("should contain exactly light, dark, and auto", () => {
+      expect(THEME_MODES).toEqual(["light", "dark", "auto"]);
+    });
+
+    it("should be readonly", () => {
+      // TypeScript ensures this at compile time, but we can verify the values
+      expect(THEME_MODES.length).toBe(3);
     });
   });
 });

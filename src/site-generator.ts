@@ -19,8 +19,21 @@ export interface RepoInfo {
   readme?: string;
 }
 
-/** Theme mode options */
-export type ThemeMode = "light" | "dark" | "auto";
+/** Valid theme mode values - single source of truth */
+export const THEME_MODES = ["light", "dark", "auto"] as const;
+
+/** Theme mode options - derived from THEME_MODES array */
+export type ThemeMode = (typeof THEME_MODES)[number];
+
+/**
+ * Type guard to validate if a value is a valid ThemeMode
+ */
+export function isValidThemeMode(value: unknown): value is ThemeMode {
+  return (
+    typeof value === "string" &&
+    THEME_MODES.includes(value as (typeof THEME_MODES)[number])
+  );
+}
 
 export interface SiteConfig {
   outputDirectory: string;
@@ -322,9 +335,19 @@ Respond with JSON only (no markdown, no code blocks):
 
 /**
  * Build prompt for single theme mode (no toggle)
+ * Note: When mode is "auto" without toggle, falls back to "dark" for static generation
  */
 function buildSingleThemePrompt(design: DesignSystem, mode: ThemeMode): string {
-  const effectiveMode = mode === "auto" ? "dark" : mode;
+  let effectiveMode: "light" | "dark";
+  if (mode === "auto") {
+    core.warning(
+      `Theme mode "auto" requires toggle to be enabled for dynamic switching. ` +
+        `Falling back to "dark" mode for static generation.`
+    );
+    effectiveMode = "dark";
+  } else {
+    effectiveMode = mode;
+  }
   const palette = design.colors[effectiveMode];
 
   return `DESIGN SYSTEM (${effectiveMode} mode):
