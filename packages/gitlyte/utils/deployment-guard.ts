@@ -41,9 +41,9 @@ export async function checkDeploymentStatus(ctx: Context): Promise<boolean> {
     // (might indicate app permissions need updating)
     if (status === 401 || status === 403) {
       ctx.log.error(
+        { err: error },
         "❌ Authentication/permission error checking deployment status. " +
-          "Check GitHub App permissions. Proceeding without deployment check.",
-        error as Error
+          "Check GitHub App permissions. Proceeding without deployment check."
       );
       return false;
     }
@@ -51,8 +51,8 @@ export async function checkDeploymentStatus(ctx: Context): Promise<boolean> {
     // Rate limiting - log warning
     if (status === 429) {
       ctx.log.warn(
-        "⚠️ Rate limited while checking deployment status, proceeding anyway:",
-        error as Error
+        { err: error },
+        "⚠️ Rate limited while checking deployment status, proceeding anyway"
       );
       return false;
     }
@@ -60,16 +60,16 @@ export async function checkDeploymentStatus(ctx: Context): Promise<boolean> {
     // Transient errors (502, 503, 504) - log and proceed
     if (status === 502 || status === 503 || status === 504) {
       ctx.log.warn(
-        "⚠️ Transient error checking deployment status, proceeding with caution:",
-        error as Error
+        { err: error },
+        "⚠️ Transient error checking deployment status, proceeding with caution"
       );
       return false;
     }
 
     // Other errors - log warning and proceed (but with more context)
     ctx.log.warn(
-      `⚠️ Failed to check deployment status (status: ${status}), proceeding anyway:`,
-      error as Error
+      { err: error },
+      `⚠️ Failed to check deployment status (status: ${status}), proceeding anyway`
     );
     return false;
   }

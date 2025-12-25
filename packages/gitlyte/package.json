@@ -24,22 +24,22 @@
     "ci:check": "pnpm run build && pnpm run format && pnpm run lint && pnpm exec vitest run"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.0",
-    "@ai-sdk/google": "^3.0.0",
-    "@ai-sdk/openai": "^3.0.0",
+    "@ai-sdk/anthropic": "^3.0.1",
+    "@ai-sdk/google": "^3.0.1",
+    "@ai-sdk/openai": "^3.0.1",
     "@anthropic-ai/sdk": "^0.55.1",
-    "ai": "^6.0.1",
+    "ai": "^6.0.3",
     "date-fns": "^4.1.0",
-    "probot": "^13.4.5"
+    "probot": "^13.4.7"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.0.0",
-    "@types/node": "^20.0.0",
-    "dotenv": "^17.0.1",
-    "nock": "^14.0.5",
-    "smee-client": "^2.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "^2.0.0"
+    "@biomejs/biome": "^2.3.10",
+    "@types/node": "^20.19.27",
+    "dotenv": "^17.2.3",
+    "nock": "^14.0.10",
+    "smee-client": "^2.0.4",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
   },
   "engines": {
     "node": ">= 18"

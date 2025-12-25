@@ -226,8 +226,8 @@ describe("v2-comment-handler", () => {
         ).rejects.toThrow("Failed to post help message");
 
         expect(mockContext.log.error).toHaveBeenCalledWith(
-          expect.stringContaining("Failed to post help message"),
-          expect.any(Error)
+          expect.objectContaining({ err: expect.any(Error) }),
+          expect.stringContaining("Failed to post help message")
         );
       });
     });
@@ -329,8 +329,8 @@ describe("v2-comment-handler", () => {
         ).rejects.toThrow("Generation failed");
 
         expect(mockContext.log.warn).toHaveBeenCalledWith(
-          expect.stringContaining("Failed to update status comment"),
-          expect.any(Error)
+          expect.objectContaining({ err: expect.any(Error) }),
+          expect.stringContaining("Failed to update status comment")
         );
       });
     });
@@ -392,8 +392,8 @@ describe("v2-comment-handler", () => {
         ).rejects.toThrow();
 
         expect(mockContext.log.warn).toHaveBeenCalledWith(
-          expect.stringContaining("Failed to clean up orphaned branch"),
-          expect.any(Error)
+          expect.objectContaining({ err: expect.any(Error) }),
+          expect.stringContaining("Failed to clean up orphaned branch")
         );
       });
     });
@@ -421,8 +421,8 @@ describe("v2-comment-handler", () => {
         );
 
         expect(mockContext.log.warn).toHaveBeenCalledWith(
-          expect.stringContaining("Failed to fetch README"),
-          expect.any(Error)
+          expect.objectContaining({ err: expect.any(Error) }),
+          expect.stringContaining("Failed to fetch README")
         );
       });
 
@@ -463,8 +463,8 @@ describe("v2-comment-handler", () => {
         ).rejects.toThrow("Failed to start generation");
 
         expect(mockContext.log.error).toHaveBeenCalledWith(
-          expect.stringContaining("Failed to post initial status comment"),
-          expect.any(Error)
+          expect.objectContaining({ err: expect.any(Error) }),
+          expect.stringContaining("Failed to post initial status comment")
         );
       });
 
@@ -494,10 +494,10 @@ describe("v2-comment-handler", () => {
         );
 
         expect(mockContext.log.warn).toHaveBeenCalledWith(
+          expect.objectContaining({ err: expect.any(Error) }),
           expect.stringContaining(
             "Failed to update status comment for disabled config"
-          ),
-          expect.any(Error)
+          )
         );
       });
 
@@ -513,10 +513,10 @@ describe("v2-comment-handler", () => {
         );
 
         expect(mockContext.log.warn).toHaveBeenCalledWith(
+          expect.objectContaining({ err: expect.any(Error) }),
           expect.stringContaining(
             "Failed to update status comment with success"
-          ),
-          expect.any(Error)
+          )
         );
         // PR was still created
         expect(mockContext.octokit.pulls.create).toHaveBeenCalled();

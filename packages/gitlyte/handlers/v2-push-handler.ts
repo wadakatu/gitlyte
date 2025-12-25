@@ -132,8 +132,8 @@ export async function handlePushV2(ctx: Context): Promise<void> {
     const duration = Date.now() - startTime;
     const payload = ctx.payload as { repository: { full_name: string } };
     ctx.log.error(
-      `❌ [v2] Site generation failed for ${payload.repository.full_name} after ${duration}ms`,
-      error as Error
+      { err: error },
+      `❌ [v2] Site generation failed for ${payload.repository.full_name} after ${duration}ms`
     );
     throw error;
   }
@@ -186,8 +186,8 @@ export async function loadConfigV2(
       ctx.log.info("ℹ️ [v2] No .gitlyte.json found, using defaults");
     } else {
       ctx.log.warn(
-        "⚠️ [v2] Error loading config, using defaults",
-        error as Error
+        { err: error },
+        "⚠️ [v2] Error loading config, using defaults"
       );
     }
   }
@@ -360,8 +360,8 @@ This PR updates the generated site in \`${config.outputDirectory}/\`.
         ctx.log.info(`🧹 [v2] Cleaned up orphaned branch: ${prBranch}`);
       } catch (cleanupError) {
         ctx.log.warn(
-          `⚠️ [v2] Failed to clean up orphaned branch ${prBranch}:`,
-          cleanupError as Error
+          { err: cleanupError },
+          `⚠️ [v2] Failed to clean up orphaned branch ${prBranch}`
         );
       }
       throw prError;

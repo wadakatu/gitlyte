@@ -376,8 +376,8 @@ describe("v2-push-handler", () => {
       );
 
       expect(mockContext.log.error).toHaveBeenCalledWith(
-        expect.stringContaining("Site generation failed"),
-        expect.any(Error)
+        expect.objectContaining({ err: expect.any(Error) }),
+        expect.stringContaining("Site generation failed")
       );
     });
 
@@ -424,8 +424,8 @@ describe("v2-push-handler", () => {
 
       // Should warn about the error and use defaults
       expect(mockContext.log.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Error loading config"),
-        expect.any(Error)
+        expect.objectContaining({ err: expect.any(Error) }),
+        expect.stringContaining("Error loading config")
       );
       // Default trigger is "manual", so generation should be skipped
       expect(mockContext.log.info).toHaveBeenCalledWith(
@@ -491,8 +491,8 @@ describe("v2-push-handler", () => {
       ).rejects.toThrow();
 
       expect(mockContext.log.error).toHaveBeenCalledWith(
-        expect.stringContaining("owner/test-repo"),
-        expect.any(Error)
+        expect.objectContaining({ err: expect.any(Error) }),
+        expect.stringContaining("owner/test-repo")
       );
     });
   });
