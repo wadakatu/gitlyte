@@ -9,6 +9,7 @@ interface MockContext {
   log: {
     info: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
   };
   repo: ReturnType<typeof vi.fn>;
   octokit: {
@@ -27,6 +28,7 @@ describe("Deployment Guard", () => {
       log: {
         info: vi.fn(),
         warn: vi.fn(),
+        error: vi.fn(),
       },
       repo: vi.fn().mockReturnValue({ owner: "test", repo: "test-repo" }),
       octokit: {
@@ -103,6 +105,110 @@ describe("Deployment Guard", () => {
       expect(result).toBe(false);
       expect(mockContext.log.warn).toHaveBeenCalled();
     });
+
+    it("should log error for 401 authentication error", async () => {
+      const authError = new Error("Unauthorized");
+      (authError as { status?: number }).status = 401;
+      mockContext.octokit.repos.listDeployments.mockRejectedValue(authError);
+
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
+
+      expect(result).toBe(false);
+      expect(mockContext.log.error).toHaveBeenCalledWith(
+        expect.stringContaining("Authentication/permission error"),
+        expect.any(Error)
+      );
+    });
+
+    it("should log error for 403 permission error", async () => {
+      const permError = new Error("Forbidden");
+      (permError as { status?: number }).status = 403;
+      mockContext.octokit.repos.listDeployments.mockRejectedValue(permError);
+
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
+
+      expect(result).toBe(false);
+      expect(mockContext.log.error).toHaveBeenCalledWith(
+        expect.stringContaining("Authentication/permission error"),
+        expect.any(Error)
+      );
+    });
+
+    it("should log warning for 429 rate limit error", async () => {
+      const rateLimitError = new Error("Rate limited");
+      (rateLimitError as { status?: number }).status = 429;
+      mockContext.octokit.repos.listDeployments.mockRejectedValue(
+        rateLimitError
+      );
+
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
+
+      expect(result).toBe(false);
+      expect(mockContext.log.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Rate limited"),
+        expect.any(Error)
+      );
+    });
+
+    it("should log warning for 502 transient error", async () => {
+      const transientError = new Error("Bad Gateway");
+      (transientError as { status?: number }).status = 502;
+      mockContext.octokit.repos.listDeployments.mockRejectedValue(
+        transientError
+      );
+
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
+
+      expect(result).toBe(false);
+      expect(mockContext.log.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Transient error"),
+        expect.any(Error)
+      );
+    });
+
+    it("should log warning for 503 transient error", async () => {
+      const transientError = new Error("Service Unavailable");
+      (transientError as { status?: number }).status = 503;
+      mockContext.octokit.repos.listDeployments.mockRejectedValue(
+        transientError
+      );
+
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
+
+      expect(result).toBe(false);
+      expect(mockContext.log.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Transient error"),
+        expect.any(Error)
+      );
+    });
+
+    it("should log warning for 504 transient error", async () => {
+      const transientError = new Error("Gateway Timeout");
+      (transientError as { status?: number }).status = 504;
+      mockContext.octokit.repos.listDeployments.mockRejectedValue(
+        transientError
+      );
+
+      const result = await checkDeploymentStatus(
+        mockContext as unknown as Parameters<typeof checkDeploymentStatus>[0]
+      );
+
+      expect(result).toBe(false);
+      expect(mockContext.log.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Transient error"),
+        expect.any(Error)
+      );
+    });
   });
 
   describe("waitForDeploymentCompletion", () => {
@@ -171,7 +277,7 @@ describe("Deployment Guard", () => {
       ); // Very short timeout
 
       expect(mockContext.log.warn).toHaveBeenCalledWith(
-        "⚠️ Timeout waiting for deployment completion, proceeding anyway"
+        expect.stringContaining("Timeout waiting for deployment completion")
       );
     });
   });

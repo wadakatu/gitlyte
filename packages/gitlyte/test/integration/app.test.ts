@@ -17,7 +17,7 @@ describe("GitLyte App Integration (v2)", () => {
       expect(typeof app).toBe("function");
     });
 
-    it("should register only push event handler", () => {
+    it("should register push and comment event handlers", () => {
       const mockProbot: MockProbot = {
         on: vi.fn(),
         onAny: vi.fn(),
@@ -28,14 +28,18 @@ describe("GitLyte App Integration (v2)", () => {
 
       app(mockProbot as unknown as Parameters<typeof app>[0]);
 
-      // v2: Only push handler should be registered
-      expect(mockProbot.on).toHaveBeenCalledTimes(1);
+      // v2: Push handler and comment handler should be registered
+      expect(mockProbot.on).toHaveBeenCalledTimes(2);
       expect(mockProbot.on).toHaveBeenCalledWith("push", expect.any(Function));
+      expect(mockProbot.on).toHaveBeenCalledWith(
+        "issue_comment.created",
+        expect.any(Function)
+      );
       // Debug handler should also be registered
       expect(mockProbot.onAny).toHaveBeenCalledTimes(1);
     });
 
-    it("should not register PR or comment handlers (v2)", () => {
+    it("should not register legacy PR or installation handlers (v2)", () => {
       const mockProbot: MockProbot = {
         on: vi.fn(),
         onAny: vi.fn(),
@@ -46,14 +50,15 @@ describe("GitLyte App Integration (v2)", () => {
 
       app(mockProbot as unknown as Parameters<typeof app>[0]);
 
-      // v2: No PR or comment handlers
+      // v2: No legacy PR or installation handlers
       const registeredEvents = mockProbot.on.mock.calls.map(
         (call) => call[0] as string
       );
 
       expect(registeredEvents).not.toContain("pull_request.closed");
-      expect(registeredEvents).not.toContain("issue_comment.created");
       expect(registeredEvents).not.toContain("installation.created");
+      // issue_comment.created is now registered for @gitlyte commands
+      expect(registeredEvents).toContain("issue_comment.created");
     });
   });
 
