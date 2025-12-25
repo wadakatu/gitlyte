@@ -258,5 +258,3 @@ function isExpired(token) {
 /***/ })
 
 };
-
-//# sourceMappingURL=360.index.js.map

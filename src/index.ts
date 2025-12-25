@@ -154,18 +154,52 @@ async function run(): Promise<void> {
     const outDir = path.resolve(process.cwd(), config.outputDirectory);
     fs.mkdirSync(outDir, { recursive: true });
 
+    /**
+     * Validate that a file path is within the output directory (prevent path traversal)
+     */
+    function validatePath(filePath: string, itemPath: string): void {
+      const resolvedPath = path.resolve(filePath);
+      const resolvedOutDir = path.resolve(outDir);
+      if (!resolvedPath.startsWith(resolvedOutDir + path.sep)) {
+        throw new Error(
+          `Invalid path "${itemPath}": path escapes output directory. ` +
+            "This may indicate a security issue with the AI-generated content."
+        );
+      }
+    }
+
     for (const page of result.pages) {
       const filePath = path.join(outDir, page.path);
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, page.html, "utf-8");
-      core.info(`📝 Written: ${filePath}`);
+      validatePath(filePath, page.path);
+      try {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, page.html, "utf-8");
+        core.info(`📝 Written: ${filePath}`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to write page "${page.path}" to "${filePath}": ${errorMessage}`,
+          { cause: error }
+        );
+      }
     }
 
     for (const asset of result.assets) {
       const filePath = path.join(outDir, asset.path);
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, asset.content, "utf-8");
-      core.info(`📝 Written: ${filePath}`);
+      validatePath(filePath, asset.path);
+      try {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, asset.content, "utf-8");
+        core.info(`📝 Written: ${filePath}`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to write asset "${asset.path}" to "${filePath}": ${errorMessage}`,
+          { cause: error }
+        );
+      }
     }
 
     core.info(`✅ Site generated successfully in ${config.outputDirectory}/`);

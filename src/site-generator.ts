@@ -4,6 +4,7 @@
  * A standalone version of the site generator that works without Probot dependencies.
  */
 
+import * as core from "@actions/core";
 import type { AIProviderInstance } from "./ai-provider.js";
 
 export interface RepoInfo {
@@ -79,18 +80,18 @@ export async function generateSite(
   aiProvider: AIProviderInstance,
   config: SiteConfig
 ): Promise<GeneratedSite> {
-  console.log("[gitlyte-action] Starting site generation...");
+  core.info("Starting site generation...");
 
   // Step 1: Analyze repository
-  console.log("[gitlyte-action] Analyzing repository...");
+  core.info("Analyzing repository...");
   const analysis = await analyzeRepository(repoInfo, aiProvider);
 
   // Step 2: Generate design system
-  console.log("[gitlyte-action] Generating design system...");
+  core.info("Generating design system...");
   const design = await generateDesignSystem(analysis, aiProvider);
 
   // Step 3: Generate index page
-  console.log("[gitlyte-action] Generating index page...");
+  core.info("Generating index page...");
   const indexHtml = await generateIndexPage(
     repoInfo,
     analysis,
@@ -99,7 +100,7 @@ export async function generateSite(
     aiProvider
   );
 
-  console.log("[gitlyte-action] Site generation complete!");
+  core.info("Site generation complete!");
 
   return {
     pages: [{ path: "index.html", html: indexHtml }],
@@ -136,23 +137,52 @@ Respond with JSON only (no markdown, no code blocks):
   });
 
   try {
-    return JSON.parse(cleanJsonResponse(result.text));
+    const parsed = JSON.parse(cleanJsonResponse(result.text));
+    // Validate and normalize the parsed result
+    return {
+      name: parsed.name || repoInfo.name,
+      description:
+        parsed.description || repoInfo.description || "A software project",
+      projectType: validateProjectType(parsed.projectType),
+      primaryLanguage: parsed.primaryLanguage || repoInfo.language || "Unknown",
+      audience: validateAudience(parsed.audience),
+      style: validateStyle(parsed.style),
+      keyFeatures: Array.isArray(parsed.keyFeatures) ? parsed.keyFeatures : [],
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `[gitlyte-action] Failed to parse repository analysis: ${errorMessage}. Using fallback values.`,
-      `\n  Raw response (first 200 chars): ${result.text?.slice(0, 200)}`
+    const rawPreview = result.text?.slice(0, 300) || "(empty response)";
+    core.warning(
+      `Failed to parse repository analysis: ${errorMessage}. ` +
+        `Raw response: ${rawPreview}`
     );
-    return {
-      name: repoInfo.name,
-      description: repoInfo.description || "A software project",
-      projectType: "other",
-      primaryLanguage: repoInfo.language || "Unknown",
-      audience: "developers",
-      style: "professional",
-      keyFeatures: [],
-    };
+    throw new Error(
+      "Repository analysis failed: AI returned invalid JSON. " +
+        `Please retry or check your API key. Error: ${errorMessage}`
+    );
   }
+}
+
+function validateProjectType(value: unknown): ProjectType {
+  const valid: ProjectType[] = ["library", "tool", "webapp", "docs", "other"];
+  return valid.includes(value as ProjectType)
+    ? (value as ProjectType)
+    : "other";
+}
+
+function validateAudience(value: unknown): Audience {
+  const valid: Audience[] = [
+    "developers",
+    "designers",
+    "general",
+    "enterprise",
+  ];
+  return valid.includes(value as Audience) ? (value as Audience) : "developers";
+}
+
+function validateStyle(value: unknown): Style {
+  const valid: Style[] = ["minimal", "professional", "creative", "technical"];
+  return valid.includes(value as Style) ? (value as Style) : "professional";
 }
 
 async function generateDesignSystem(
@@ -200,36 +230,24 @@ Respond with JSON only (no markdown, no code blocks):
   });
 
   try {
-    return JSON.parse(cleanJsonResponse(result.text));
+    const parsed = JSON.parse(cleanJsonResponse(result.text));
+    // Validate the required structure
+    if (!parsed.colors?.light || !parsed.colors?.dark || !parsed.typography) {
+      throw new Error(
+        "Missing required design system fields (colors.light, colors.dark, typography)"
+      );
+    }
+    return parsed;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `[gitlyte-action] Failed to parse design system: ${errorMessage}. Using fallback values.`,
-      `\n  Raw response (first 200 chars): ${result.text?.slice(0, 200)}`
+    const rawPreview = result.text?.slice(0, 200) || "(empty response)";
+    core.warning(
+      `Failed to parse design system: ${errorMessage}. Raw response: ${rawPreview}`
     );
-    return {
-      colors: {
-        light: {
-          primary: "blue-600",
-          secondary: "indigo-600",
-          accent: "purple-500",
-          background: "white",
-          text: "gray-900",
-        },
-        dark: {
-          primary: "blue-400",
-          secondary: "indigo-400",
-          accent: "purple-400",
-          background: "gray-950",
-          text: "gray-50",
-        },
-      },
-      typography: {
-        headingFont: "Inter, system-ui, sans-serif",
-        bodyFont: "Inter, system-ui, sans-serif",
-      },
-      layout: "hero-centered",
-    };
+    throw new Error(
+      "Design system generation failed: AI returned invalid JSON. " +
+        `Please retry or check your API key. Error: ${errorMessage}`
+    );
   }
 }
 
@@ -282,17 +300,39 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
 
   let html = cleanHtmlResponse(result.text);
 
-  // Ensure HTML is complete
+  // Validate that we got valid HTML
+  if (!html || html.length < 100) {
+    throw new Error(
+      "Index page generation failed: AI returned empty or invalid response. " +
+        `Response length: ${html?.length ?? 0} characters.`
+    );
+  }
+
+  if (!html.includes("<!DOCTYPE html>") && !html.includes("<html")) {
+    core.warning(
+      "Generated HTML may be malformed: missing DOCTYPE or html tag. " +
+        `Response preview: ${html.slice(0, 100)}...`
+    );
+  }
+
+  // Repair incomplete HTML with warnings
   if (!html.includes("</html>")) {
+    core.warning("Generated HTML was incomplete, adding missing closing tags.");
     html = `${html}\n</body>\n</html>`;
   }
 
   // Ensure Tailwind CDN is included
   if (!html.includes("tailwindcss")) {
-    html = html.replace(
-      "</head>",
-      `  <script src="https://cdn.tailwindcss.com"></script>\n  </head>`
-    );
+    if (html.includes("</head>")) {
+      html = html.replace(
+        "</head>",
+        `  <script src="https://cdn.tailwindcss.com"></script>\n  </head>`
+      );
+    } else {
+      core.warning(
+        "Generated HTML missing </head> tag, cannot inject Tailwind CDN."
+      );
+    }
   }
 
   return html;
@@ -301,7 +341,10 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
 /**
  * Clean JSON response from AI (remove markdown code blocks)
  */
-function cleanJsonResponse(text: string): string {
+function cleanJsonResponse(text: string | null | undefined): string {
+  if (!text) {
+    return "";
+  }
   let cleaned = text.trim();
 
   // Remove markdown code blocks
@@ -321,7 +364,10 @@ function cleanJsonResponse(text: string): string {
 /**
  * Clean HTML response from AI (remove markdown code blocks)
  */
-function cleanHtmlResponse(text: string): string {
+function cleanHtmlResponse(text: string | null | undefined): string {
+  if (!text) {
+    return "";
+  }
   let cleaned = text.trim();
 
   // Remove markdown code blocks

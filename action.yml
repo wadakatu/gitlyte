@@ -22,9 +22,8 @@ inputs:
     required: false
     default: 'docs'
   github-token:
-    description: 'GitHub token for API access'
+    description: 'GitHub token for API access (defaults to automatic workflow token)'
     required: false
-    default: ${{ github.token }}
 
 outputs:
   output-directory:
