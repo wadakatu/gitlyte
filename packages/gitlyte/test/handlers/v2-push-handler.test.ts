@@ -115,12 +115,12 @@ describe("v2-push-handler", () => {
       },
     };
 
-    // Default mocks - config with auto trigger and webhook mode for generation tests
+    // Default mocks - config with auto trigger for generation tests
     mockContext.octokit.repos.getContent.mockResolvedValue({
       data: {
         type: "file",
         content: Buffer.from(
-          JSON.stringify({ generation: { trigger: "auto", mode: "webhook" } })
+          JSON.stringify({ generation: { trigger: "auto" } })
         ).toString("base64"),
       },
     });
@@ -250,26 +250,6 @@ describe("v2-push-handler", () => {
       expect(mockContext.octokit.git.createCommit).not.toHaveBeenCalled();
     });
 
-    it("should skip when generation mode is workflow (GitHub Actions)", async () => {
-      mockContext.octokit.repos.getContent.mockResolvedValue({
-        data: {
-          type: "file",
-          content: Buffer.from(
-            JSON.stringify({
-              generation: { trigger: "auto", mode: "workflow" },
-            })
-          ).toString("base64"),
-        },
-      });
-
-      await handlePushV2(mockContext as Parameters<typeof handlePushV2>[0]);
-
-      expect(mockContext.log.info).toHaveBeenCalledWith(
-        expect.stringContaining("workflow mode enabled")
-      );
-      expect(mockContext.octokit.git.createCommit).not.toHaveBeenCalled();
-    });
-
     it("should load and use custom config", async () => {
       mockContext.octokit.repos.getContent.mockResolvedValue({
         data: {
@@ -279,7 +259,7 @@ describe("v2-push-handler", () => {
               enabled: true,
               outputDirectory: "public",
               ai: { provider: "openai", quality: "high" },
-              generation: { trigger: "auto", mode: "webhook" },
+              generation: { trigger: "auto" },
             })
           ).toString("base64"),
         },
@@ -303,7 +283,7 @@ describe("v2-push-handler", () => {
             JSON.stringify({
               enabled: true,
               unknownField: "value",
-              generation: { trigger: "auto", mode: "webhook" },
+              generation: { trigger: "auto" },
             })
           ).toString("base64"),
         },
@@ -419,7 +399,7 @@ describe("v2-push-handler", () => {
           content: Buffer.from(
             JSON.stringify({
               outputDirectory: "public",
-              generation: { trigger: "auto", mode: "webhook" },
+              generation: { trigger: "auto" },
             })
           ).toString("base64"),
         },

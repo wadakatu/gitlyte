@@ -22,15 +22,6 @@ export const TRIGGER_MODES = ["auto", "manual"] as const;
 /** Trigger mode for site generation */
 export type TriggerMode = (typeof TRIGGER_MODES)[number];
 
-/** Valid generation mode values */
-export const GENERATION_MODES = ["webhook", "workflow"] as const;
-/**
- * Generation mode for site generation
- * - webhook: Use GitHub App webhook (server's API key)
- * - workflow: Use GitHub Actions workflow (user's API key from secrets)
- */
-export type GenerationMode = (typeof GENERATION_MODES)[number];
-
 /** Valid theme mode values */
 export const THEME_MODES = ["light", "dark"] as const;
 /** Theme mode for generated site */
@@ -129,14 +120,6 @@ export interface GitLyteConfigV2 {
      * @default "manual"
      */
     trigger?: TriggerMode;
-
-    /**
-     * Generation mode
-     * - webhook: Use GitHub App webhook (server's API key, operator pays)
-     * - workflow: Use GitHub Actions workflow (user's API key from secrets)
-     * @default "workflow"
-     */
-    mode?: GenerationMode;
   };
 
   /**
@@ -181,7 +164,6 @@ export const DEFAULT_CONFIG_V2 = {
   pages: [] as GeneratablePage[],
   generation: {
     trigger: "manual" as const,
-    mode: "workflow" as const,
   },
   theme: {
     mode: "dark" as const,
@@ -211,7 +193,6 @@ export interface ResolvedConfigV2 {
   pages: GeneratablePage[];
   generation: {
     trigger: TriggerMode;
-    mode: GenerationMode;
   };
   theme: {
     mode: ThemeMode;
@@ -230,7 +211,6 @@ export function resolveConfigV2(
   const defaultProvider: AIProvider = DEFAULT_CONFIG_V2.ai.provider;
   const defaultQuality: QualityMode = DEFAULT_CONFIG_V2.ai.quality;
   const defaultTrigger: TriggerMode = DEFAULT_CONFIG_V2.generation.trigger;
-  const defaultMode: GenerationMode = DEFAULT_CONFIG_V2.generation.mode;
   const defaultThemeMode: ThemeMode = DEFAULT_CONFIG_V2.theme.mode;
 
   return {
@@ -246,7 +226,6 @@ export function resolveConfigV2(
     pages: config.pages ?? DEFAULT_CONFIG_V2.pages,
     generation: {
       trigger: config.generation?.trigger ?? defaultTrigger,
-      mode: config.generation?.mode ?? defaultMode,
     },
     theme: {
       mode: config.theme?.mode ?? defaultThemeMode,
@@ -374,17 +353,6 @@ export function validateConfigV2(config: unknown): ConfigValidationResult {
       ) {
         errors.push(
           `'generation.trigger' must be one of: ${TRIGGER_MODES.join(", ")}`
-        );
-      }
-
-      if (
-        generation.mode !== undefined &&
-        !(GENERATION_MODES as readonly string[]).includes(
-          generation.mode as string
-        )
-      ) {
-        errors.push(
-          `'generation.mode' must be one of: ${GENERATION_MODES.join(", ")}`
         );
       }
     }

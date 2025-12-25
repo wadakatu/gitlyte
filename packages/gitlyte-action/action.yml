@@ -22,15 +22,15 @@ inputs:
     required: false
     default: 'docs'
   github-token:
-    description: 'GitHub token for committing changes'
+    description: 'GitHub token for API access'
     required: false
     default: ${{ github.token }}
 
 outputs:
-  pr-url:
-    description: 'URL of the created pull request'
-  pr-number:
-    description: 'Number of the created pull request'
+  output-directory:
+    description: 'Directory where the site was generated'
+  pages-count:
+    description: 'Number of pages generated'
 
 runs:
   using: 'node20'

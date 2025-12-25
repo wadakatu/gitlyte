@@ -108,14 +108,6 @@ export async function handlePushV2(ctx: Context): Promise<void> {
       }
     }
 
-    // Check generation mode - skip if using workflow mode (GitHub Actions)
-    if (config.generation.mode === "workflow") {
-      ctx.log.info(
-        "⏭️ [v2] Skipping: workflow mode enabled (generation handled by GitHub Actions)"
-      );
-      return;
-    }
-
     ctx.log.info(
       `🚀 [v2] Starting site generation (provider: ${config.ai.provider}, quality: ${config.ai.quality})`
     );
