@@ -169,7 +169,7 @@ export const DEFAULT_CONFIG_V2 = {
     mode: "dark" as const,
   },
   prompts: {
-    siteInstructions: undefined as string | undefined,
+    siteInstructions: undefined,
   },
 };
 
@@ -381,11 +381,15 @@ export function validateConfigV2(config: unknown): ConfigValidationResult {
     } else {
       const prompts = cfg.prompts as Record<string, unknown>;
 
-      if (
-        prompts.siteInstructions !== undefined &&
-        typeof prompts.siteInstructions !== "string"
-      ) {
-        errors.push("'prompts.siteInstructions' must be a string");
+      if (prompts.siteInstructions !== undefined) {
+        if (typeof prompts.siteInstructions !== "string") {
+          errors.push("'prompts.siteInstructions' must be a string");
+        } else if (prompts.siteInstructions.length > 2000) {
+          warnings.push(
+            `'prompts.siteInstructions' is ${prompts.siteInstructions.length} characters, ` +
+              "which may cause token limit issues. Consider keeping it under 2000 characters."
+          );
+        }
       }
     }
   }

@@ -265,6 +265,54 @@ describe("section-generator", () => {
         })
       );
     });
+
+    it("should not include CUSTOM INSTRUCTIONS section when siteInstructions is empty string", async () => {
+      const contextWithEmptyInstructions: SectionContext = {
+        ...mockSectionContext,
+        siteInstructions: "",
+      };
+
+      const mockProvider = createMockAIProvider({
+        hero: '<section id="hero"><h1>Welcome</h1></section>',
+      });
+
+      await generateSection(
+        "hero",
+        contextWithEmptyInstructions,
+        0,
+        mockProvider
+      );
+
+      expect(mockProvider.generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.not.stringContaining("CUSTOM INSTRUCTIONS"),
+        })
+      );
+    });
+
+    it("should not include CUSTOM INSTRUCTIONS section when siteInstructions is whitespace only", async () => {
+      const contextWithWhitespaceInstructions: SectionContext = {
+        ...mockSectionContext,
+        siteInstructions: "   \n\t  ",
+      };
+
+      const mockProvider = createMockAIProvider({
+        hero: '<section id="hero"><h1>Welcome</h1></section>',
+      });
+
+      await generateSection(
+        "hero",
+        contextWithWhitespaceInstructions,
+        0,
+        mockProvider
+      );
+
+      expect(mockProvider.generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.not.stringContaining("CUSTOM INSTRUCTIONS"),
+        })
+      );
+    });
   });
 
   describe("generateSectionsParallel", () => {

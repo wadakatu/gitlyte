@@ -260,9 +260,10 @@ export async function generateSection(
   const sectionPrompt = SECTION_PROMPTS[sectionType];
   const palette = getPalette(context.design, context.themeMode);
 
-  // Build custom instructions section if provided
-  const customInstructionsSection = context.siteInstructions
-    ? `\nCUSTOM INSTRUCTIONS (IMPORTANT - follow these closely):\n${context.siteInstructions}\n`
+  // Build custom instructions section if provided (skip empty/whitespace-only strings)
+  const trimmedInstructions = context.siteInstructions?.trim();
+  const customInstructionsSection = trimmedInstructions
+    ? `\nCUSTOM INSTRUCTIONS (IMPORTANT - follow these closely):\n${trimmedInstructions}\n`
     : "";
 
   const prompt = `Generate ONLY the HTML for a ${sectionType} section.

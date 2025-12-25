@@ -389,5 +389,33 @@ describe("v2-config", () => {
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
+
+    it("should return warning for very long siteInstructions", () => {
+      const longInstructions = "a".repeat(2500); // 2500 characters
+
+      const result = validateConfigV2({
+        prompts: {
+          siteInstructions: longInstructions,
+        },
+      });
+
+      expect(result.valid).toBe(true); // warnings don't invalidate
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain("2500 characters");
+      expect(result.warnings[0]).toContain("token limit");
+    });
+
+    it("should not warn for siteInstructions under 2000 characters", () => {
+      const shortInstructions = "a".repeat(1999);
+
+      const result = validateConfigV2({
+        prompts: {
+          siteInstructions: shortInstructions,
+        },
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
   });
 });
