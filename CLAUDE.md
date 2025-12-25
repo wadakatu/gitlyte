@@ -44,7 +44,6 @@ GitLyte is a GitHub App built with Probot that automatically generates static we
 
 ### Monorepo Structure
 - `packages/gitlyte/` - Main GitHub App (`@gitlyte/core`)
-- `packages/demo/` - Demo site example (`@gitlyte/demo`)
 
 ### Core Flow (v2)
 1. **Push Handler** (`handlers/v2-push-handler.ts`) receives push events to default branch
