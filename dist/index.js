@@ -81017,6 +81017,9 @@ async function run() {
         const themeToggleInput = core.getInput("theme-toggle");
         const themeToggleExplicit = themeToggleInput !== "";
         const themeToggle = themeToggleInput === "true";
+        // Site instructions input
+        const siteInstructionsInput = core.getInput("site-instructions");
+        const siteInstructionsExplicit = siteInstructionsInput !== "";
         // Validate provider
         if (!AI_PROVIDERS.includes(provider)) {
             throw new Error(`Invalid provider: ${provider}. Must be one of: ${AI_PROVIDERS.join(", ")}`);
@@ -81043,6 +81046,9 @@ async function run() {
         core.info(`🚀 Starting GitLyte site generation for ${owner}/${repo}`);
         core.info(`📦 Provider: ${provider}, Quality: ${quality}`);
         core.info(`🎨 Theme: ${themeMode}${themeToggle ? " (with toggle)" : ""}`);
+        if (siteInstructionsExplicit) {
+            core.info("📝 Custom site instructions provided");
+        }
         // Get repository info
         const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
         // Get README
@@ -81073,7 +81079,11 @@ async function run() {
                 mode: themeMode,
                 toggle: themeToggle,
             },
-            prompts: {},
+            prompts: {
+                siteInstructions: siteInstructionsExplicit
+                    ? siteInstructionsInput
+                    : undefined,
+            },
         };
         try {
             const { data: configFile } = await octokit.rest.repos.getContent({
@@ -81111,7 +81121,10 @@ async function run() {
                                 : (fileThemeToggle ?? themeToggle),
                         },
                         prompts: {
-                            siteInstructions: parsedConfig.prompts?.siteInstructions,
+                            // If action input was explicitly provided, use it; otherwise use config file
+                            siteInstructions: siteInstructionsExplicit
+                                ? siteInstructionsInput
+                                : parsedConfig.prompts?.siteInstructions,
                         },
                     };
                 }

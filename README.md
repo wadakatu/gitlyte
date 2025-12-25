@@ -79,6 +79,9 @@ That's it! Push to main and your site will be generated automatically.
 | `provider` | No | `anthropic` | AI provider: `anthropic`, `openai`, or `google` |
 | `quality` | No | `standard` | Quality mode: `standard` or `high` |
 | `output-directory` | No | `docs` | Output directory for generated files |
+| `theme-mode` | No | `dark` | Theme mode: `light`, `dark`, or `auto` |
+| `theme-toggle` | No | `false` | Include a light/dark mode toggle button |
+| `site-instructions` | No | - | Custom instructions for AI generation (tone, language, style) |
 | `github-token` | No | `${{ github.token }}` | GitHub token for API access |
 
 ## Outputs
