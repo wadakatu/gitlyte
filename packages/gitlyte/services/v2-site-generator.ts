@@ -261,11 +261,11 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
   // Validate HTML completeness
   if (!html.includes("</html>")) {
     console.warn(
-      `[v2-site-generator] Generated HTML appears truncated (no </html> tag). ` +
+      "[v2-site-generator] Generated HTML appears truncated (no </html> tag). " +
         `Output length: ${html.length} chars. This may indicate maxOutputTokens is too low.`
     );
     // Attempt to close the HTML properly
-    html = html + "\n</body>\n</html>";
+    html = `${html}\n</body>\n</html>`;
   }
 
   // Ensure Tailwind CDN is included

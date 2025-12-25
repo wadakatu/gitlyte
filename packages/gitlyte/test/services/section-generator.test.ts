@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   analyzeSections,
   generateSection,
@@ -104,7 +104,11 @@ describe("section-generator", () => {
         }),
       });
 
-      const result = await analyzeSections(mockAnalysis, undefined, mockProvider);
+      const result = await analyzeSections(
+        mockAnalysis,
+        undefined,
+        mockProvider
+      );
 
       expect(result.sections[0]).toBe("hero");
       expect(result.sections[result.sections.length - 1]).toBe("footer");
@@ -115,7 +119,11 @@ describe("section-generator", () => {
         Analyze: "Invalid JSON response",
       });
 
-      const result = await analyzeSections(mockAnalysis, undefined, mockProvider);
+      const result = await analyzeSections(
+        mockAnalysis,
+        undefined,
+        mockProvider
+      );
 
       expect(result.sections).toContain("hero");
       expect(result.sections).toContain("footer");
