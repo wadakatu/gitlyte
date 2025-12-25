@@ -33,6 +33,10 @@ export async function run(): Promise<void> {
     const themeToggleExplicit = themeToggleInput !== "";
     const themeToggle = themeToggleInput === "true";
 
+    // Site instructions input
+    const siteInstructionsInput = core.getInput("site-instructions");
+    const siteInstructionsExplicit = siteInstructionsInput !== "";
+
     // Validate provider
     if (!AI_PROVIDERS.includes(provider)) {
       throw new Error(
@@ -74,6 +78,9 @@ export async function run(): Promise<void> {
     core.info(`🚀 Starting GitLyte site generation for ${owner}/${repo}`);
     core.info(`📦 Provider: ${provider}, Quality: ${quality}`);
     core.info(`🎨 Theme: ${themeMode}${themeToggle ? " (with toggle)" : ""}`);
+    if (siteInstructionsExplicit) {
+      core.info("📝 Custom site instructions provided");
+    }
 
     // Get repository info
     const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
@@ -108,7 +115,11 @@ export async function run(): Promise<void> {
         mode: themeMode,
         toggle: themeToggle,
       },
-      prompts: {} as { siteInstructions?: string },
+      prompts: {
+        siteInstructions: siteInstructionsExplicit
+          ? siteInstructionsInput
+          : undefined,
+      } as { siteInstructions?: string },
     };
     try {
       const { data: configFile } = await octokit.rest.repos.getContent({
@@ -158,7 +169,10 @@ export async function run(): Promise<void> {
                 : (fileThemeToggle ?? themeToggle),
             },
             prompts: {
-              siteInstructions: parsedConfig.prompts?.siteInstructions,
+              // If action input was explicitly provided, use it; otherwise use config file
+              siteInstructions: siteInstructionsExplicit
+                ? siteInstructionsInput
+                : parsedConfig.prompts?.siteInstructions,
             },
           };
         } catch (parseError) {

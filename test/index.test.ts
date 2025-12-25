@@ -96,6 +96,7 @@ describe("GitHub Action Entry Point", () => {
         "output-directory": "docs",
         "theme-mode": "", // Empty = not explicitly set, defaults to "dark"
         "theme-toggle": "", // Empty = not explicitly set, defaults to false
+        "site-instructions": "", // Empty = not explicitly set
         "github-token": "test-github-token",
       };
       return inputs[name] || "";
@@ -757,6 +758,117 @@ describe("GitHub Action Entry Point", () => {
         "openai",
         "high",
         "openai-key"
+      );
+    });
+  });
+
+  describe("Site Instructions Input", () => {
+    it("should pass site-instructions from action input to generateSite", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "site-instructions") return "Use a friendly tone";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          prompts: { siteInstructions: "Use a friendly tone" },
+        })
+      );
+    });
+
+    it("should log when site-instructions is provided", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "site-instructions") return "Use a friendly tone";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockInfo).toHaveBeenCalledWith(
+        "📝 Custom site instructions provided"
+      );
+    });
+
+    it("should not log site-instructions message when not provided", async () => {
+      await runAction();
+
+      expect(mockInfo).not.toHaveBeenCalledWith("📝 Custom site instructions provided");
+    });
+
+    it("should use config file site-instructions when action input is not provided", async () => {
+      const configWithInstructions = {
+        prompts: { siteInstructions: "Be formal and professional" },
+      };
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithInstructions)).toString(
+                "base64"
+              ),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          prompts: { siteInstructions: "Be formal and professional" },
+        })
+      );
+    });
+
+    it("should allow action input to override config file site-instructions", async () => {
+      const configWithInstructions = {
+        prompts: { siteInstructions: "Be formal and professional" },
+      };
+
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "site-instructions") return "Use a casual tone"; // Override config
+        return "";
+      });
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithInstructions)).toString(
+                "base64"
+              ),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          prompts: { siteInstructions: "Use a casual tone" },
+        })
       );
     });
   });

@@ -29,6 +29,9 @@ inputs:
     description: 'Include a light/dark mode toggle button (true/false)'
     required: false
     default: 'false'
+  site-instructions:
+    description: 'Custom instructions for AI generation (tone, language, style preferences)'
+    required: false
   github-token:
     description: 'GitHub token for API access (defaults to automatic workflow token)'
     required: false
