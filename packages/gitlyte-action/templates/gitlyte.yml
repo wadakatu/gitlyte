@@ -1,0 +1,76 @@
+# GitLyte Site Generator Workflow
+#
+# This workflow automatically generates a beautiful static website
+# from your repository using AI.
+#
+# Setup:
+# 1. Add your AI API key as a repository secret named GITLYTE_API_KEY
+#    (Get your key from: https://console.anthropic.com/)
+# 2. Commit this file to .github/workflows/gitlyte.yml
+# 3. Push to your default branch to trigger generation
+#
+# Configuration:
+# - Create a .gitlyte.json file in your repository root to customize behavior
+# - See: https://github.com/wadakatu/gitlyte#configuration
+
+name: GitLyte Site Generator
+
+on:
+  # Generate on push to main branch
+  push:
+    branches:
+      - main
+      - master
+    # Skip if only docs were changed (prevents infinite loop)
+    paths-ignore:
+      - 'docs/**'
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: 'AI Provider'
+        required: false
+        default: 'anthropic'
+        type: choice
+        options:
+          - anthropic
+          - openai
+          - google
+      quality:
+        description: 'Quality Mode'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - high
+
+# Prevent concurrent runs
+concurrency:
+  group: gitlyte-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    name: Generate Site
+    runs-on: ubuntu-latest
+
+    # Don't run on commits from GitLyte itself
+    if: "!contains(github.event.head_commit.message, '[skip gitlyte]')"
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate site with GitLyte
+        uses: wadakatu/gitlyte-action@v1
+        with:
+          api-key: ${{ secrets.GITLYTE_API_KEY }}
+          provider: ${{ github.event.inputs.provider || 'anthropic' }}
+          quality: ${{ github.event.inputs.quality || 'standard' }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

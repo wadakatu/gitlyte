@@ -250,6 +250,26 @@ describe("v2-push-handler", () => {
       expect(mockContext.octokit.git.createCommit).not.toHaveBeenCalled();
     });
 
+    it("should skip when generation mode is workflow (GitHub Actions)", async () => {
+      mockContext.octokit.repos.getContent.mockResolvedValue({
+        data: {
+          type: "file",
+          content: Buffer.from(
+            JSON.stringify({
+              generation: { trigger: "auto", mode: "workflow" },
+            })
+          ).toString("base64"),
+        },
+      });
+
+      await handlePushV2(mockContext as Parameters<typeof handlePushV2>[0]);
+
+      expect(mockContext.log.info).toHaveBeenCalledWith(
+        expect.stringContaining("workflow mode enabled")
+      );
+      expect(mockContext.octokit.git.createCommit).not.toHaveBeenCalled();
+    });
+
     it("should load and use custom config", async () => {
       mockContext.octokit.repos.getContent.mockResolvedValue({
         data: {

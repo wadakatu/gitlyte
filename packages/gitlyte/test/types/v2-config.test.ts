@@ -18,6 +18,7 @@ describe("v2-config", () => {
       expect(result.logo).toBeUndefined();
       expect(result.favicon).toBeUndefined();
       expect(result.theme.mode).toBe("dark"); // default theme mode
+      expect(result.generation.mode).toBe("webhook"); // default generation mode
     });
 
     it("should override default values with provided config", () => {
@@ -331,6 +332,28 @@ describe("v2-config", () => {
       for (const mode of ["light", "dark"]) {
         const result = validateConfigV2({
           theme: { mode },
+        });
+        expect(result.valid).toBe(true);
+      }
+    });
+
+    it("should return error for invalid generation.mode", () => {
+      const result = validateConfigV2({
+        generation: {
+          mode: "invalid-mode",
+        },
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "'generation.mode' must be one of: webhook, workflow"
+      );
+    });
+
+    it("should validate all valid generation modes", () => {
+      for (const mode of ["webhook", "workflow"]) {
+        const result = validateConfigV2({
+          generation: { mode },
         });
         expect(result.valid).toBe(true);
       }
