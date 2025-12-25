@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { generateSite } from "./site-generator.js";
+import { generateSite, type ThemeMode } from "./site-generator.js";
 import {
   createAIProvider,
   AI_PROVIDERS,
@@ -11,6 +11,9 @@ import {
   type QualityMode,
 } from "./ai-provider.js";
 
+/** Valid theme mode values */
+const THEME_MODES: ThemeMode[] = ["light", "dark", "auto"];
+
 export async function run(): Promise<void> {
   try {
     // Get inputs
@@ -18,6 +21,8 @@ export async function run(): Promise<void> {
     const provider = core.getInput("provider") as AIProvider;
     const quality = core.getInput("quality") as QualityMode;
     const outputDirectory = core.getInput("output-directory") || "docs";
+    const themeMode = (core.getInput("theme-mode") || "dark") as ThemeMode;
+    const themeToggle = core.getInput("theme-toggle") === "true";
 
     // Validate provider
     if (!AI_PROVIDERS.includes(provider)) {
@@ -30,6 +35,13 @@ export async function run(): Promise<void> {
     if (!QUALITY_MODES.includes(quality)) {
       throw new Error(
         `Invalid quality: ${quality}. Must be one of: ${QUALITY_MODES.join(", ")}`
+      );
+    }
+
+    // Validate theme mode
+    if (!THEME_MODES.includes(themeMode)) {
+      throw new Error(
+        `Invalid theme-mode: ${themeMode}. Must be one of: ${THEME_MODES.join(", ")}`
       );
     }
 
@@ -51,6 +63,7 @@ export async function run(): Promise<void> {
 
     core.info(`🚀 Starting GitLyte site generation for ${owner}/${repo}`);
     core.info(`📦 Provider: ${provider}, Quality: ${quality}`);
+    core.info(`🎨 Theme: ${themeMode}${themeToggle ? " (with toggle)" : ""}`);
 
     // Get repository info
     const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
@@ -81,7 +94,10 @@ export async function run(): Promise<void> {
     // Load config from .gitlyte.json if exists
     let config = {
       outputDirectory,
-      theme: { mode: "dark" as const },
+      theme: {
+        mode: themeMode,
+        toggle: themeToggle,
+      },
       prompts: {} as { siteInstructions?: string },
     };
     try {
@@ -97,9 +113,16 @@ export async function run(): Promise<void> {
         ).toString("utf-8");
         try {
           const parsedConfig = JSON.parse(configContent);
+          // Merge config file with action inputs (action inputs take precedence for theme)
+          const fileThemeMode = parsedConfig.theme?.mode;
+          const fileThemeToggle = parsedConfig.theme?.toggle;
           config = {
             outputDirectory: parsedConfig.outputDirectory || outputDirectory,
-            theme: { mode: parsedConfig.theme?.mode || "dark" },
+            theme: {
+              // Action input takes precedence, then config file, then default
+              mode: themeMode !== "dark" ? themeMode : fileThemeMode || "dark",
+              toggle: themeToggle || fileThemeToggle || false,
+            },
             prompts: {
               siteInstructions: parsedConfig.prompts?.siteInstructions,
             },

@@ -103,7 +103,7 @@ describe("Site Generator", () => {
 
   const defaultConfig: SiteConfig = {
     outputDirectory: "docs",
-    theme: { mode: "dark" },
+    theme: { mode: "dark", toggle: false },
     prompts: {},
   };
 
@@ -173,7 +173,7 @@ describe("Site Generator", () => {
 
       const lightConfig: SiteConfig = {
         ...defaultConfig,
-        theme: { mode: "light" },
+        theme: { mode: "light", toggle: false },
       };
 
       await generateSite(defaultRepoInfo, mockProvider, lightConfig);
@@ -785,7 +785,7 @@ describe("Site Generator", () => {
         improved: true,
       });
 
-      const lightConfig = { ...defaultConfig, theme: { mode: "light" as const } };
+      const lightConfig = { ...defaultConfig, theme: { mode: "light" as const, toggle: false } };
       await generateSite(defaultRepoInfo, mockProvider, lightConfig);
 
       expect(selfRefine).toHaveBeenCalledWith(
@@ -795,6 +795,94 @@ describe("Site Generator", () => {
         }),
         mockProvider
       );
+    });
+  });
+
+  describe("Theme Toggle", () => {
+    it("should include dark mode toggle instructions when toggle is enabled", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const toggleConfig: SiteConfig = {
+        ...defaultConfig,
+        theme: { mode: "dark", toggle: true },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, toggleConfig);
+
+      // Check that the prompt includes dark mode toggle instructions
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPromptCall = calls[2]; // Third call is HTML generation
+      const prompt = htmlPromptCall[0].prompt;
+
+      expect(prompt).toContain("Light/Dark mode toggle");
+      expect(prompt).toContain("LIGHT MODE COLORS");
+      expect(prompt).toContain("DARK MODE COLORS");
+      expect(prompt).toContain("darkMode: 'class'");
+    });
+
+    it("should use single theme prompt when toggle is disabled", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      await generateSite(defaultRepoInfo, mockProvider, defaultConfig);
+
+      // Check that the prompt uses single theme mode
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPromptCall = calls[2];
+      const prompt = htmlPromptCall[0].prompt;
+
+      expect(prompt).toContain("dark mode");
+      expect(prompt).not.toContain("Light/Dark mode toggle");
+    });
+
+    it("should handle auto mode by defaulting to dark for single theme", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const autoConfig: SiteConfig = {
+        ...defaultConfig,
+        theme: { mode: "auto", toggle: false },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, autoConfig);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPromptCall = calls[2];
+      const prompt = htmlPromptCall[0].prompt;
+
+      // Auto mode should default to dark when toggle is disabled
+      expect(prompt).toContain("dark mode");
+    });
+
+    it("should include system preference in toggle prompt for auto mode", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const autoToggleConfig: SiteConfig = {
+        ...defaultConfig,
+        theme: { mode: "auto", toggle: true },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, autoToggleConfig);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPromptCall = calls[2];
+      const prompt = htmlPromptCall[0].prompt;
+
+      expect(prompt).toContain("system preference");
     });
   });
 });

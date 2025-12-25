@@ -13,10 +13,15 @@ export interface RepoInfo {
     topics: string[];
     readme?: string;
 }
+/** Theme mode options */
+export type ThemeMode = "light" | "dark" | "auto";
 export interface SiteConfig {
     outputDirectory: string;
     theme: {
-        mode: "light" | "dark";
+        /** Default theme mode: "light", "dark", or "auto" (respects system preference) */
+        mode: ThemeMode;
+        /** Whether to include a toggle button for switching themes */
+        toggle: boolean;
     };
     prompts: {
         siteInstructions?: string;

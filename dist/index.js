@@ -35295,8 +35295,7 @@ async function generateSite(repoInfo, aiProvider, config) {
     // Step 4: Apply Self-Refine for high quality mode
     if (aiProvider.quality === "high") {
         core.info("🎯 High quality mode: applying Self-Refine...");
-        const palette = design.colors[config.theme.mode];
-        const requirements = buildRequirements(repoInfo, analysis, design, config, palette);
+        const requirements = buildRequirements(repoInfo, analysis, design, config);
         const refinementResult = await selfRefine(indexHtml, {
             maxIterations: 3,
             targetScore: 8,
@@ -35317,7 +35316,11 @@ async function generateSite(repoInfo, aiProvider, config) {
 /**
  * Build requirements string for refinement context
  */
-function buildRequirements(repoInfo, analysis, design, config, palette) {
+function buildRequirements(repoInfo, analysis, design, config) {
+    // Build theme-specific requirements
+    const themeRequirements = config.theme.toggle
+        ? buildDarkModeTogglePrompt(design, config.theme.mode)
+        : buildSingleThemePrompt(design, config.theme.mode);
     return `PROJECT INFO:
 - Name: ${analysis.name}
 - Description: ${analysis.description}
@@ -35325,14 +35328,7 @@ function buildRequirements(repoInfo, analysis, design, config, palette) {
 - Key Features: ${analysis.keyFeatures.join(", ") || "Various features"}
 - GitHub URL: ${repoInfo.htmlUrl}
 
-DESIGN SYSTEM (${config.theme.mode} mode):
-- Primary color: ${palette.primary}
-- Secondary color: ${palette.secondary}
-- Accent color: ${palette.accent}
-- Background: ${palette.background}
-- Text: ${palette.text}
-- Layout: ${design.layout}
-- Fonts: ${design.typography.headingFont}
+${themeRequirements}
 
 REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
@@ -35463,11 +35459,68 @@ Respond with JSON only (no markdown, no code blocks):
             `Please retry or check your API key. Error: ${errorMessage}`);
     }
 }
+/**
+ * Build prompt for single theme mode (no toggle)
+ */
+function buildSingleThemePrompt(design, mode) {
+    const effectiveMode = mode === "auto" ? "dark" : mode;
+    const palette = design.colors[effectiveMode];
+    return `DESIGN SYSTEM (${effectiveMode} mode):
+- Primary color: ${palette.primary}
+- Secondary color: ${palette.secondary}
+- Accent color: ${palette.accent}
+- Background: ${palette.background}
+- Text: ${palette.text}
+- Layout: ${design.layout}
+- Fonts: ${design.typography.headingFont}`;
+}
+/**
+ * Build prompt for dark mode toggle support
+ */
+function buildDarkModeTogglePrompt(design, defaultMode) {
+    const light = design.colors.light;
+    const dark = design.colors.dark;
+    return `DESIGN SYSTEM (with Light/Dark mode toggle):
+
+LIGHT MODE COLORS:
+- Primary: ${light.primary}
+- Secondary: ${light.secondary}
+- Accent: ${light.accent}
+- Background: ${light.background}
+- Text: ${light.text}
+
+DARK MODE COLORS:
+- Primary: ${dark.primary}
+- Secondary: ${dark.secondary}
+- Accent: ${dark.accent}
+- Background: ${dark.background}
+- Text: ${dark.text}
+
+Typography: ${design.typography.headingFont}
+Layout: ${design.layout}
+Default mode: ${defaultMode === "auto" ? "system preference" : defaultMode}
+
+THEME TOGGLE REQUIREMENTS:
+1. Use Tailwind's dark mode with class strategy: add "dark" class to <html> element
+2. Configure Tailwind to use class-based dark mode in a <script> tag:
+   tailwind.config = { darkMode: 'class' }
+3. Add a theme toggle button in the header/nav area with sun/moon icons (use emoji or SVG)
+4. Include this JavaScript for theme switching:
+   - Check localStorage for saved theme preference
+   - If no preference, check system preference (prefers-color-scheme)
+   - Apply the theme by adding/removing "dark" class on <html>
+   - Save preference to localStorage when user toggles
+5. Use dark: prefix for dark mode styles (e.g., "bg-white dark:bg-gray-900")
+6. Ensure smooth transition when switching themes (add transition classes)`;
+}
 async function generateIndexPage(repoInfo, analysis, design, config, aiProvider) {
-    const palette = design.colors[config.theme.mode];
     const customInstructions = config.prompts.siteInstructions
         ? `\n\nADDITIONAL INSTRUCTIONS:\n${config.prompts.siteInstructions}`
         : "";
+    // Build theme-specific prompt based on toggle setting
+    const themePrompt = config.theme.toggle
+        ? buildDarkModeTogglePrompt(design, config.theme.mode)
+        : buildSingleThemePrompt(design, config.theme.mode);
     const prompt = `Generate a modern, beautiful landing page HTML for this project.
 
 PROJECT INFO:
@@ -35477,14 +35530,7 @@ PROJECT INFO:
 - Key Features: ${analysis.keyFeatures.join(", ") || "Various features"}
 - GitHub URL: ${repoInfo.htmlUrl}
 
-DESIGN SYSTEM (${config.theme.mode} mode):
-- Primary color: ${palette.primary}
-- Secondary color: ${palette.secondary}
-- Accent color: ${palette.accent}
-- Background: ${palette.background}
-- Text: ${palette.text}
-- Layout: ${design.layout}
-- Fonts: ${design.typography.headingFont}
+${themePrompt}
 
 REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
@@ -80938,6 +80984,8 @@ function getModel(provider, quality, apiKey) {
 
 
 
+/** Valid theme mode values */
+const THEME_MODES = ["light", "dark", "auto"];
 async function run() {
     try {
         // Get inputs
@@ -80945,6 +80993,8 @@ async function run() {
         const provider = core.getInput("provider");
         const quality = core.getInput("quality");
         const outputDirectory = core.getInput("output-directory") || "docs";
+        const themeMode = (core.getInput("theme-mode") || "dark");
+        const themeToggle = core.getInput("theme-toggle") === "true";
         // Validate provider
         if (!AI_PROVIDERS.includes(provider)) {
             throw new Error(`Invalid provider: ${provider}. Must be one of: ${AI_PROVIDERS.join(", ")}`);
@@ -80952,6 +81002,10 @@ async function run() {
         // Validate quality mode
         if (!QUALITY_MODES.includes(quality)) {
             throw new Error(`Invalid quality: ${quality}. Must be one of: ${QUALITY_MODES.join(", ")}`);
+        }
+        // Validate theme mode
+        if (!THEME_MODES.includes(themeMode)) {
+            throw new Error(`Invalid theme-mode: ${themeMode}. Must be one of: ${THEME_MODES.join(", ")}`);
         }
         // Validate GitHub token
         const githubToken = core.getInput("github-token") || process.env.GITHUB_TOKEN;
@@ -80965,6 +81019,7 @@ async function run() {
         const repo = context.repo.repo;
         core.info(`🚀 Starting GitLyte site generation for ${owner}/${repo}`);
         core.info(`📦 Provider: ${provider}, Quality: ${quality}`);
+        core.info(`🎨 Theme: ${themeMode}${themeToggle ? " (with toggle)" : ""}`);
         // Get repository info
         const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
         // Get README
@@ -80991,7 +81046,10 @@ async function run() {
         // Load config from .gitlyte.json if exists
         let config = {
             outputDirectory,
-            theme: { mode: "dark" },
+            theme: {
+                mode: themeMode,
+                toggle: themeToggle,
+            },
             prompts: {},
         };
         try {
@@ -81004,9 +81062,16 @@ async function run() {
                 const configContent = Buffer.from(configFile.content, "base64").toString("utf-8");
                 try {
                     const parsedConfig = JSON.parse(configContent);
+                    // Merge config file with action inputs (action inputs take precedence for theme)
+                    const fileThemeMode = parsedConfig.theme?.mode;
+                    const fileThemeToggle = parsedConfig.theme?.toggle;
                     config = {
                         outputDirectory: parsedConfig.outputDirectory || outputDirectory,
-                        theme: { mode: parsedConfig.theme?.mode || "dark" },
+                        theme: {
+                            // Action input takes precedence, then config file, then default
+                            mode: themeMode !== "dark" ? themeMode : fileThemeMode || "dark",
+                            toggle: themeToggle || fileThemeToggle || false,
+                        },
                         prompts: {
                             siteInstructions: parsedConfig.prompts?.siteInstructions,
                         },
