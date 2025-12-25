@@ -49,7 +49,6 @@ pnpm start
 ```sh
 pnpm run build       # Build all packages
 pnpm start           # Start the GitHub App (requires .env setup)
-pnpm run dev:demo    # Start demo development server
 ```
 
 ### Code Quality
@@ -85,9 +84,11 @@ packages/
 └── gitlyte/                    # Main GitHub App
     ├── index.ts                   # Probot app entry point
     ├── handlers/
-    │   └── v2-push-handler.ts     # Push event handler
+    │   ├── v2-push-handler.ts     # Push event handler (auto mode)
+    │   └── v2-comment-handler.ts  # Comment command handler (@gitlyte commands)
     ├── services/
     │   ├── v2-site-generator.ts   # Site generation orchestrator
+    │   ├── section-generator.ts   # Section-based parallel generation
     │   └── self-refine.ts         # Self-Refine quality improvement
     ├── utils/
     │   ├── ai-provider.ts         # Multi-provider AI SDK wrapper
@@ -176,20 +177,27 @@ Work in Progress pull requests are also welcome to get feedback early on.
 
 GitLyte uses AI to generate custom websites from repository data.
 
+### Trigger Modes
+- **Manual** (default): Generate via `@gitlyte generate` command in Issue/PR comments
+- **Auto**: Generate on every push to default branch
+
 ### Core Flow (v2)
-1. **Push Event**: Push to default branch triggers site generation
+1. **Trigger**: Push event (auto mode) or comment command (manual mode)
 2. **Repository Analysis**: README and repository metadata are analyzed
-3. **Design Generation**: AI creates custom design with Tailwind CSS
-4. **HTML Generation**: Complete HTML pages are generated
+3. **Design Generation**: AI creates custom design system with Tailwind CSS
+4. **Section Generation**: Parallel generation of sections (hero, features, etc.)
 5. **Self-Refine** (optional): Quality improvement through iterative refinement
 6. **Deployment**: Creates branch and opens PR via GitHub API (batch commit via Tree API)
 
 ### Key Components
 
-**Event Handling**: `packages/gitlyte/handlers/v2-push-handler.ts` - Handles push events to default branch
+**Event Handling**:
+- `packages/gitlyte/handlers/v2-push-handler.ts` - Handles push events (auto mode)
+- `packages/gitlyte/handlers/v2-comment-handler.ts` - Handles @gitlyte commands (manual mode)
 
 **Services**:
 - `packages/gitlyte/services/v2-site-generator.ts` - Site generation orchestrator
+- `packages/gitlyte/services/section-generator.ts` - Section-based parallel generation
 - `packages/gitlyte/services/self-refine.ts` - Self-Refine pattern implementation
 
 **AI Integration**:
@@ -204,3 +212,5 @@ GitLyte uses AI to generate custom websites from repository data.
 - [Using Pull Requests](https://help.github.com/articles/about-pull-requests/)
 - [GitHub Help](https://help.github.com)
 - [Architecture Documentation](docs/ARCHITECTURE.md)
+- [Security Policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)

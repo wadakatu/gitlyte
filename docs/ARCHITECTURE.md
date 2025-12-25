@@ -5,26 +5,28 @@ GitLyte is a GitHub App built with [Probot](https://github.com/probot/probot) th
 ## System Overview
 
 ```
-Push Event → Repository Analysis → AI Design Generation → HTML Creation → Pull Request
-     ↓              ↓                    ↓                    ↓              ↓
-  Default       README/Code          Multi-Provider        Tailwind      Create Branch
-  Branch        Analysis             AI (Claude/GPT)       CSS           + Open PR
+Trigger Event → Repository Analysis → AI Design Generation → Section Generation → Pull Request
+      ↓                ↓                      ↓                     ↓                ↓
+  Push (auto)      README/Code          Multi-Provider         Parallel         Create Branch
+  or Comment       Analysis             AI (Claude/GPT)        Sections         + Open PR
+  (@gitlyte)                                                  + Assembly
 ```
 
 ## Project Structure
 
-GitLyte uses pnpm workspaces with two main packages:
+GitLyte uses pnpm workspaces:
 
 - `@gitlyte/core` - Main GitHub App in `packages/gitlyte/`
-- `@gitlyte/demo` - Demo site example in `packages/demo/`
 
 ```
 packages/gitlyte/
 ├── index.ts                    # Probot app entry point
 ├── handlers/
-│   └── v2-push-handler.ts      # Push event handler
+│   ├── v2-push-handler.ts      # Push event handler (auto mode)
+│   └── v2-comment-handler.ts   # Comment command handler (@gitlyte commands)
 ├── services/
 │   ├── v2-site-generator.ts    # Site generation orchestrator
+│   ├── section-generator.ts    # Section-based parallel generation
 │   └── self-refine.ts          # Self-Refine quality improvement
 ├── utils/
 │   ├── ai-provider.ts          # Multi-provider AI SDK wrapper
@@ -40,10 +42,18 @@ packages/gitlyte/
 └── test/                       # Comprehensive test suites
 ```
 
+## Trigger Modes
+
+GitLyte supports two trigger modes (configured via `generation.trigger`):
+
+- **manual** (default): Generate only via `@gitlyte generate` command in Issue/PR comments
+- **auto**: Generate on every push to default branch
+
 ## Core Flow
 
-### 1. Push Event Trigger
-- Handler receives push event to default branch
+### 1. Event Trigger
+- **Auto mode**: Handler receives push event to default branch
+- **Manual mode**: Handler receives `@gitlyte generate` comment command
 - Checks if generation is enabled in `.gitlyte.json`
 - Validates commits are not from GitLyte itself (infinite loop prevention)
 
@@ -60,9 +70,10 @@ packages/gitlyte/
   - Component styling
 - Uses Tailwind CSS classes for styling
 
-### 4. HTML Generation
-- Generates complete HTML pages with embedded Tailwind
-- Creates index.html and optional additional pages
+### 4. Section-Based Generation
+- Analyzes which sections are needed (hero, features, installation, etc.)
+- Generates each section in parallel for faster site creation
+- Assembles sections into complete HTML pages with navigation
 - Includes responsive design and accessibility features
 
 ### 5. Self-Refine (Optional)
@@ -110,6 +121,15 @@ interface GitLyteConfigV2 {
   ai?: {
     provider?: "anthropic" | "openai" | "google";
     quality?: "standard" | "high";
+  };
+  generation?: {
+    trigger?: "manual" | "auto";  // Trigger mode (default: "manual")
+  };
+  theme?: {
+    mode?: "light" | "dark";      // Theme mode (default: "dark")
+  };
+  prompts?: {
+    siteInstructions?: string;    // Custom AI instructions (tone, language, style)
   };
   pages?: ("features" | "docs" | "api" | "examples" | "changelog")[];
 }

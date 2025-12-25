@@ -17,12 +17,40 @@ A GitHub App built with [Probot](https://github.com/probot/probot) that automati
 ## Quick Start
 
 1. **Install the GitLyte GitHub App** on your repository
-2. **Push to your default branch** (typically `main`)
+2. **Trigger site generation** (see [Trigger Modes](#trigger-modes) below)
 3. **Review the auto-generated PR** with your new site
 4. **Merge the PR** to deploy your site
 5. **Enable GitHub Pages**: Settings > Pages > Source: Deploy from a branch > Branch: main > Folder: /docs
 
 That's it! GitLyte works out of the box with zero configuration.
+
+## Trigger Modes
+
+GitLyte supports two trigger modes (configured via `generation.trigger`):
+
+### Manual Mode (Default)
+Generate site only via comment commands:
+- `@gitlyte generate` - Trigger site generation
+- `@gitlyte help` - Show available commands
+
+```json
+{
+  "generation": {
+    "trigger": "manual"
+  }
+}
+```
+
+### Auto Mode
+Automatically generate site on every push to the default branch:
+
+```json
+{
+  "generation": {
+    "trigger": "auto"
+  }
+}
+```
 
 ## How It Works
 
@@ -47,6 +75,15 @@ Create a `.gitlyte.json` file in your repository root to customize behavior:
     "provider": "anthropic",
     "quality": "standard"
   },
+  "generation": {
+    "trigger": "manual"
+  },
+  "theme": {
+    "mode": "dark"
+  },
+  "prompts": {
+    "siteInstructions": "Use a friendly, approachable tone"
+  },
   "logo": {
     "path": "./assets/logo.svg",
     "alt": "MyProject Logo"
@@ -66,6 +103,9 @@ Create a `.gitlyte.json` file in your repository root to customize behavior:
 | `outputDirectory` | string | `"docs"` | Output directory for generated files |
 | `ai.provider` | string | `"anthropic"` | AI provider: `"anthropic"`, `"openai"`, or `"google"` |
 | `ai.quality` | string | `"standard"` | Quality mode: `"standard"` or `"high"` |
+| `generation.trigger` | string | `"manual"` | Trigger mode: `"manual"` or `"auto"` |
+| `theme.mode` | string | `"dark"` | Theme mode: `"light"` or `"dark"` |
+| `prompts.siteInstructions` | string | - | Custom instructions for AI generation (tone, language, style) |
 | `logo.path` | string | - | Path to logo image (relative to repo root) |
 | `logo.alt` | string | - | Alt text for logo |
 | `favicon.path` | string | - | Path to favicon file |
@@ -139,6 +179,33 @@ GitLyte supports multiple AI providers. Set the appropriate environment variable
 }
 ```
 
+### Light Theme
+```json
+{
+  "theme": {
+    "mode": "light"
+  }
+}
+```
+
+### Auto Generation on Push
+```json
+{
+  "generation": {
+    "trigger": "auto"
+  }
+}
+```
+
+### Custom Tone/Language
+```json
+{
+  "prompts": {
+    "siteInstructions": "技術的で簡潔なトーンで、日本語で生成してください"
+  }
+}
+```
+
 ## Development
 
 ```bash
@@ -163,12 +230,14 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for technical details.
 
 We'd love your help! Check out our [Contributing Guide](CONTRIBUTING.md) to get started.
 
+## Security
+
+See [SECURITY.md](SECURITY.md) for security policy and vulnerability reporting.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
 ## License
 
 [ISC](LICENSE) 2025 wadakatu
-<!-- trigger test -->
-
-<!-- test -->
-<!-- pr test v2 -->
-<!-- final test -->
-<!-- reconnect -->
