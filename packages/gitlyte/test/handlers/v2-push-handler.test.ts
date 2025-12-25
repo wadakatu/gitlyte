@@ -115,12 +115,12 @@ describe("v2-push-handler", () => {
       },
     };
 
-    // Default mocks - config with auto trigger for generation tests
+    // Default mocks - config with auto trigger and webhook mode for generation tests
     mockContext.octokit.repos.getContent.mockResolvedValue({
       data: {
         type: "file",
         content: Buffer.from(
-          JSON.stringify({ generation: { trigger: "auto" } })
+          JSON.stringify({ generation: { trigger: "auto", mode: "webhook" } })
         ).toString("base64"),
       },
     });
@@ -279,7 +279,7 @@ describe("v2-push-handler", () => {
               enabled: true,
               outputDirectory: "public",
               ai: { provider: "openai", quality: "high" },
-              generation: { trigger: "auto" },
+              generation: { trigger: "auto", mode: "webhook" },
             })
           ).toString("base64"),
         },
@@ -303,7 +303,7 @@ describe("v2-push-handler", () => {
             JSON.stringify({
               enabled: true,
               unknownField: "value",
-              generation: { trigger: "auto" },
+              generation: { trigger: "auto", mode: "webhook" },
             })
           ).toString("base64"),
         },
@@ -419,7 +419,7 @@ describe("v2-push-handler", () => {
           content: Buffer.from(
             JSON.stringify({
               outputDirectory: "public",
-              generation: { trigger: "auto" },
+              generation: { trigger: "auto", mode: "webhook" },
             })
           ).toString("base64"),
         },

@@ -18,7 +18,7 @@ describe("v2-config", () => {
       expect(result.logo).toBeUndefined();
       expect(result.favicon).toBeUndefined();
       expect(result.theme.mode).toBe("dark"); // default theme mode
-      expect(result.generation.mode).toBe("webhook"); // default generation mode
+      expect(result.generation.mode).toBe("workflow"); // default generation mode
     });
 
     it("should override default values with provided config", () => {

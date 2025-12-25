@@ -134,7 +134,7 @@ export interface GitLyteConfigV2 {
      * Generation mode
      * - webhook: Use GitHub App webhook (server's API key, operator pays)
      * - workflow: Use GitHub Actions workflow (user's API key from secrets)
-     * @default "webhook"
+     * @default "workflow"
      */
     mode?: GenerationMode;
   };
@@ -181,7 +181,7 @@ export const DEFAULT_CONFIG_V2 = {
   pages: [] as GeneratablePage[],
   generation: {
     trigger: "manual" as const,
-    mode: "webhook" as const,
+    mode: "workflow" as const,
   },
   theme: {
     mode: "dark" as const,
