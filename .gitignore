@@ -57,3 +57,6 @@ pids
 # Temporary folders
 temp/
 tmp/
+
+# pnpm tools
+tools/

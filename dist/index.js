@@ -34715,6 +34715,11 @@ module.exports = parseParams
 /************************************************************************/
 var __webpack_exports__ = {};
 
+// EXPORTS
+__nccwpck_require__.d(__webpack_exports__, {
+  e: () => (/* binding */ run)
+});
+
 // NAMESPACE OBJECT: ./node_modules/.pnpm/zod@4.2.1/node_modules/zod/v4/core/regexes.js
 var regexes_namespaceObject = {};
 __nccwpck_require__.r(regexes_namespaceObject);
@@ -80840,5 +80845,10 @@ async function run() {
         }
     }
 }
-run();
+// Only run when not being tested
+if (!process.env.VITEST) {
+    run();
+}
 
+var __webpack_exports__run = __webpack_exports__.e;
+export { __webpack_exports__run as run };

@@ -22,13 +22,16 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "ncc build src/index.ts -o dist --license licenses.txt",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "biome lint .",
     "lint:fix": "biome lint --fix .",
     "format": "biome format .",
     "format:fix": "biome format --write .",
     "check": "biome check .",
     "check:fix": "biome check --fix .",
-    "ci:check": "pnpm run build && pnpm run format && pnpm run lint"
+    "ci:check": "pnpm run build && pnpm run test:run && pnpm run format && pnpm run lint"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
@@ -42,7 +45,9 @@
     "@biomejs/biome": "^2.3.10",
     "@types/node": "^20.19.27",
     "@vercel/ncc": "^0.38.3",
-    "typescript": "^5.9.3"
+    "@vitest/coverage-v8": "^4.0.16",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
   },
   "engines": {
     "node": ">= 20"

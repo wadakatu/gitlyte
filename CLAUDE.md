@@ -11,6 +11,15 @@ pnpm install
 # Build (bundle with ncc)
 pnpm run build
 
+# Run tests (watch mode)
+pnpm test
+
+# Run tests once (CI mode)
+pnpm run test:run
+
+# Run tests with coverage
+pnpm run test:coverage
+
 # Lint code
 pnpm run lint
 pnpm run lint:fix
@@ -19,7 +28,7 @@ pnpm run lint:fix
 pnpm run format
 pnpm run format:fix
 
-# CI check (build + format + lint)
+# CI check (build + test + format + lint)
 pnpm run ci:check
 ```
 
