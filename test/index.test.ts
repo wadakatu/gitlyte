@@ -43,6 +43,9 @@ vi.mock("node:fs", () => ({
 
 vi.mock("../src/site-generator.js", () => ({
   generateSite: (...args: unknown[]) => mockGenerateSite(...args),
+  THEME_MODES: ["light", "dark", "auto"],
+  isValidThemeMode: (value: unknown) =>
+    typeof value === "string" && ["light", "dark", "auto"].includes(value),
 }));
 
 vi.mock("../src/ai-provider.js", () => ({
@@ -83,12 +86,16 @@ describe("GitHub Action Entry Point", () => {
     delete process.env.GITHUB_TOKEN;
 
     // Setup default mocks
+    // Note: theme-mode and theme-toggle return "" to simulate "not explicitly set"
+    // This allows config file values to take precedence
     mockGetInput.mockImplementation((name: string) => {
       const inputs: Record<string, string> = {
         "api-key": "test-api-key",
         provider: "anthropic",
         quality: "standard",
         "output-directory": "docs",
+        "theme-mode": "", // Empty = not explicitly set, defaults to "dark"
+        "theme-toggle": "", // Empty = not explicitly set, defaults to false
         "github-token": "test-github-token",
       };
       return inputs[name] || "";
@@ -149,6 +156,69 @@ describe("GitHub Action Entry Point", () => {
 
       expect(mockSetFailed).toHaveBeenCalledWith(
         expect.stringContaining("Invalid quality")
+      );
+    });
+
+    it("should fail when theme-mode is invalid", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "provider") return "anthropic";
+        if (name === "api-key") return "test-key";
+        if (name === "quality") return "standard";
+        if (name === "theme-mode") return "invalid-theme";
+        if (name === "github-token") return "token";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid theme-mode")
+      );
+    });
+
+    it("should accept valid theme-mode values", async () => {
+      for (const mode of ["light", "dark", "auto"]) {
+        vi.clearAllMocks();
+        mockGetInput.mockImplementation((name: string) => {
+          if (name === "provider") return "anthropic";
+          if (name === "api-key") return "test-key";
+          if (name === "quality") return "standard";
+          if (name === "theme-mode") return mode;
+          if (name === "theme-toggle") return "false";
+          if (name === "github-token") return "token";
+          return "";
+        });
+        mockGetOctokit.mockReturnValue(createMockOctokit());
+        mockGenerateSite.mockResolvedValue({
+          pages: [{ path: "index.html", html: "<html></html>" }],
+          assets: [],
+        });
+
+        await runAction();
+
+        expect(mockSetFailed).not.toHaveBeenCalled();
+      }
+    });
+
+    it("should pass theme-toggle true when input is 'true'", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "provider") return "anthropic";
+        if (name === "api-key") return "test-key";
+        if (name === "quality") return "standard";
+        if (name === "theme-mode") return "dark";
+        if (name === "theme-toggle") return "true";
+        if (name === "github-token") return "token";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          theme: { mode: "dark", toggle: true },
+        })
       );
     });
 
@@ -228,7 +298,7 @@ describe("GitHub Action Entry Point", () => {
     it("should load and apply custom config from .gitlyte.json", async () => {
       const customConfig = {
         outputDirectory: "public",
-        theme: { mode: "light" },
+        theme: { mode: "light", toggle: true },
         prompts: { siteInstructions: "Be friendly" },
       };
 
@@ -251,7 +321,7 @@ describe("GitHub Action Entry Point", () => {
         expect.anything(),
         expect.objectContaining({
           outputDirectory: "public",
-          theme: { mode: "light" },
+          theme: { mode: "light", toggle: true },
           prompts: { siteInstructions: "Be friendly" },
         })
       );
@@ -292,7 +362,7 @@ describe("GitHub Action Entry Point", () => {
     });
 
     it("should merge partial config with defaults", async () => {
-      // Config with only theme, no outputDirectory or prompts
+      // Config with only theme mode, no outputDirectory, prompts, or toggle
       const partialConfig = {
         theme: { mode: "light" },
       };
@@ -317,16 +387,16 @@ describe("GitHub Action Entry Point", () => {
         expect.anything(),
         expect.objectContaining({
           outputDirectory: "docs", // Default from input
-          theme: { mode: "light" }, // From config
+          theme: { mode: "light", toggle: false }, // mode from config, toggle defaults to false
           prompts: { siteInstructions: undefined }, // Default (empty)
         })
       );
     });
 
     it("should preserve config theme mode as-is without falling back to dark", async () => {
-      // Config with explicit light mode
+      // Config with explicit light mode and toggle
       const configWithLight = {
-        theme: { mode: "light" },
+        theme: { mode: "light", toggle: true },
       };
 
       mockGetOctokit.mockReturnValue(
@@ -347,7 +417,96 @@ describe("GitHub Action Entry Point", () => {
         expect.anything(),
         expect.anything(),
         expect.objectContaining({
-          theme: { mode: "light" },
+          theme: { mode: "light", toggle: true },
+        })
+      );
+    });
+
+    it("should reject invalid theme mode in config file", async () => {
+      const invalidConfig = {
+        theme: { mode: "night" }, // Invalid mode
+      };
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(invalidConfig)).toString(
+                "base64"
+              ),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid theme mode "night" in .gitlyte.json')
+      );
+    });
+
+    it("should reject non-boolean toggle in config file", async () => {
+      const invalidConfig = {
+        theme: { mode: "dark", toggle: "true" }, // String instead of boolean
+      };
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(invalidConfig)).toString(
+                "base64"
+              ),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid theme.toggle value "true" in .gitlyte.json')
+      );
+    });
+
+    it("should allow explicit action input to override config file", async () => {
+      // Config has light mode
+      const configWithLight = {
+        theme: { mode: "light", toggle: true },
+      };
+
+      // But action input explicitly sets dark mode
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "theme-mode") return "dark"; // Explicit dark
+        if (name === "theme-toggle") return "false"; // Explicit false
+        return "";
+      });
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithLight)).toString(
+                "base64"
+              ),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      // Explicit action input should override config file
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          theme: { mode: "dark", toggle: false },
         })
       );
     });

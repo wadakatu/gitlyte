@@ -19,9 +19,30 @@ export interface RepoInfo {
   readme?: string;
 }
 
+/** Valid theme mode values - single source of truth */
+export const THEME_MODES = ["light", "dark", "auto"] as const;
+
+/** Theme mode options - derived from THEME_MODES array */
+export type ThemeMode = (typeof THEME_MODES)[number];
+
+/**
+ * Type guard to validate if a value is a valid ThemeMode
+ */
+export function isValidThemeMode(value: unknown): value is ThemeMode {
+  return (
+    typeof value === "string" &&
+    THEME_MODES.includes(value as (typeof THEME_MODES)[number])
+  );
+}
+
 export interface SiteConfig {
   outputDirectory: string;
-  theme: { mode: "light" | "dark" };
+  theme: {
+    /** Default theme mode: "light", "dark", or "auto" (respects system preference) */
+    mode: ThemeMode;
+    /** Whether to include a toggle button for switching themes */
+    toggle: boolean;
+  };
   prompts: { siteInstructions?: string };
 }
 
@@ -106,14 +127,7 @@ export async function generateSite(
   if (aiProvider.quality === "high") {
     core.info("🎯 High quality mode: applying Self-Refine...");
 
-    const palette = design.colors[config.theme.mode];
-    const requirements = buildRequirements(
-      repoInfo,
-      analysis,
-      design,
-      config,
-      palette
-    );
+    const requirements = buildRequirements(repoInfo, analysis, design, config);
 
     const refinementResult = await selfRefine(
       indexHtml,
@@ -149,9 +163,13 @@ function buildRequirements(
   repoInfo: RepoInfo,
   analysis: RepositoryAnalysis,
   design: DesignSystem,
-  config: SiteConfig,
-  palette: ColorPalette
+  config: SiteConfig
 ): string {
+  // Build theme-specific requirements
+  const themeRequirements = config.theme.toggle
+    ? buildDarkModeTogglePrompt(design, config.theme.mode)
+    : buildSingleThemePrompt(design, config.theme.mode);
+
   return `PROJECT INFO:
 - Name: ${analysis.name}
 - Description: ${analysis.description}
@@ -159,14 +177,7 @@ function buildRequirements(
 - Key Features: ${analysis.keyFeatures.join(", ") || "Various features"}
 - GitHub URL: ${repoInfo.htmlUrl}
 
-DESIGN SYSTEM (${config.theme.mode} mode):
-- Primary color: ${palette.primary}
-- Secondary color: ${palette.secondary}
-- Accent color: ${palette.accent}
-- Background: ${palette.background}
-- Text: ${palette.text}
-- Layout: ${design.layout}
-- Fonts: ${design.typography.headingFont}
+${themeRequirements}
 
 REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
@@ -322,6 +333,77 @@ Respond with JSON only (no markdown, no code blocks):
   }
 }
 
+/**
+ * Build prompt for single theme mode (no toggle)
+ * Note: When mode is "auto" without toggle, falls back to "dark" for static generation
+ */
+function buildSingleThemePrompt(design: DesignSystem, mode: ThemeMode): string {
+  let effectiveMode: "light" | "dark";
+  if (mode === "auto") {
+    core.warning(
+      `Theme mode "auto" requires toggle to be enabled for dynamic switching. ` +
+        `Falling back to "dark" mode for static generation.`
+    );
+    effectiveMode = "dark";
+  } else {
+    effectiveMode = mode;
+  }
+  const palette = design.colors[effectiveMode];
+
+  return `DESIGN SYSTEM (${effectiveMode} mode):
+- Primary color: ${palette.primary}
+- Secondary color: ${palette.secondary}
+- Accent color: ${palette.accent}
+- Background: ${palette.background}
+- Text: ${palette.text}
+- Layout: ${design.layout}
+- Fonts: ${design.typography.headingFont}`;
+}
+
+/**
+ * Build prompt for dark mode toggle support
+ */
+function buildDarkModeTogglePrompt(
+  design: DesignSystem,
+  defaultMode: ThemeMode
+): string {
+  const light = design.colors.light;
+  const dark = design.colors.dark;
+
+  return `DESIGN SYSTEM (with Light/Dark mode toggle):
+
+LIGHT MODE COLORS:
+- Primary: ${light.primary}
+- Secondary: ${light.secondary}
+- Accent: ${light.accent}
+- Background: ${light.background}
+- Text: ${light.text}
+
+DARK MODE COLORS:
+- Primary: ${dark.primary}
+- Secondary: ${dark.secondary}
+- Accent: ${dark.accent}
+- Background: ${dark.background}
+- Text: ${dark.text}
+
+Typography: ${design.typography.headingFont}
+Layout: ${design.layout}
+Default mode: ${defaultMode === "auto" ? "system preference" : defaultMode}
+
+THEME TOGGLE REQUIREMENTS:
+1. Use Tailwind's dark mode with class strategy: add "dark" class to <html> element
+2. Configure Tailwind to use class-based dark mode in a <script> tag:
+   tailwind.config = { darkMode: 'class' }
+3. Add a theme toggle button in the header/nav area with sun/moon icons (use emoji or SVG)
+4. Include this JavaScript for theme switching:
+   - Check localStorage for saved theme preference
+   - If no preference, check system preference (prefers-color-scheme)
+   - Apply the theme by adding/removing "dark" class on <html>
+   - Save preference to localStorage when user toggles
+5. Use dark: prefix for dark mode styles (e.g., "bg-white dark:bg-gray-900")
+6. Ensure smooth transition when switching themes (add transition classes)`;
+}
+
 async function generateIndexPage(
   repoInfo: RepoInfo,
   analysis: RepositoryAnalysis,
@@ -329,10 +411,14 @@ async function generateIndexPage(
   config: SiteConfig,
   aiProvider: AIProviderInstance
 ): Promise<string> {
-  const palette = design.colors[config.theme.mode];
   const customInstructions = config.prompts.siteInstructions
     ? `\n\nADDITIONAL INSTRUCTIONS:\n${config.prompts.siteInstructions}`
     : "";
+
+  // Build theme-specific prompt based on toggle setting
+  const themePrompt = config.theme.toggle
+    ? buildDarkModeTogglePrompt(design, config.theme.mode)
+    : buildSingleThemePrompt(design, config.theme.mode);
 
   const prompt = `Generate a modern, beautiful landing page HTML for this project.
 
@@ -343,14 +429,7 @@ PROJECT INFO:
 - Key Features: ${analysis.keyFeatures.join(", ") || "Various features"}
 - GitHub URL: ${repoInfo.htmlUrl}
 
-DESIGN SYSTEM (${config.theme.mode} mode):
-- Primary color: ${palette.primary}
-- Secondary color: ${palette.secondary}
-- Accent color: ${palette.accent}
-- Background: ${palette.background}
-- Text: ${palette.text}
-- Layout: ${design.layout}
-- Fonts: ${design.typography.headingFont}
+${themePrompt}
 
 REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)

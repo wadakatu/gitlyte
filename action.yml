@@ -21,6 +21,14 @@ inputs:
     description: 'Output directory for generated files'
     required: false
     default: 'docs'
+  theme-mode:
+    description: 'Theme mode: light, dark, or auto (respects system preference)'
+    required: false
+    default: 'dark'
+  theme-toggle:
+    description: 'Include a light/dark mode toggle button (true/false)'
+    required: false
+    default: 'false'
   github-token:
     description: 'GitHub token for API access (defaults to automatic workflow token)'
     required: false

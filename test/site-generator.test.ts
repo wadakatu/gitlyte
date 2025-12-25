@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   generateSite,
+  THEME_MODES,
+  isValidThemeMode,
   type RepoInfo,
   type SiteConfig,
   type GeneratedSite,
@@ -103,7 +105,7 @@ describe("Site Generator", () => {
 
   const defaultConfig: SiteConfig = {
     outputDirectory: "docs",
-    theme: { mode: "dark" },
+    theme: { mode: "dark", toggle: false },
     prompts: {},
   };
 
@@ -173,7 +175,7 @@ describe("Site Generator", () => {
 
       const lightConfig: SiteConfig = {
         ...defaultConfig,
-        theme: { mode: "light" },
+        theme: { mode: "light", toggle: false },
       };
 
       await generateSite(defaultRepoInfo, mockProvider, lightConfig);
@@ -785,7 +787,7 @@ describe("Site Generator", () => {
         improved: true,
       });
 
-      const lightConfig = { ...defaultConfig, theme: { mode: "light" as const } };
+      const lightConfig = { ...defaultConfig, theme: { mode: "light" as const, toggle: false } };
       await generateSite(defaultRepoInfo, mockProvider, lightConfig);
 
       expect(selfRefine).toHaveBeenCalledWith(
@@ -795,6 +797,145 @@ describe("Site Generator", () => {
         }),
         mockProvider
       );
+    });
+  });
+
+  describe("Theme Toggle", () => {
+    it("should include dark mode toggle instructions when toggle is enabled", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const toggleConfig: SiteConfig = {
+        ...defaultConfig,
+        theme: { mode: "dark", toggle: true },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, toggleConfig);
+
+      // Check that the prompt includes dark mode toggle instructions
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPromptCall = calls[2]; // Third call is HTML generation
+      const prompt = htmlPromptCall[0].prompt;
+
+      expect(prompt).toContain("Light/Dark mode toggle");
+      expect(prompt).toContain("LIGHT MODE COLORS");
+      expect(prompt).toContain("DARK MODE COLORS");
+      expect(prompt).toContain("darkMode: 'class'");
+    });
+
+    it("should use single theme prompt when toggle is disabled", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      await generateSite(defaultRepoInfo, mockProvider, defaultConfig);
+
+      // Check that the prompt uses single theme mode
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPromptCall = calls[2];
+      const prompt = htmlPromptCall[0].prompt;
+
+      expect(prompt).toContain("dark mode");
+      expect(prompt).not.toContain("Light/Dark mode toggle");
+    });
+
+    it("should handle auto mode by defaulting to dark for single theme", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const autoConfig: SiteConfig = {
+        ...defaultConfig,
+        theme: { mode: "auto", toggle: false },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, autoConfig);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPromptCall = calls[2];
+      const prompt = htmlPromptCall[0].prompt;
+
+      // Auto mode should default to dark when toggle is disabled
+      expect(prompt).toContain("dark mode");
+    });
+
+    it("should include system preference in toggle prompt for auto mode", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const autoToggleConfig: SiteConfig = {
+        ...defaultConfig,
+        theme: { mode: "auto", toggle: true },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, autoToggleConfig);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPromptCall = calls[2];
+      const prompt = htmlPromptCall[0].prompt;
+
+      expect(prompt).toContain("system preference");
+    });
+
+    it("should emit warning when auto mode is used without toggle", async () => {
+      const core = await import("@actions/core");
+      const mockWarning = vi.mocked(core.warning);
+      mockWarning.mockClear();
+
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const autoNoToggleConfig: SiteConfig = {
+        ...defaultConfig,
+        theme: { mode: "auto", toggle: false },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, autoNoToggleConfig);
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining('Theme mode "auto" requires toggle to be enabled')
+      );
+    });
+  });
+
+  describe("isValidThemeMode", () => {
+    it("should return true for valid theme modes", () => {
+      expect(isValidThemeMode("light")).toBe(true);
+      expect(isValidThemeMode("dark")).toBe(true);
+      expect(isValidThemeMode("auto")).toBe(true);
+    });
+
+    it("should return false for invalid theme modes", () => {
+      expect(isValidThemeMode("night")).toBe(false);
+      expect(isValidThemeMode("purple")).toBe(false);
+      expect(isValidThemeMode("")).toBe(false);
+      expect(isValidThemeMode(null)).toBe(false);
+      expect(isValidThemeMode(undefined)).toBe(false);
+      expect(isValidThemeMode(123)).toBe(false);
+    });
+  });
+
+  describe("THEME_MODES", () => {
+    it("should contain exactly light, dark, and auto", () => {
+      expect(THEME_MODES).toEqual(["light", "dark", "auto"]);
+    });
+
+    it("should be readonly", () => {
+      // TypeScript ensures this at compile time, but we can verify the values
+      expect(THEME_MODES.length).toBe(3);
     });
   });
 });

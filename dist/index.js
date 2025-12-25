@@ -35278,6 +35278,15 @@ async function selfRefine(initialHtml, config, aiProvider) {
 
 
 
+/** Valid theme mode values - single source of truth */
+const THEME_MODES = ["light", "dark", "auto"];
+/**
+ * Type guard to validate if a value is a valid ThemeMode
+ */
+function isValidThemeMode(value) {
+    return (typeof value === "string" &&
+        THEME_MODES.includes(value));
+}
 /**
  * Generate a complete site
  */
@@ -35295,8 +35304,7 @@ async function generateSite(repoInfo, aiProvider, config) {
     // Step 4: Apply Self-Refine for high quality mode
     if (aiProvider.quality === "high") {
         core.info("🎯 High quality mode: applying Self-Refine...");
-        const palette = design.colors[config.theme.mode];
-        const requirements = buildRequirements(repoInfo, analysis, design, config, palette);
+        const requirements = buildRequirements(repoInfo, analysis, design, config);
         const refinementResult = await selfRefine(indexHtml, {
             maxIterations: 3,
             targetScore: 8,
@@ -35317,7 +35325,11 @@ async function generateSite(repoInfo, aiProvider, config) {
 /**
  * Build requirements string for refinement context
  */
-function buildRequirements(repoInfo, analysis, design, config, palette) {
+function buildRequirements(repoInfo, analysis, design, config) {
+    // Build theme-specific requirements
+    const themeRequirements = config.theme.toggle
+        ? buildDarkModeTogglePrompt(design, config.theme.mode)
+        : buildSingleThemePrompt(design, config.theme.mode);
     return `PROJECT INFO:
 - Name: ${analysis.name}
 - Description: ${analysis.description}
@@ -35325,14 +35337,7 @@ function buildRequirements(repoInfo, analysis, design, config, palette) {
 - Key Features: ${analysis.keyFeatures.join(", ") || "Various features"}
 - GitHub URL: ${repoInfo.htmlUrl}
 
-DESIGN SYSTEM (${config.theme.mode} mode):
-- Primary color: ${palette.primary}
-- Secondary color: ${palette.secondary}
-- Accent color: ${palette.accent}
-- Background: ${palette.background}
-- Text: ${palette.text}
-- Layout: ${design.layout}
-- Fonts: ${design.typography.headingFont}
+${themeRequirements}
 
 REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
@@ -35463,11 +35468,77 @@ Respond with JSON only (no markdown, no code blocks):
             `Please retry or check your API key. Error: ${errorMessage}`);
     }
 }
+/**
+ * Build prompt for single theme mode (no toggle)
+ * Note: When mode is "auto" without toggle, falls back to "dark" for static generation
+ */
+function buildSingleThemePrompt(design, mode) {
+    let effectiveMode;
+    if (mode === "auto") {
+        core.warning(`Theme mode "auto" requires toggle to be enabled for dynamic switching. ` +
+            `Falling back to "dark" mode for static generation.`);
+        effectiveMode = "dark";
+    }
+    else {
+        effectiveMode = mode;
+    }
+    const palette = design.colors[effectiveMode];
+    return `DESIGN SYSTEM (${effectiveMode} mode):
+- Primary color: ${palette.primary}
+- Secondary color: ${palette.secondary}
+- Accent color: ${palette.accent}
+- Background: ${palette.background}
+- Text: ${palette.text}
+- Layout: ${design.layout}
+- Fonts: ${design.typography.headingFont}`;
+}
+/**
+ * Build prompt for dark mode toggle support
+ */
+function buildDarkModeTogglePrompt(design, defaultMode) {
+    const light = design.colors.light;
+    const dark = design.colors.dark;
+    return `DESIGN SYSTEM (with Light/Dark mode toggle):
+
+LIGHT MODE COLORS:
+- Primary: ${light.primary}
+- Secondary: ${light.secondary}
+- Accent: ${light.accent}
+- Background: ${light.background}
+- Text: ${light.text}
+
+DARK MODE COLORS:
+- Primary: ${dark.primary}
+- Secondary: ${dark.secondary}
+- Accent: ${dark.accent}
+- Background: ${dark.background}
+- Text: ${dark.text}
+
+Typography: ${design.typography.headingFont}
+Layout: ${design.layout}
+Default mode: ${defaultMode === "auto" ? "system preference" : defaultMode}
+
+THEME TOGGLE REQUIREMENTS:
+1. Use Tailwind's dark mode with class strategy: add "dark" class to <html> element
+2. Configure Tailwind to use class-based dark mode in a <script> tag:
+   tailwind.config = { darkMode: 'class' }
+3. Add a theme toggle button in the header/nav area with sun/moon icons (use emoji or SVG)
+4. Include this JavaScript for theme switching:
+   - Check localStorage for saved theme preference
+   - If no preference, check system preference (prefers-color-scheme)
+   - Apply the theme by adding/removing "dark" class on <html>
+   - Save preference to localStorage when user toggles
+5. Use dark: prefix for dark mode styles (e.g., "bg-white dark:bg-gray-900")
+6. Ensure smooth transition when switching themes (add transition classes)`;
+}
 async function generateIndexPage(repoInfo, analysis, design, config, aiProvider) {
-    const palette = design.colors[config.theme.mode];
     const customInstructions = config.prompts.siteInstructions
         ? `\n\nADDITIONAL INSTRUCTIONS:\n${config.prompts.siteInstructions}`
         : "";
+    // Build theme-specific prompt based on toggle setting
+    const themePrompt = config.theme.toggle
+        ? buildDarkModeTogglePrompt(design, config.theme.mode)
+        : buildSingleThemePrompt(design, config.theme.mode);
     const prompt = `Generate a modern, beautiful landing page HTML for this project.
 
 PROJECT INFO:
@@ -35477,14 +35548,7 @@ PROJECT INFO:
 - Key Features: ${analysis.keyFeatures.join(", ") || "Various features"}
 - GitHub URL: ${repoInfo.htmlUrl}
 
-DESIGN SYSTEM (${config.theme.mode} mode):
-- Primary color: ${palette.primary}
-- Secondary color: ${palette.secondary}
-- Accent color: ${palette.accent}
-- Background: ${palette.background}
-- Text: ${palette.text}
-- Layout: ${design.layout}
-- Fonts: ${design.typography.headingFont}
+${themePrompt}
 
 REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
@@ -80945,6 +81009,13 @@ async function run() {
         const provider = core.getInput("provider");
         const quality = core.getInput("quality");
         const outputDirectory = core.getInput("output-directory") || "docs";
+        // Theme inputs with explicit detection for proper config merging
+        const themeModeInput = core.getInput("theme-mode");
+        const themeModeExplicit = themeModeInput !== "";
+        const themeModeRaw = themeModeInput || "dark";
+        const themeToggleInput = core.getInput("theme-toggle");
+        const themeToggleExplicit = themeToggleInput !== "";
+        const themeToggle = themeToggleInput === "true";
         // Validate provider
         if (!AI_PROVIDERS.includes(provider)) {
             throw new Error(`Invalid provider: ${provider}. Must be one of: ${AI_PROVIDERS.join(", ")}`);
@@ -80953,6 +81024,11 @@ async function run() {
         if (!QUALITY_MODES.includes(quality)) {
             throw new Error(`Invalid quality: ${quality}. Must be one of: ${QUALITY_MODES.join(", ")}`);
         }
+        // Validate theme mode using type guard
+        if (!isValidThemeMode(themeModeRaw)) {
+            throw new Error(`Invalid theme-mode: ${themeModeRaw}. Must be one of: ${THEME_MODES.join(", ")}`);
+        }
+        const themeMode = themeModeRaw;
         // Validate GitHub token
         const githubToken = core.getInput("github-token") || process.env.GITHUB_TOKEN;
         if (!githubToken) {
@@ -80965,6 +81041,7 @@ async function run() {
         const repo = context.repo.repo;
         core.info(`🚀 Starting GitLyte site generation for ${owner}/${repo}`);
         core.info(`📦 Provider: ${provider}, Quality: ${quality}`);
+        core.info(`🎨 Theme: ${themeMode}${themeToggle ? " (with toggle)" : ""}`);
         // Get repository info
         const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
         // Get README
@@ -80991,7 +81068,10 @@ async function run() {
         // Load config from .gitlyte.json if exists
         let config = {
             outputDirectory,
-            theme: { mode: "dark" },
+            theme: {
+                mode: themeMode,
+                toggle: themeToggle,
+            },
             prompts: {},
         };
         try {
@@ -81004,9 +81084,31 @@ async function run() {
                 const configContent = Buffer.from(configFile.content, "base64").toString("utf-8");
                 try {
                     const parsedConfig = JSON.parse(configContent);
+                    // Validate config file theme mode if present
+                    const fileThemeMode = parsedConfig.theme?.mode;
+                    if (fileThemeMode !== undefined && !isValidThemeMode(fileThemeMode)) {
+                        throw new Error(`Invalid theme mode "${fileThemeMode}" in .gitlyte.json. ` +
+                            `Must be one of: ${THEME_MODES.join(", ")}`);
+                    }
+                    // Validate config file toggle type if present
+                    const fileThemeToggle = parsedConfig.theme?.toggle;
+                    if (fileThemeToggle !== undefined &&
+                        typeof fileThemeToggle !== "boolean") {
+                        throw new Error(`Invalid theme.toggle value "${fileThemeToggle}" in .gitlyte.json. ` +
+                            "Must be a boolean (true or false).");
+                    }
+                    // Merge config: explicit action input > config file > default
                     config = {
                         outputDirectory: parsedConfig.outputDirectory || outputDirectory,
-                        theme: { mode: parsedConfig.theme?.mode || "dark" },
+                        theme: {
+                            // If action input was explicitly provided, use it; otherwise use config file or default
+                            mode: themeModeExplicit
+                                ? themeMode
+                                : (fileThemeMode ?? themeMode),
+                            toggle: themeToggleExplicit
+                                ? themeToggle
+                                : (fileThemeToggle ?? themeToggle),
+                        },
                         prompts: {
                             siteInstructions: parsedConfig.prompts?.siteInstructions,
                         },
@@ -81020,9 +81122,11 @@ async function run() {
             }
         }
         catch (error) {
-            // Check if it's our JSON parse error (re-throw it)
+            // Check if it's a config validation error (re-throw it)
             if (error instanceof Error &&
-                error.message.startsWith("Invalid JSON in .gitlyte.json")) {
+                (error.message.startsWith("Invalid JSON in .gitlyte.json") ||
+                    error.message.startsWith("Invalid theme mode") ||
+                    error.message.startsWith("Invalid theme.toggle"))) {
                 throw error;
             }
             // Check if file not found
