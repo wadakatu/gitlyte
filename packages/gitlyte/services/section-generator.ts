@@ -10,7 +10,12 @@
 
 import type { AIProviderInstance } from "../utils/ai-provider.js";
 import { cleanJsonResponse } from "../utils/ai-response-cleaner.js";
-import type { RepositoryAnalysis, DesignSystem } from "./v2-site-generator.js";
+import type { ThemeMode } from "../types/v2-config.js";
+import type {
+  RepositoryAnalysis,
+  DesignSystem,
+  ColorPalette,
+} from "./v2-site-generator.js";
 
 /**
  * Available section types
@@ -34,6 +39,8 @@ export type SectionType =
 export interface SectionPlan {
   sections: SectionType[];
   reasoning: string;
+  /** Indicates if fallback sections were used due to parsing error */
+  usedFallback?: boolean;
 }
 
 /**
@@ -57,6 +64,7 @@ export interface SectionContext {
     readme?: string;
     url: string;
   };
+  themeMode: ThemeMode;
 }
 
 /**
@@ -119,12 +127,18 @@ Respond with JSON only:
     if (!parsed.sections.includes("footer")) {
       parsed.sections.push("footer");
     }
-    return parsed;
-  } catch {
+    return { ...parsed, usedFallback: false };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[section-generator] Failed to parse section analysis: ${errorMessage}` +
+        `\n  Raw response (first 200 chars): ${result.text?.slice(0, 200)}`
+    );
     // Fallback to safe defaults
     return {
       sections: ["hero", "features", "installation", "footer"],
       reasoning: "Using default sections due to parsing error",
+      usedFallback: true,
     };
   }
 }
@@ -197,6 +211,38 @@ const SECTION_PROMPTS: Record<SectionType, string> = {
 - Social links placeholder`,
 };
 
+/** Default color palettes for fallback */
+const DEFAULT_PALETTES: Record<ThemeMode, ColorPalette> = {
+  light: {
+    primary: "blue-600",
+    secondary: "indigo-600",
+    accent: "purple-500",
+    background: "white",
+    text: "gray-900",
+  },
+  dark: {
+    primary: "blue-400",
+    secondary: "indigo-400",
+    accent: "purple-400",
+    background: "gray-950",
+    text: "gray-50",
+  },
+};
+
+/**
+ * Get color palette for the current theme mode with fallback
+ */
+function getPalette(design: DesignSystem, themeMode: ThemeMode): ColorPalette {
+  const palette = design.colors[themeMode];
+  if (!palette) {
+    console.warn(
+      `[section-generator] Missing color palette for mode "${themeMode}", using fallback`
+    );
+    return DEFAULT_PALETTES[themeMode];
+  }
+  return palette;
+}
+
 /**
  * Generate a single section
  */
@@ -207,6 +253,7 @@ export async function generateSection(
   aiProvider: AIProviderInstance
 ): Promise<GeneratedSection> {
   const sectionPrompt = SECTION_PROMPTS[sectionType];
+  const palette = getPalette(context.design, context.themeMode);
 
   const prompt = `Generate ONLY the HTML for a ${sectionType} section.
 
@@ -215,12 +262,12 @@ DESCRIPTION: ${context.analysis.description}
 PROJECT TYPE: ${context.analysis.projectType}
 KEY FEATURES: ${context.analysis.keyFeatures.join(", ")}
 
-DESIGN SYSTEM:
-- Primary: ${context.design.colors.primary}
-- Secondary: ${context.design.colors.secondary}
-- Accent: ${context.design.colors.accent}
-- Background: ${context.design.colors.background}
-- Text: ${context.design.colors.text}
+DESIGN SYSTEM (${context.themeMode} mode):
+- Primary: ${palette.primary}
+- Secondary: ${palette.secondary}
+- Accent: ${palette.accent}
+- Background: ${palette.background}
+- Text: ${palette.text}
 
 SECTION REQUIREMENTS:
 ${sectionPrompt}
@@ -290,14 +337,22 @@ export function assembleHtml(
   context: SectionContext,
   config: { favicon?: { path: string }; logo?: { path: string; alt?: string } }
 ): string {
-  const { analysis, design } = context;
+  const { analysis, design, themeMode } = context;
+  const palette = getPalette(design, themeMode);
+
+  // Theme-specific styles
+  const isDark = themeMode === "dark";
+  const navBgClass = isDark
+    ? "bg-gray-900/90 border-gray-800"
+    : "bg-white/90 border-gray-200";
+  const githubButtonTextClass = isDark ? "text-gray-900" : "text-white";
 
   // Generate navigation based on sections
   const navLinks = sections
     .filter((s) => s.type !== "footer")
     .map(
       (s) =>
-        `<a href="#${s.type}" class="text-${design.colors.text} hover:text-${design.colors.primary} transition-colors capitalize">${s.type}</a>`
+        `<a href="#${s.type}" class="text-${palette.text} hover:text-${palette.primary} transition-colors capitalize">${s.type}</a>`
     )
     .join("\n            ");
 
@@ -321,9 +376,9 @@ export function assembleHtml(
       theme: {
         extend: {
           colors: {
-            primary: '${design.colors.primary}',
-            secondary: '${design.colors.secondary}',
-            accent: '${design.colors.accent}',
+            primary: '${palette.primary}',
+            secondary: '${palette.secondary}',
+            accent: '${palette.accent}',
           }
         }
       }
@@ -333,16 +388,16 @@ export function assembleHtml(
     html { scroll-behavior: smooth; }
   </style>
 </head>
-<body class="bg-${design.colors.background} text-${design.colors.text}">
+<body class="bg-${palette.background} text-${palette.text}">
   <!-- Navigation -->
-  <nav class="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50">
+  <nav class="fixed top-0 left-0 right-0 ${navBgClass} backdrop-blur-sm border-b z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
-        <a href="#" class="text-xl font-bold text-${design.colors.primary}">${analysis.name}</a>
+        <a href="#" class="text-xl font-bold text-${palette.primary}">${analysis.name}</a>
         <div class="hidden md:flex space-x-8">
           ${navLinks}
         </div>
-        <a href="${context.repoInfo.url}" target="_blank" rel="noopener" class="inline-flex items-center px-4 py-2 bg-${design.colors.primary} text-white rounded-lg hover:opacity-90 transition-opacity">
+        <a href="${context.repoInfo.url}" target="_blank" rel="noopener" class="inline-flex items-center px-4 py-2 bg-${palette.primary} ${githubButtonTextClass} rounded-lg hover:opacity-90 transition-opacity">
           GitHub
         </a>
       </div>

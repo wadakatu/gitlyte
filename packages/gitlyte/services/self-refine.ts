@@ -20,7 +20,12 @@ import {
   parseEvaluationResponse,
   meetsQualityThreshold,
 } from "../eval/llm-judge.js";
-import type { RepositoryAnalysis, DesignSystem } from "./v2-site-generator.js";
+import type {
+  RepositoryAnalysis,
+  DesignSystem,
+  ColorPalette,
+} from "./v2-site-generator.js";
+import type { ThemeMode } from "../types/v2-config.js";
 
 /**
  * Self-Refine configuration
@@ -108,6 +113,9 @@ export interface RefinementContext {
   /** Design system */
   design: DesignSystem;
 
+  /** Theme mode for color palette selection */
+  themeMode: ThemeMode;
+
   /** Repository info for evaluation */
   repositoryInfo: {
     name: string;
@@ -115,6 +123,38 @@ export interface RefinementContext {
     language: string;
     topics: string[];
   };
+}
+
+/** Default color palettes for fallback */
+const DEFAULT_PALETTES: Record<ThemeMode, ColorPalette> = {
+  light: {
+    primary: "blue-600",
+    secondary: "indigo-600",
+    accent: "purple-500",
+    background: "white",
+    text: "gray-900",
+  },
+  dark: {
+    primary: "blue-400",
+    secondary: "indigo-400",
+    accent: "purple-400",
+    background: "gray-950",
+    text: "gray-50",
+  },
+};
+
+/**
+ * Get the color palette for the current theme mode with fallback
+ */
+function getContextPalette(context: RefinementContext): ColorPalette {
+  const palette = context.design.colors[context.themeMode];
+  if (!palette) {
+    console.warn(
+      `[self-refine] Missing color palette for mode "${context.themeMode}", using fallback`
+    );
+    return DEFAULT_PALETTES[context.themeMode];
+  }
+  return palette;
 }
 
 /**
@@ -213,6 +253,7 @@ function buildRefinementPrompt(
   context: RefinementContext
 ): string {
   const weakestCriteria = getWeakestCriteria(evaluation);
+  const palette = getContextPalette(context);
 
   return `You are an expert web designer. Improve the following HTML page based on feedback.
 
@@ -223,12 +264,12 @@ function buildRefinementPrompt(
 - Audience: ${context.analysis.audience}
 - Style: ${context.analysis.style}
 
-## Design System
-- Primary Color: ${context.design.colors.primary}
-- Secondary Color: ${context.design.colors.secondary}
-- Accent Color: ${context.design.colors.accent}
-- Background: ${context.design.colors.background}
-- Text: ${context.design.colors.text}
+## Design System (${context.themeMode} mode)
+- Primary Color: ${palette.primary}
+- Secondary Color: ${palette.secondary}
+- Accent Color: ${palette.accent}
+- Background: ${palette.background}
+- Text: ${palette.text}
 - Layout: ${context.design.layout}
 
 ## Current Evaluation (Score: ${evaluation.overallScore}/5)

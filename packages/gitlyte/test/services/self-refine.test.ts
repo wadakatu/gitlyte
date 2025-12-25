@@ -47,11 +47,20 @@ describe("self-refine", () => {
       },
       design: {
         colors: {
-          primary: "blue-600",
-          secondary: "indigo-500",
-          accent: "purple-400",
-          background: "white",
-          text: "gray-900",
+          light: {
+            primary: "blue-600",
+            secondary: "indigo-500",
+            accent: "purple-400",
+            background: "white",
+            text: "gray-900",
+          },
+          dark: {
+            primary: "blue-400",
+            secondary: "indigo-400",
+            accent: "purple-400",
+            background: "gray-950",
+            text: "gray-50",
+          },
         },
         typography: {
           headingFont: "Inter",
@@ -59,6 +68,7 @@ describe("self-refine", () => {
         },
         layout: "hero-centered",
       },
+      themeMode: "dark",
       repositoryInfo: {
         name: "test-repo",
         description: "A test repository",
