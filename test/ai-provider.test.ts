@@ -189,6 +189,26 @@ describe("AI Provider", () => {
         expect((error as Error).cause).toBe(originalError);
       }
     });
+
+    it("should pass maxRetries: 2 for automatic retry with exponential backoff", async () => {
+      const { generateText: mockGenerateText } = await import("ai");
+      vi.mocked(mockGenerateText).mockResolvedValue({
+        text: "Response",
+        finishReason: "stop",
+        usage: { promptTokens: 10, completionTokens: 20 },
+      } as ReturnType<typeof mockGenerateText> extends Promise<infer T>
+        ? T
+        : never);
+
+      const provider = createAIProvider("anthropic", "standard", "test-api-key");
+      await provider.generateText({ prompt: "Test" });
+
+      expect(mockGenerateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxRetries: 2,
+        })
+      );
+    });
   });
 
   describe("Provider type safety", () => {

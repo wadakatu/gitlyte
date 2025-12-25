@@ -80960,6 +80960,7 @@ function createAIProvider(provider, quality, apiKey) {
                     prompt: options.prompt,
                     system: options.system,
                     temperature: options.temperature ?? 0.7,
+                    maxRetries: 2, // Retry up to 2 times (3 total attempts) with exponential backoff
                 });
                 return { text: result.text };
             }
