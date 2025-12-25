@@ -7,39 +7,54 @@
 
 import * as core from "@actions/core";
 import type { AIProviderInstance } from "./ai-provider.js";
+import {
+  type ScoreValue,
+  toScoreValue,
+  cleanJsonResponse,
+  cleanHtmlResponse,
+} from "./ai-response-utils.js";
 
 /** Evaluation result from LLM-as-Judge */
 export interface EvaluationResult {
-  score: number; // 1-10
+  /** Score from 1-10 */
+  score: ScoreValue;
+  /** Overall feedback in 2-3 sentences */
   feedback: string;
+  /** List of positive aspects */
   strengths: string[];
+  /** List of areas needing improvement */
   improvements: string[];
 }
 
 /** Result of self-refinement process */
 export interface RefinementResult {
-  html: string;
-  evaluation: EvaluationResult;
-  iterations: number;
-  improved: boolean;
+  /** The final HTML output after refinement */
+  readonly html: string;
+  /** Final evaluation of the refined HTML */
+  readonly evaluation: EvaluationResult;
+  /** Number of refinement iterations performed (0 if initial score met target) */
+  readonly iterations: number;
+  /** True if final score exceeds baseline threshold (5) */
+  readonly improved: boolean;
 }
 
 /** Configuration for self-refinement */
 export interface RefinementConfig {
   maxIterations: number;
-  targetScore: number;
+  targetScore: ScoreValue;
   projectName: string;
   projectDescription: string;
   requirements: string;
 }
 
-const DEFAULT_CONFIG: Partial<RefinementConfig> = {
-  maxIterations: 3,
-  targetScore: 8,
-};
+const DEFAULT_MAX_ITERATIONS = 3;
+const DEFAULT_TARGET_SCORE: ScoreValue = 8;
+const IMPROVED_THRESHOLD: ScoreValue = 5;
 
 /**
  * Evaluate generated HTML using LLM-as-Judge pattern
+ *
+ * @throws Error if AI returns invalid JSON that cannot be parsed
  */
 export async function evaluateHtml(
   html: string,
@@ -76,15 +91,33 @@ Be critical but constructive. Score 1-10 where:
 - 8-9: Good, high quality
 - 10: Exceptional, production-ready`;
 
-  const result = await aiProvider.generateText({
-    prompt,
-    temperature: 0.3, // Lower temperature for consistent evaluation
-  });
+  let result: { text: string };
+  try {
+    result = await aiProvider.generateText({
+      prompt,
+      temperature: 0.3, // Lower temperature for consistent evaluation
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `HTML evaluation failed during AI generation: ${errorMessage}. ` +
+        "This may be due to API rate limits or network issues.",
+      { cause: error }
+    );
+  }
+
+  const cleanedResponse = cleanJsonResponse(result.text);
+  if (!cleanedResponse) {
+    throw new Error(
+      "HTML evaluation failed: AI returned empty response. " +
+        "Please retry or check your API key."
+    );
+  }
 
   try {
-    const parsed = JSON.parse(cleanJsonResponse(result.text));
+    const parsed = JSON.parse(cleanedResponse);
     return {
-      score: Math.min(10, Math.max(1, Number(parsed.score) || 5)),
+      score: toScoreValue(parsed.score),
       feedback: String(parsed.feedback || "No feedback provided"),
       strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
       improvements: Array.isArray(parsed.improvements)
@@ -92,20 +125,24 @@ Be critical but constructive. Score 1-10 where:
         : [],
     };
   } catch (error) {
-    core.warning(
-      `Failed to parse evaluation response, using default score. Error: ${error}`
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const rawPreview = result.text?.slice(0, 200) || "(empty)";
+    core.error(
+      "Evaluation failed: AI returned invalid JSON. " +
+        `Raw response preview: ${rawPreview}`
     );
-    return {
-      score: 5,
-      feedback: "Evaluation parsing failed, using default score",
-      strengths: [],
-      improvements: [],
-    };
+    throw new Error(
+      "HTML evaluation failed: AI returned malformed JSON response. " +
+        `Error: ${errorMessage}. Please retry or check your configuration.`,
+      { cause: error }
+    );
   }
 }
 
 /**
  * Refine HTML based on evaluation feedback
+ *
+ * @throws Error if AI generation fails or returns invalid HTML
  */
 export async function refineHtml(
   html: string,
@@ -139,28 +176,54 @@ Keep what works well (strengths) but significantly improve the weak areas.
 
 OUTPUT: Return ONLY the complete HTML document starting with <!DOCTYPE html>.`;
 
-  const result = await aiProvider.generateText({
-    prompt,
-    temperature: 0.7,
-  });
+  let result: { text: string };
+  try {
+    result = await aiProvider.generateText({
+      prompt,
+      temperature: 0.7,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `HTML refinement failed during AI generation for project "${config.projectName}": ${errorMessage}. ` +
+        "This may be due to API rate limits or network issues.",
+      { cause: error }
+    );
+  }
 
-  return cleanHtmlResponse(result.text);
+  const refinedHtml = cleanHtmlResponse(result.text);
+
+  if (!refinedHtml || refinedHtml.length < 100) {
+    const rawPreview = result.text?.slice(0, 200) || "(empty)";
+    core.error(
+      "Refinement returned invalid HTML. " +
+        `Response length: ${refinedHtml?.length ?? 0}, ` +
+        `Raw preview: ${rawPreview}`
+    );
+    throw new Error(
+      "HTML refinement failed: AI returned empty or invalid HTML response. " +
+        `Project: "${config.projectName}". Please retry.`
+    );
+  }
+
+  return refinedHtml;
 }
 
 /**
  * Self-refine HTML generation with iterative improvement
+ *
+ * @throws Error if evaluation or refinement fails
  */
 export async function selfRefine(
   initialHtml: string,
   config: RefinementConfig,
   aiProvider: AIProviderInstance
 ): Promise<RefinementResult> {
-  const maxIterations = config.maxIterations ?? DEFAULT_CONFIG.maxIterations!;
-  const targetScore = config.targetScore ?? DEFAULT_CONFIG.targetScore!;
+  const maxIterations = config.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+  const targetScore = config.targetScore ?? DEFAULT_TARGET_SCORE;
 
   let currentHtml = initialHtml;
   let bestHtml = initialHtml;
-  let bestEvaluation: EvaluationResult | null = null;
   let iterations = 0;
 
   core.info(`🔄 Starting Self-Refine (target score: ${targetScore}/10)`);
@@ -178,7 +241,8 @@ export async function selfRefine(
   core.info(`📊 Initial evaluation: ${evaluation.score}/10`);
   core.info(`   Feedback: ${evaluation.feedback}`);
 
-  bestEvaluation = evaluation;
+  // Initialize bestEvaluation with the first evaluation
+  let bestEvaluation: EvaluationResult = evaluation;
 
   // Iterate until target score or max iterations
   while (evaluation.score < targetScore && iterations < maxIterations) {
@@ -209,15 +273,15 @@ export async function selfRefine(
     core.info(`📊 Iteration ${iterations} score: ${evaluation.score}/10`);
 
     // Keep track of best version
-    if (evaluation.score > (bestEvaluation?.score ?? 0)) {
+    if (evaluation.score > bestEvaluation.score) {
       bestHtml = currentHtml;
       bestEvaluation = evaluation;
       core.info("   ✨ New best score!");
     }
   }
 
-  const improved = bestEvaluation!.score > 5; // Consider improved if above average
-  const finalScore = bestEvaluation!.score;
+  const improved = bestEvaluation.score > IMPROVED_THRESHOLD;
+  const finalScore = bestEvaluation.score;
 
   if (finalScore >= targetScore) {
     core.info(`✅ Self-Refine complete! Final score: ${finalScore}/10`);
@@ -229,52 +293,8 @@ export async function selfRefine(
 
   return {
     html: bestHtml,
-    evaluation: bestEvaluation!,
+    evaluation: bestEvaluation,
     iterations,
     improved,
   };
-}
-
-/**
- * Clean JSON response from AI (remove markdown code blocks)
- */
-function cleanJsonResponse(text: string | null | undefined): string {
-  if (!text) {
-    return "";
-  }
-  let cleaned = text.trim();
-
-  if (cleaned.startsWith("```json")) {
-    cleaned = cleaned.slice(7);
-  } else if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
-
-  return cleaned.trim();
-}
-
-/**
- * Clean HTML response from AI (remove markdown code blocks)
- */
-function cleanHtmlResponse(text: string | null | undefined): string {
-  if (!text) {
-    return "";
-  }
-  let cleaned = text.trim();
-
-  if (cleaned.startsWith("```html")) {
-    cleaned = cleaned.slice(7);
-  } else if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
-
-  return cleaned.trim();
 }

@@ -7,6 +7,7 @@
 import * as core from "@actions/core";
 import type { AIProviderInstance } from "./ai-provider.js";
 import { selfRefine } from "./self-refine.js";
+import { cleanJsonResponse, cleanHtmlResponse } from "./ai-response-utils.js";
 
 export interface RepoInfo {
   name: string;
@@ -406,50 +407,4 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
   }
 
   return html;
-}
-
-/**
- * Clean JSON response from AI (remove markdown code blocks)
- */
-function cleanJsonResponse(text: string | null | undefined): string {
-  if (!text) {
-    return "";
-  }
-  let cleaned = text.trim();
-
-  // Remove markdown code blocks
-  if (cleaned.startsWith("```json")) {
-    cleaned = cleaned.slice(7);
-  } else if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
-
-  return cleaned.trim();
-}
-
-/**
- * Clean HTML response from AI (remove markdown code blocks)
- */
-function cleanHtmlResponse(text: string | null | undefined): string {
-  if (!text) {
-    return "";
-  }
-  let cleaned = text.trim();
-
-  // Remove markdown code blocks
-  if (cleaned.startsWith("```html")) {
-    cleaned = cleaned.slice(7);
-  } else if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
-
-  return cleaned.trim();
 }

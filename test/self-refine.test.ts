@@ -6,9 +6,14 @@ import type { AIProviderInstance } from "../src/ai-provider.js";
 vi.mock("@actions/core", () => ({
   info: vi.fn(),
   warning: vi.fn(),
+  error: vi.fn(),
 }));
 
 describe("Self-Refine Module", () => {
+  // Valid HTML mock that's at least 100 characters (required by refineHtml validation)
+  const validHtml = (content: string) =>
+    `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Test</title></head><body>${content}</body></html>`;
+
   // Helper to create mock AI provider
   const createMockProvider = (
     responses: string[]
@@ -90,17 +95,44 @@ describe("Self-Refine Module", () => {
       expect(result.score).toBe(1);
     });
 
-    it("should return default score on parse error", async () => {
+    it("should throw error on parse error", async () => {
       const provider = createMockProvider(["invalid json {"]);
 
-      const result = await evaluateHtml(
-        "<html></html>",
-        { projectName: "Test", projectDescription: "Test" },
-        provider
-      );
+      await expect(
+        evaluateHtml(
+          "<html></html>",
+          { projectName: "Test", projectDescription: "Test" },
+          provider
+        )
+      ).rejects.toThrow("HTML evaluation failed");
+    });
 
-      expect(result.score).toBe(5);
-      expect(result.feedback).toContain("parsing failed");
+    it("should throw error when AI provider fails", async () => {
+      const provider: AIProviderInstance = {
+        provider: "anthropic",
+        quality: "high",
+        generateText: vi.fn().mockRejectedValue(new Error("API rate limit")),
+      };
+
+      await expect(
+        evaluateHtml(
+          "<html></html>",
+          { projectName: "Test", projectDescription: "Test" },
+          provider
+        )
+      ).rejects.toThrow("HTML evaluation failed during AI generation");
+    });
+
+    it("should throw error when AI returns empty response", async () => {
+      const provider = createMockProvider([""]);
+
+      await expect(
+        evaluateHtml(
+          "<html></html>",
+          { projectName: "Test", projectDescription: "Test" },
+          provider
+        )
+      ).rejects.toThrow("HTML evaluation failed: AI returned empty response");
     });
 
     it("should handle markdown-wrapped JSON response", async () => {
@@ -148,9 +180,7 @@ describe("Self-Refine Module", () => {
 
   describe("refineHtml", () => {
     it("should call AI with evaluation feedback", async () => {
-      const provider = createMockProvider([
-        "<!DOCTYPE html><html><body>Refined</body></html>",
-      ]);
+      const provider = createMockProvider([validHtml("Refined content here")]);
 
       const result = await refineHtml(
         "<html><body>Original</body></html>",
@@ -170,14 +200,13 @@ describe("Self-Refine Module", () => {
         provider
       );
 
-      expect(result).toContain("Refined");
+      expect(result).toContain("Refined content here");
       expect(provider.generateText).toHaveBeenCalled();
     });
 
     it("should handle markdown-wrapped HTML response", async () => {
-      const provider = createMockProvider([
-        "```html\n<!DOCTYPE html><html><body>Clean</body></html>\n```",
-      ]);
+      const cleanHtml = validHtml("Clean content here");
+      const provider = createMockProvider([`\`\`\`html\n${cleanHtml}\n\`\`\``]);
 
       const result = await refineHtml(
         "<html></html>",
@@ -197,7 +226,83 @@ describe("Self-Refine Module", () => {
         provider
       );
 
-      expect(result).toBe("<!DOCTYPE html><html><body>Clean</body></html>");
+      expect(result).toBe(cleanHtml);
+    });
+
+    it("should throw error when AI provider fails", async () => {
+      const provider: AIProviderInstance = {
+        provider: "anthropic",
+        quality: "high",
+        generateText: vi.fn().mockRejectedValue(new Error("Network error")),
+      };
+
+      await expect(
+        refineHtml(
+          "<html></html>",
+          {
+            score: 4,
+            feedback: "Poor",
+            strengths: [],
+            improvements: ["Fix everything"],
+          },
+          {
+            maxIterations: 3,
+            targetScore: 8,
+            projectName: "Test",
+            projectDescription: "Test",
+            requirements: "Be better",
+          },
+          provider
+        )
+      ).rejects.toThrow("HTML refinement failed during AI generation");
+    });
+
+    it("should throw error when AI returns empty HTML", async () => {
+      const provider = createMockProvider([""]);
+
+      await expect(
+        refineHtml(
+          "<html></html>",
+          {
+            score: 4,
+            feedback: "Poor",
+            strengths: [],
+            improvements: ["Fix everything"],
+          },
+          {
+            maxIterations: 3,
+            targetScore: 8,
+            projectName: "Test",
+            projectDescription: "Test",
+            requirements: "Be better",
+          },
+          provider
+        )
+      ).rejects.toThrow("HTML refinement failed: AI returned empty or invalid HTML");
+    });
+
+    it("should throw error when AI returns very short HTML", async () => {
+      const provider = createMockProvider(["<html></html>"]); // 13 chars, less than 100
+
+      await expect(
+        refineHtml(
+          "<html></html>",
+          {
+            score: 4,
+            feedback: "Poor",
+            strengths: [],
+            improvements: ["Fix everything"],
+          },
+          {
+            maxIterations: 3,
+            targetScore: 8,
+            projectName: "Test",
+            projectDescription: "Test",
+            requirements: "Be better",
+          },
+          provider
+        )
+      ).rejects.toThrow("HTML refinement failed: AI returned empty or invalid HTML");
     });
   });
 
@@ -240,7 +345,7 @@ describe("Self-Refine Module", () => {
           improvements: ["Improve colors"],
         }),
         // First refinement
-        "<!DOCTYPE html><html><body>Better</body></html>",
+        validHtml("Better content after refinement"),
         // Second evaluation - improved
         JSON.stringify({
           score: 8,
@@ -264,7 +369,7 @@ describe("Self-Refine Module", () => {
 
       expect(result.iterations).toBe(1);
       expect(result.evaluation.score).toBe(8);
-      expect(result.html).toContain("Better");
+      expect(result.html).toContain("Better content after refinement");
     });
 
     it("should stop at max iterations even if target not reached", async () => {
@@ -272,13 +377,13 @@ describe("Self-Refine Module", () => {
         // Initial evaluation
         JSON.stringify({ score: 4, feedback: "Poor", strengths: [], improvements: ["Fix everything"] }),
         // Iteration 1
-        "<html>v1</html>",
+        validHtml("Version 1 content"),
         JSON.stringify({ score: 5, feedback: "Slightly better", strengths: [], improvements: ["More work"] }),
         // Iteration 2
-        "<html>v2</html>",
+        validHtml("Version 2 content"),
         JSON.stringify({ score: 6, feedback: "Better", strengths: [], improvements: ["Almost there"] }),
         // Iteration 3 (max)
-        "<html>v3</html>",
+        validHtml("Version 3 content"),
         JSON.stringify({ score: 7, feedback: "Good but not great", strengths: [], improvements: ["Fine tune"] }),
       ]);
 
@@ -303,10 +408,10 @@ describe("Self-Refine Module", () => {
         // Initial evaluation
         JSON.stringify({ score: 5, feedback: "Okay", strengths: [], improvements: ["Improve"] }),
         // Iteration 1 - better
-        "<html>v1-best</html>",
+        validHtml("v1-best content here"),
         JSON.stringify({ score: 7, feedback: "Good", strengths: ["Better"], improvements: ["Refine"] }),
         // Iteration 2 - worse (regression)
-        "<html>v2-worse</html>",
+        validHtml("v2-worse content here"),
         JSON.stringify({ score: 6, feedback: "Regressed", strengths: [], improvements: ["Undo"] }),
       ]);
 
@@ -323,7 +428,7 @@ describe("Self-Refine Module", () => {
       );
 
       // Should return the best version (score 7), not the last (score 6)
-      expect(result.html).toContain("v1-best");
+      expect(result.html).toContain("v1-best content here");
       expect(result.evaluation.score).toBe(7);
     });
 
@@ -341,7 +446,7 @@ describe("Self-Refine Module", () => {
         "<!DOCTYPE html><html></html>",
         {
           maxIterations: 1,
-          targetScore: 9,
+          targetScore: 7, // Initial score meets target, no refinement needed
           projectName: "Test",
           projectDescription: "Test",
           requirements: "Test",
@@ -360,7 +465,7 @@ describe("Self-Refine Module", () => {
           strengths: [],
           improvements: ["Major work needed"],
         }),
-        "<html>attempt</html>",
+        validHtml("attempt content here"),
         JSON.stringify({
           score: 5,
           feedback: "Still not good",
@@ -382,6 +487,66 @@ describe("Self-Refine Module", () => {
       );
 
       expect(result.improved).toBe(false); // Best score is 5, not > 5
+    });
+
+    it("should propagate evaluation errors", async () => {
+      const provider: AIProviderInstance = {
+        provider: "anthropic",
+        quality: "high",
+        generateText: vi.fn().mockRejectedValue(new Error("API unavailable")),
+      };
+
+      await expect(
+        selfRefine(
+          "<!DOCTYPE html><html></html>",
+          {
+            maxIterations: 3,
+            targetScore: 8,
+            projectName: "Test",
+            projectDescription: "Test",
+            requirements: "Test",
+          },
+          provider
+        )
+      ).rejects.toThrow("HTML evaluation failed during AI generation");
+    });
+
+    it("should propagate refinement errors during iteration", async () => {
+      let callCount = 0;
+      const provider: AIProviderInstance = {
+        provider: "anthropic",
+        quality: "high",
+        generateText: vi.fn().mockImplementation(async () => {
+          callCount++;
+          if (callCount === 1) {
+            // First call: evaluation - returns low score
+            return {
+              text: JSON.stringify({
+                score: 4,
+                feedback: "Needs work",
+                strengths: [],
+                improvements: ["Fix everything"],
+              }),
+            };
+          }
+          // Second call: refinement - throws error
+          throw new Error("API rate limit exceeded");
+        }),
+      };
+
+      await expect(
+        selfRefine(
+          "<!DOCTYPE html><html></html>",
+          {
+            maxIterations: 3,
+            targetScore: 8,
+            projectName: "Test",
+            projectDescription: "Test",
+            requirements: "Test",
+          },
+          provider
+        )
+      ).rejects.toThrow("HTML refinement failed during AI generation");
     });
   });
 });
