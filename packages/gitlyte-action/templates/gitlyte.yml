@@ -1,0 +1,97 @@
+# GitLyte - AI-Powered Site Generator & GitHub Pages Deploy
+#
+# This workflow automatically generates a beautiful static website
+# from your repository using AI, and deploys it to GitHub Pages.
+#
+# Setup:
+# 1. Add your AI API key as a repository secret named GITLYTE_API_KEY
+#    (Get your key from: https://console.anthropic.com/)
+# 2. Enable GitHub Pages in repository settings (Settings > Pages > Source: GitHub Actions)
+# 3. Commit this file to .github/workflows/gitlyte.yml
+# 4. Push to your default branch to trigger generation and deployment
+#
+# Configuration:
+# - Create a .gitlyte.json file in your repository root to customize behavior
+# - See: https://github.com/wadakatu/gitlyte#configuration
+
+name: GitLyte
+
+on:
+  # Generate on push to main branch
+  push:
+    branches:
+      - main
+      - master
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: 'AI Provider'
+        required: false
+        default: 'anthropic'
+        type: choice
+        options:
+          - anthropic
+          - openai
+          - google
+      quality:
+        description: 'Quality Mode'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - high
+
+# Prevent concurrent runs
+concurrency:
+  group: gitlyte-${{ github.ref }}
+  cancel-in-progress: true
+
+# Required permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  generate:
+    name: Generate Site
+    runs-on: ubuntu-latest
+
+    # Don't run on commits from GitLyte itself
+    if: "!contains(github.event.head_commit.message, '[skip gitlyte]')"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate site with GitLyte
+        uses: wadakatu/gitlyte-action@v1
+        with:
+          api-key: ${{ secrets.GITLYTE_API_KEY }}
+          provider: ${{ github.event.inputs.provider || 'anthropic' }}
+          quality: ${{ github.event.inputs.quality || 'standard' }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: generate
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

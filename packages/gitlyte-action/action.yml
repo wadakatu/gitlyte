@@ -1,0 +1,37 @@
+name: 'GitLyte Site Generator'
+description: 'Generate a beautiful static website from your repository using AI'
+author: 'wadakatu'
+branding:
+  icon: 'zap'
+  color: 'purple'
+
+inputs:
+  api-key:
+    description: 'API key for the AI provider (e.g., Anthropic, OpenAI, Google)'
+    required: true
+  provider:
+    description: 'AI provider to use'
+    required: false
+    default: 'anthropic'
+  quality:
+    description: 'Quality mode (standard or high)'
+    required: false
+    default: 'standard'
+  output-directory:
+    description: 'Output directory for generated files'
+    required: false
+    default: 'docs'
+  github-token:
+    description: 'GitHub token for API access'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  output-directory:
+    description: 'Directory where the site was generated'
+  pages-count:
+    description: 'Number of pages generated'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
