@@ -117,8 +117,8 @@ describe("Deployment Guard", () => {
 
       expect(result).toBe(false);
       expect(mockContext.log.error).toHaveBeenCalledWith(
-        expect.stringContaining("Authentication/permission error"),
-        expect.any(Error)
+        expect.objectContaining({ err: expect.any(Error) }),
+        expect.stringContaining("Authentication/permission error")
       );
     });
 
@@ -133,8 +133,8 @@ describe("Deployment Guard", () => {
 
       expect(result).toBe(false);
       expect(mockContext.log.error).toHaveBeenCalledWith(
-        expect.stringContaining("Authentication/permission error"),
-        expect.any(Error)
+        expect.objectContaining({ err: expect.any(Error) }),
+        expect.stringContaining("Authentication/permission error")
       );
     });
 
@@ -151,8 +151,8 @@ describe("Deployment Guard", () => {
 
       expect(result).toBe(false);
       expect(mockContext.log.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Rate limited"),
-        expect.any(Error)
+        expect.objectContaining({ err: expect.any(Error) }),
+        expect.stringContaining("Rate limited")
       );
     });
 
@@ -169,8 +169,8 @@ describe("Deployment Guard", () => {
 
       expect(result).toBe(false);
       expect(mockContext.log.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Transient error"),
-        expect.any(Error)
+        expect.objectContaining({ err: expect.any(Error) }),
+        expect.stringContaining("Transient error")
       );
     });
 
@@ -187,8 +187,8 @@ describe("Deployment Guard", () => {
 
       expect(result).toBe(false);
       expect(mockContext.log.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Transient error"),
-        expect.any(Error)
+        expect.objectContaining({ err: expect.any(Error) }),
+        expect.stringContaining("Transient error")
       );
     });
 
@@ -205,8 +205,8 @@ describe("Deployment Guard", () => {
 
       expect(result).toBe(false);
       expect(mockContext.log.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Transient error"),
-        expect.any(Error)
+        expect.objectContaining({ err: expect.any(Error) }),
+        expect.stringContaining("Transient error")
       );
     });
   });
