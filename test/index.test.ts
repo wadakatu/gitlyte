@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { Mock } from "vitest";
 
 // Store original env
 const originalEnv = { ...process.env };
@@ -291,6 +290,67 @@ describe("GitHub Action Entry Point", () => {
         expect.stringContaining("Failed to load .gitlyte.json")
       );
     });
+
+    it("should merge partial config with defaults", async () => {
+      // Config with only theme, no outputDirectory or prompts
+      const partialConfig = {
+        theme: { mode: "light" },
+      };
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(partialConfig)).toString(
+                "base64"
+              ),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      // Should use default outputDirectory from input but apply theme from config
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          outputDirectory: "docs", // Default from input
+          theme: { mode: "light" }, // From config
+          prompts: { siteInstructions: undefined }, // Default (empty)
+        })
+      );
+    });
+
+    it("should preserve config theme mode as-is without falling back to dark", async () => {
+      // Config with explicit light mode
+      const configWithLight = {
+        theme: { mode: "light" },
+      };
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithLight)).toString(
+                "base64"
+              ),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          theme: { mode: "light" },
+        })
+      );
+    });
   });
 
   describe("File Writing", () => {
@@ -320,7 +380,7 @@ describe("GitHub Action Entry Point", () => {
       );
     });
 
-    it("should prevent path traversal attacks", async () => {
+    it("should prevent path traversal attacks in pages", async () => {
       mockGenerateSite.mockResolvedValue({
         pages: [{ path: "../../../etc/passwd", html: "malicious" }],
         assets: [],
@@ -333,7 +393,42 @@ describe("GitHub Action Entry Point", () => {
       );
     });
 
-    it("should handle file write errors gracefully", async () => {
+    it("should prevent path traversal attacks in assets", async () => {
+      mockGenerateSite.mockResolvedValue({
+        pages: [{ path: "index.html", html: "<html></html>" }],
+        assets: [{ path: "../../../etc/shadow", content: "malicious" }],
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("path escapes output directory")
+      );
+    });
+
+    it("should handle asset write errors gracefully", async () => {
+      let writeCallCount = 0;
+      mockGenerateSite.mockResolvedValue({
+        pages: [{ path: "index.html", html: "<html></html>" }],
+        assets: [{ path: "styles.css", content: "body {}" }],
+      });
+
+      mockWriteFileSync.mockImplementation(() => {
+        writeCallCount++;
+        // First call for index.html succeeds, second call for styles.css fails
+        if (writeCallCount > 1) {
+          throw new Error("Permission denied");
+        }
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to write asset")
+      );
+    });
+
+    it("should handle page write errors gracefully", async () => {
       mockWriteFileSync.mockImplementation(() => {
         throw new Error("Permission denied");
       });
@@ -343,6 +438,66 @@ describe("GitHub Action Entry Point", () => {
       expect(mockSetFailed).toHaveBeenCalledWith(
         expect.stringContaining("Failed to write page")
       );
+    });
+  });
+
+  describe("Input Validation - API Key", () => {
+    it("should fail when api-key is missing", async () => {
+      mockGetInput.mockImplementation((name: string, options?: unknown) => {
+        if (name === "api-key") {
+          // When required: true, throw an error if missing
+          if (options && (options as { required?: boolean }).required) {
+            throw new Error("Input required and not supplied: api-key");
+          }
+          return "";
+        }
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "token";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("api-key")
+      );
+    });
+  });
+
+  describe("Repository API Failures", () => {
+    it("should fail when repository API returns an error", async () => {
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockRejectedValue(new Error("API rate limit exceeded")),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: vi.fn().mockRejectedValue({ status: 404 }),
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("API rate limit exceeded")
+      );
+    });
+
+    it("should fail when repository is not found", async () => {
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockRejectedValue({ status: 404, message: "Not Found" }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: vi.fn().mockRejectedValue({ status: 404 }),
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalled();
     });
   });
 
