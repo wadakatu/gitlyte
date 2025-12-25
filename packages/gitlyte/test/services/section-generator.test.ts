@@ -51,11 +51,20 @@ const mockAnalysis: RepositoryAnalysis = {
 
 const mockDesign: DesignSystem = {
   colors: {
-    primary: "blue-600",
-    secondary: "indigo-500",
-    accent: "purple-500",
-    background: "white",
-    text: "gray-900",
+    light: {
+      primary: "blue-600",
+      secondary: "indigo-500",
+      accent: "purple-500",
+      background: "white",
+      text: "gray-900",
+    },
+    dark: {
+      primary: "blue-400",
+      secondary: "indigo-400",
+      accent: "purple-400",
+      background: "gray-950",
+      text: "gray-50",
+    },
   },
   typography: {
     headingFont: "Inter",
@@ -73,6 +82,7 @@ const mockSectionContext: SectionContext = {
     readme: "# Test Project\n\nThis is a test.",
     url: "https://github.com/test/test-project",
   },
+  themeMode: "dark",
 };
 
 describe("section-generator", () => {
@@ -294,6 +304,40 @@ describe("section-generator", () => {
 
       expect(html).toContain("https://github.com/test/test-project");
       expect(html).toContain("GitHub");
+    });
+
+    it("should use light mode palette when themeMode is light", () => {
+      const lightModeContext: SectionContext = {
+        ...mockSectionContext,
+        themeMode: "light",
+      };
+
+      const sections = [
+        { type: "hero" as const, html: "<section></section>", order: 0 },
+      ];
+
+      const html = assembleHtml(sections, lightModeContext, {});
+
+      // Light mode should use light background colors
+      expect(html).toContain("bg-white");
+      expect(html).toContain("bg-white/90"); // light mode nav background
+    });
+
+    it("should use dark mode palette when themeMode is dark", () => {
+      const darkModeContext: SectionContext = {
+        ...mockSectionContext,
+        themeMode: "dark",
+      };
+
+      const sections = [
+        { type: "hero" as const, html: "<section></section>", order: 0 },
+      ];
+
+      const html = assembleHtml(sections, darkModeContext, {});
+
+      // Dark mode should use dark background colors
+      expect(html).toContain("bg-gray-950");
+      expect(html).toContain("bg-gray-900/90"); // dark mode nav background
     });
   });
 });

@@ -20,7 +20,12 @@ import {
   parseEvaluationResponse,
   meetsQualityThreshold,
 } from "../eval/llm-judge.js";
-import type { RepositoryAnalysis, DesignSystem } from "./v2-site-generator.js";
+import type {
+  RepositoryAnalysis,
+  DesignSystem,
+  ColorPalette,
+} from "./v2-site-generator.js";
+import type { ThemeMode } from "../types/v2-config.js";
 
 /**
  * Self-Refine configuration
@@ -108,6 +113,9 @@ export interface RefinementContext {
   /** Design system */
   design: DesignSystem;
 
+  /** Theme mode for color palette selection */
+  themeMode?: ThemeMode;
+
   /** Repository info for evaluation */
   repositoryInfo: {
     name: string;
@@ -115,6 +123,14 @@ export interface RefinementContext {
     language: string;
     topics: string[];
   };
+}
+
+/**
+ * Get the color palette for the current theme mode
+ */
+function getContextPalette(context: RefinementContext): ColorPalette {
+  const mode = context.themeMode || "dark";
+  return context.design.colors[mode];
 }
 
 /**
@@ -213,6 +229,8 @@ function buildRefinementPrompt(
   context: RefinementContext
 ): string {
   const weakestCriteria = getWeakestCriteria(evaluation);
+  const palette = getContextPalette(context);
+  const themeMode = context.themeMode || "dark";
 
   return `You are an expert web designer. Improve the following HTML page based on feedback.
 
@@ -223,12 +241,12 @@ function buildRefinementPrompt(
 - Audience: ${context.analysis.audience}
 - Style: ${context.analysis.style}
 
-## Design System
-- Primary Color: ${context.design.colors.primary}
-- Secondary Color: ${context.design.colors.secondary}
-- Accent Color: ${context.design.colors.accent}
-- Background: ${context.design.colors.background}
-- Text: ${context.design.colors.text}
+## Design System (${themeMode} mode)
+- Primary Color: ${palette.primary}
+- Secondary Color: ${palette.secondary}
+- Accent Color: ${palette.accent}
+- Background: ${palette.background}
+- Text: ${palette.text}
 - Layout: ${context.design.layout}
 
 ## Current Evaluation (Score: ${evaluation.overallScore}/5)

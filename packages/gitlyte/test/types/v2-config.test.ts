@@ -17,6 +17,7 @@ describe("v2-config", () => {
       expect(result.pages).toEqual([]);
       expect(result.logo).toBeUndefined();
       expect(result.favicon).toBeUndefined();
+      expect(result.theme.mode).toBe("dark"); // default theme mode
     });
 
     it("should override default values with provided config", () => {
@@ -71,6 +72,25 @@ describe("v2-config", () => {
       expect(result.outputDirectory).toBe(DEFAULT_CONFIG_V2.outputDirectory);
       expect(result.ai.provider).toBe(DEFAULT_CONFIG_V2.ai.provider);
       expect(result.ai.quality).toBe(DEFAULT_CONFIG_V2.ai.quality);
+      expect(result.theme.mode).toBe(DEFAULT_CONFIG_V2.theme.mode);
+    });
+
+    it("should override theme.mode when provided", () => {
+      const result = resolveConfigV2({
+        theme: {
+          mode: "light",
+        },
+      });
+
+      expect(result.theme.mode).toBe("light");
+    });
+
+    it("should use default theme.mode when theme object is empty", () => {
+      const result = resolveConfigV2({
+        theme: {},
+      });
+
+      expect(result.theme.mode).toBe("dark"); // default
     });
   });
 
@@ -257,6 +277,49 @@ describe("v2-config", () => {
         });
         expect(result.valid).toBe(true);
       }
+    });
+
+    it("should return error for invalid theme object", () => {
+      const result = validateConfigV2({
+        theme: "dark", // should be object
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain("'theme' must be an object");
+    });
+
+    it("should return error for invalid theme.mode", () => {
+      const result = validateConfigV2({
+        theme: {
+          mode: "invalid-mode",
+        },
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "'theme.mode' must be one of: light, dark"
+      );
+    });
+
+    it("should validate all valid theme modes", () => {
+      for (const mode of ["light", "dark"]) {
+        const result = validateConfigV2({
+          theme: { mode },
+        });
+        expect(result.valid).toBe(true);
+      }
+    });
+
+    it("should validate config with theme setting", () => {
+      const result = validateConfigV2({
+        enabled: true,
+        theme: {
+          mode: "dark",
+        },
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
   });
 });

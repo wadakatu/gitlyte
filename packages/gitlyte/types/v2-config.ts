@@ -22,6 +22,11 @@ export const TRIGGER_MODES = ["auto", "manual"] as const;
 /** Trigger mode for site generation */
 export type TriggerMode = (typeof TRIGGER_MODES)[number];
 
+/** Valid theme mode values */
+export const THEME_MODES = ["light", "dark"] as const;
+/** Theme mode for generated site */
+export type ThemeMode = (typeof THEME_MODES)[number];
+
 /** Valid generatable page values */
 export const GENERATABLE_PAGES = [
   "features",
@@ -116,6 +121,19 @@ export interface GitLyteConfigV2 {
      */
     trigger?: TriggerMode;
   };
+
+  /**
+   * Theme configuration
+   */
+  theme?: {
+    /**
+     * Color mode for generated site
+     * - light: Light background with dark text
+     * - dark: Dark background with light text
+     * @default "dark"
+     */
+    mode?: ThemeMode;
+  };
 }
 
 /**
@@ -133,6 +151,9 @@ export const DEFAULT_CONFIG_V2 = {
   pages: [] as GeneratablePage[],
   generation: {
     trigger: "manual" as const,
+  },
+  theme: {
+    mode: "dark" as const,
   },
 };
 
@@ -157,6 +178,9 @@ export interface ResolvedConfigV2 {
   generation: {
     trigger: TriggerMode;
   };
+  theme: {
+    mode: ThemeMode;
+  };
 }
 
 /**
@@ -168,6 +192,7 @@ export function resolveConfigV2(
   const defaultProvider: AIProvider = DEFAULT_CONFIG_V2.ai.provider;
   const defaultQuality: QualityMode = DEFAULT_CONFIG_V2.ai.quality;
   const defaultTrigger: TriggerMode = DEFAULT_CONFIG_V2.generation.trigger;
+  const defaultThemeMode: ThemeMode = DEFAULT_CONFIG_V2.theme.mode;
 
   return {
     enabled: config.enabled ?? DEFAULT_CONFIG_V2.enabled,
@@ -182,6 +207,9 @@ export function resolveConfigV2(
     pages: config.pages ?? DEFAULT_CONFIG_V2.pages,
     generation: {
       trigger: config.generation?.trigger ?? defaultTrigger,
+    },
+    theme: {
+      mode: config.theme?.mode ?? defaultThemeMode,
     },
   };
 }
@@ -308,6 +336,22 @@ export function validateConfigV2(config: unknown): ConfigValidationResult {
     }
   }
 
+  // Validate theme
+  if (cfg.theme !== undefined) {
+    if (typeof cfg.theme !== "object" || cfg.theme === null) {
+      errors.push("'theme' must be an object");
+    } else {
+      const theme = cfg.theme as Record<string, unknown>;
+
+      if (
+        theme.mode !== undefined &&
+        !(THEME_MODES as readonly string[]).includes(theme.mode as string)
+      ) {
+        errors.push(`'theme.mode' must be one of: ${THEME_MODES.join(", ")}`);
+      }
+    }
+  }
+
   // Check for unknown fields
   const knownFields = [
     "enabled",
@@ -317,6 +361,7 @@ export function validateConfigV2(config: unknown): ConfigValidationResult {
     "ai",
     "pages",
     "generation",
+    "theme",
   ];
   for (const key of Object.keys(cfg)) {
     if (!knownFields.includes(key)) {

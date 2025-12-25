@@ -146,15 +146,24 @@ describe("v2-site-generator", () => {
   });
 
   describe("generateDesignSystem", () => {
-    it("should generate design system from analysis", async () => {
+    it("should generate design system from analysis with light/dark palettes", async () => {
       vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
         text: JSON.stringify({
           colors: {
-            primary: "blue-600",
-            secondary: "indigo-500",
-            accent: "purple-400",
-            background: "white",
-            text: "gray-900",
+            light: {
+              primary: "blue-600",
+              secondary: "indigo-500",
+              accent: "purple-400",
+              background: "white",
+              text: "gray-900",
+            },
+            dark: {
+              primary: "blue-400",
+              secondary: "indigo-400",
+              accent: "purple-400",
+              background: "gray-950",
+              text: "gray-50",
+            },
           },
           typography: {
             headingFont: "Inter",
@@ -177,8 +186,10 @@ describe("v2-site-generator", () => {
         mockAIProvider
       );
 
-      expect(result.colors.primary).toBe("blue-600");
-      expect(result.colors.secondary).toBe("indigo-500");
+      expect(result.colors.light.primary).toBe("blue-600");
+      expect(result.colors.light.secondary).toBe("indigo-500");
+      expect(result.colors.dark.primary).toBe("blue-400");
+      expect(result.colors.dark.background).toBe("gray-950");
       expect(result.typography.headingFont).toBe("Inter");
       expect(result.layout).toBe("hero-centered");
     });
@@ -201,8 +212,10 @@ describe("v2-site-generator", () => {
         mockAIProvider
       );
 
-      expect(result.colors.primary).toBe("blue-600");
-      expect(result.colors.background).toBe("white");
+      expect(result.colors.light.primary).toBe("blue-600");
+      expect(result.colors.light.background).toBe("white");
+      expect(result.colors.dark.primary).toBe("blue-400");
+      expect(result.colors.dark.background).toBe("gray-950");
       expect(result.typography.headingFont).toBe(
         "Inter, system-ui, sans-serif"
       );
@@ -214,11 +227,20 @@ describe("v2-site-generator", () => {
       vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
         text: JSON.stringify({
           colors: {
-            primary: "green-600",
-            secondary: "teal-500",
-            accent: "cyan-400",
-            background: "gray-50",
-            text: "gray-800",
+            light: {
+              primary: "green-600",
+              secondary: "teal-500",
+              accent: "cyan-400",
+              background: "gray-50",
+              text: "gray-800",
+            },
+            dark: {
+              primary: "green-400",
+              secondary: "teal-400",
+              accent: "cyan-400",
+              background: "gray-950",
+              text: "gray-50",
+            },
           },
           typography: {
             headingFont: "Poppins",
@@ -242,12 +264,37 @@ describe("v2-site-generator", () => {
       );
 
       expect(result.usedFallback).toBe(false);
-      expect(result.colors.primary).toBe("green-600");
+      expect(result.colors.light.primary).toBe("green-600");
+      expect(result.colors.dark.primary).toBe("green-400");
       expect(result.layout).toBe("feature-grid");
     });
   });
 
   describe("generateIndexPage", () => {
+    const mockDesignSystem = {
+      colors: {
+        light: {
+          primary: "blue-600",
+          secondary: "indigo-500",
+          accent: "purple-400",
+          background: "white",
+          text: "gray-900",
+        },
+        dark: {
+          primary: "blue-400",
+          secondary: "indigo-400",
+          accent: "purple-400",
+          background: "gray-950",
+          text: "gray-50",
+        },
+      },
+      typography: {
+        headingFont: "Inter",
+        bodyFont: "Inter",
+      },
+      layout: "hero-centered" as const,
+    };
+
     it("should generate HTML index page", async () => {
       const mockHtml = `<!DOCTYPE html>
 <html>
@@ -273,20 +320,7 @@ describe("v2-site-generator", () => {
           style: "professional",
           keyFeatures: ["feature1"],
         },
-        {
-          colors: {
-            primary: "blue-600",
-            secondary: "indigo-500",
-            accent: "purple-400",
-            background: "white",
-            text: "gray-900",
-          },
-          typography: {
-            headingFont: "Inter",
-            bodyFont: "Inter",
-          },
-          layout: "hero-centered",
-        },
+        mockDesignSystem,
         resolveConfigV2({}),
         mockAIProvider
       );
@@ -318,20 +352,7 @@ describe("v2-site-generator", () => {
           style: "professional",
           keyFeatures: [],
         },
-        {
-          colors: {
-            primary: "blue-600",
-            secondary: "indigo-500",
-            accent: "purple-400",
-            background: "white",
-            text: "gray-900",
-          },
-          typography: {
-            headingFont: "Inter",
-            bodyFont: "Inter",
-          },
-          layout: "hero-centered",
-        },
+        mockDesignSystem,
         resolveConfigV2({}),
         mockAIProvider
       );
@@ -362,20 +383,7 @@ describe("v2-site-generator", () => {
           style: "professional",
           keyFeatures: [],
         },
-        {
-          colors: {
-            primary: "blue-600",
-            secondary: "indigo-500",
-            accent: "purple-400",
-            background: "white",
-            text: "gray-900",
-          },
-          typography: {
-            headingFont: "Inter",
-            bodyFont: "Inter",
-          },
-          layout: "hero-centered",
-        },
+        mockDesignSystem,
         resolveConfigV2({
           favicon: { path: "./favicon.ico" },
         }),
@@ -404,20 +412,7 @@ describe("v2-site-generator", () => {
           style: "professional",
           keyFeatures: [],
         },
-        {
-          colors: {
-            primary: "blue-600",
-            secondary: "indigo-500",
-            accent: "purple-400",
-            background: "white",
-            text: "gray-900",
-          },
-          typography: {
-            headingFont: "Inter",
-            bodyFont: "Inter",
-          },
-          layout: "hero-centered",
-        },
+        mockDesignSystem,
         resolveConfigV2({}),
         mockAIProvider
       );
@@ -425,9 +420,68 @@ describe("v2-site-generator", () => {
       expect(result).toContain("<!DOCTYPE html>");
       expect(result).not.toContain("```");
     });
+
+    it("should use light mode palette when theme is light", async () => {
+      const mockHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <h1>Test Project</h1>
+</body>
+</html>`;
+
+      vi.mocked(mockAIProvider.generateText).mockResolvedValueOnce({
+        text: mockHtml,
+      });
+
+      await generateIndexPage(
+        {
+          name: "test",
+          description: "desc",
+          projectType: "library",
+          primaryLanguage: "TypeScript",
+          audience: "developers",
+          style: "professional",
+          keyFeatures: [],
+        },
+        mockDesignSystem,
+        resolveConfigV2({ theme: { mode: "light" } }),
+        mockAIProvider
+      );
+
+      // Verify the prompt includes light mode colors
+      expect(mockAIProvider.generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("light mode"),
+        })
+      );
+    });
   });
 
   describe("generateSite", () => {
+    const mockDesignSystemResponse = JSON.stringify({
+      colors: {
+        light: {
+          primary: "blue-600",
+          secondary: "indigo-500",
+          accent: "purple-400",
+          background: "white",
+          text: "gray-900",
+        },
+        dark: {
+          primary: "blue-400",
+          secondary: "indigo-400",
+          accent: "purple-400",
+          background: "gray-950",
+          text: "gray-50",
+        },
+      },
+      typography: { headingFont: "Inter", bodyFont: "Inter" },
+      layout: "hero-centered",
+    });
+
     it("should generate complete site with index page", async () => {
       // New architecture: analyze -> design -> analyzeSections -> generateSections (parallel)
       const mockResponses = [
@@ -442,17 +496,7 @@ describe("v2-site-generator", () => {
           keyFeatures: ["feature1"],
         }),
         // 2. generateDesignSystem
-        JSON.stringify({
-          colors: {
-            primary: "blue-600",
-            secondary: "indigo-500",
-            accent: "purple-400",
-            background: "white",
-            text: "gray-900",
-          },
-          typography: { headingFont: "Inter", bodyFont: "Inter" },
-          layout: "hero-centered",
-        }),
+        mockDesignSystemResponse,
         // 3. analyzeSections
         JSON.stringify({
           sections: ["hero", "features", "footer"],
@@ -502,17 +546,7 @@ describe("v2-site-generator", () => {
           keyFeatures: [],
         }),
         // 2. generateDesignSystem
-        JSON.stringify({
-          colors: {
-            primary: "blue-600",
-            secondary: "indigo-500",
-            accent: "purple-400",
-            background: "white",
-            text: "gray-900",
-          },
-          typography: { headingFont: "Inter", bodyFont: "Inter" },
-          layout: "hero-centered",
-        }),
+        mockDesignSystemResponse,
         // 3. analyzeSections
         JSON.stringify({
           sections: ["hero", "footer"],
@@ -563,11 +597,20 @@ describe("v2-site-generator", () => {
         // 2. generateDesignSystem
         JSON.stringify({
           colors: {
-            primary: "green-600",
-            secondary: "teal-500",
-            accent: "cyan-400",
-            background: "gray-50",
-            text: "gray-800",
+            light: {
+              primary: "green-600",
+              secondary: "teal-500",
+              accent: "cyan-400",
+              background: "gray-50",
+              text: "gray-800",
+            },
+            dark: {
+              primary: "green-400",
+              secondary: "teal-400",
+              accent: "cyan-400",
+              background: "gray-950",
+              text: "gray-50",
+            },
           },
           typography: { headingFont: "Fira Code", bodyFont: "Inter" },
           layout: "minimal",
@@ -637,17 +680,7 @@ describe("v2-site-generator", () => {
           keyFeatures: ["feature1"],
         }),
         // 2. generateDesignSystem
-        JSON.stringify({
-          colors: {
-            primary: "blue-600",
-            secondary: "indigo-500",
-            accent: "purple-400",
-            background: "white",
-            text: "gray-900",
-          },
-          typography: { headingFont: "Inter", bodyFont: "Inter" },
-          layout: "hero-centered",
-        }),
+        mockDesignSystemResponse,
         // 3. analyzeSections
         JSON.stringify({
           sections: ["hero", "footer"],
@@ -697,17 +730,7 @@ describe("v2-site-generator", () => {
           keyFeatures: [],
         }),
         // 2. generateDesignSystem
-        JSON.stringify({
-          colors: {
-            primary: "blue-600",
-            secondary: "indigo-500",
-            accent: "purple-400",
-            background: "white",
-            text: "gray-900",
-          },
-          typography: { headingFont: "Inter", bodyFont: "Inter" },
-          layout: "hero-centered",
-        }),
+        mockDesignSystemResponse,
         // 3. analyzeSections
         JSON.stringify({
           sections: ["hero", "footer"],
@@ -739,6 +762,52 @@ describe("v2-site-generator", () => {
       expect(result.refinement).toBeUndefined();
       // New architecture: analyze(1) + design(1) + analyzeSections(1) + sections(2) = 5
       expect(mockAIProvider.generateText).toHaveBeenCalledTimes(5);
+    });
+
+    it("should use configured theme mode for site generation", async () => {
+      const mockResponses = [
+        // 1. analyzeRepository
+        JSON.stringify({
+          name: "test",
+          description: "desc",
+          projectType: "library",
+          primaryLanguage: "TypeScript",
+          audience: "developers",
+          style: "professional",
+          keyFeatures: [],
+        }),
+        // 2. generateDesignSystem
+        mockDesignSystemResponse,
+        // 3. analyzeSections
+        JSON.stringify({
+          sections: ["hero", "footer"],
+          reasoning: "Minimal sections",
+        }),
+        // 4-5. generateSection calls (hero, footer)
+        '<section id="hero"><h1>Welcome</h1></section>',
+        '<section id="footer"><footer>Footer</footer></section>',
+      ];
+
+      let callIndex = 0;
+      vi.mocked(mockAIProvider.generateText).mockImplementation(async () => {
+        const response = mockResponses[callIndex] || "<section></section>";
+        callIndex++;
+        return { text: response };
+      });
+
+      const result = await generateSite(
+        {
+          name: "test",
+          description: "desc",
+          url: "https://github.com/user/test",
+        },
+        resolveConfigV2({ theme: { mode: "light" } }),
+        mockAIProvider
+      );
+
+      expect(result.pages).toHaveLength(1);
+      // Light mode should use light background
+      expect(result.pages[0].html).toContain("bg-white");
     });
   });
 });
