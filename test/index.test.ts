@@ -1364,6 +1364,233 @@ describe("GitHub Action Entry Point", () => {
       );
     });
 
+    it("should warn on favicon 403 access denied error", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "favicon-path") return "private/favicon.ico";
+        return "";
+      });
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === "private/favicon.ico") {
+          return Promise.reject({ status: 403 });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Access denied to favicon file: private/favicon.ico"
+      );
+    });
+
+    it("should warn on generic favicon fetch error", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "favicon-path") return "broken/favicon.ico";
+        return "";
+      });
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === "broken/favicon.ico") {
+          return Promise.reject(new Error("Network timeout"));
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Failed to fetch favicon: Network timeout"
+      );
+    });
+
+    it("should warn on generic logo fetch error", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "logo-path") return "broken/logo.svg";
+        return "";
+      });
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === "broken/logo.svg") {
+          return Promise.reject(new Error("Connection refused"));
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Failed to fetch logo: Connection refused"
+      );
+    });
+
+    it("should warn on logo unexpected format from action input", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "logo-path") return "assets/logo.svg";
+        return "";
+      });
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === "assets/logo.svg") {
+          // Return directory-like response (no content field)
+          return Promise.resolve({
+            data: {
+              type: "dir",
+              name: "logo.svg",
+            },
+          });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        '⚠️ Logo file "assets/logo.svg" is not a file or has unexpected format'
+      );
+    });
+
+    it("should warn on favicon unexpected format from action input", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "favicon-path") return "assets/favicon.ico";
+        return "";
+      });
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === "assets/favicon.ico") {
+          // Return directory-like response (no content field)
+          return Promise.resolve({
+            data: {
+              type: "dir",
+              name: "favicon.ico",
+            },
+          });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        '⚠️ Favicon file "assets/favicon.ico" is not a file or has unexpected format'
+      );
+    });
+
     it("should fail on invalid logo config in .gitlyte.json", async () => {
       const invalidConfig = {
         logo: { alt: "Missing path" }, // Missing required 'path' field
@@ -1579,6 +1806,490 @@ describe("GitHub Action Entry Point", () => {
 
       expect(mockSetFailed).toHaveBeenCalledWith(
         expect.stringContaining("Failed to write favicon")
+      );
+    });
+
+    it("should fail on favicon config with empty path in .gitlyte.json", async () => {
+      const invalidConfig = {
+        favicon: { path: "   " }, // Empty/whitespace path
+      };
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(invalidConfig)).toString("base64"),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid favicon config in .gitlyte.json")
+      );
+    });
+
+    it("should warn on logo 403 error from config file", async () => {
+      const configWithLogo = {
+        logo: { path: "private/logo.svg", alt: "Logo" },
+      };
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === ".gitlyte.json") {
+          return Promise.resolve({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithLogo)).toString("base64"),
+            },
+          });
+        }
+        if (path === "private/logo.svg") {
+          return Promise.reject({ status: 403 });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Access denied to logo file (from config): private/logo.svg"
+      );
+    });
+
+    it("should warn on logo 401 error from config file", async () => {
+      const configWithLogo = {
+        logo: { path: "auth/logo.svg", alt: "Logo" },
+      };
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === ".gitlyte.json") {
+          return Promise.resolve({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithLogo)).toString("base64"),
+            },
+          });
+        }
+        if (path === "auth/logo.svg") {
+          return Promise.reject({ status: 401 });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Authentication failed for logo file (from config): auth/logo.svg"
+      );
+    });
+
+    it("should warn on favicon 403 error from config file", async () => {
+      const configWithFavicon = {
+        favicon: { path: "private/favicon.ico" },
+      };
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === ".gitlyte.json") {
+          return Promise.resolve({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithFavicon)).toString("base64"),
+            },
+          });
+        }
+        if (path === "private/favicon.ico") {
+          return Promise.reject({ status: 403 });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Access denied to favicon file (from config): private/favicon.ico"
+      );
+    });
+
+    it("should warn on favicon 401 error from config file", async () => {
+      const configWithFavicon = {
+        favicon: { path: "auth/favicon.ico" },
+      };
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === ".gitlyte.json") {
+          return Promise.resolve({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithFavicon)).toString("base64"),
+            },
+          });
+        }
+        if (path === "auth/favicon.ico") {
+          return Promise.reject({ status: 401 });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Authentication failed for favicon file (from config): auth/favicon.ico"
+      );
+    });
+
+    it("should warn on favicon unexpected format from config file", async () => {
+      const configWithFavicon = {
+        favicon: { path: "assets/favicon.ico" },
+      };
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === ".gitlyte.json") {
+          return Promise.resolve({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithFavicon)).toString("base64"),
+            },
+          });
+        }
+        if (path === "assets/favicon.ico") {
+          // Return directory-like response (no content field)
+          return Promise.resolve({
+            data: {
+              type: "dir",
+              name: "favicon.ico",
+            },
+          });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        '⚠️ Favicon file "assets/favicon.ico" from config is not a file or has unexpected format'
+      );
+    });
+
+    it("should warn on logo unexpected format from config file", async () => {
+      const configWithLogo = {
+        logo: { path: "assets/logo.svg", alt: "Logo" },
+      };
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === ".gitlyte.json") {
+          return Promise.resolve({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithLogo)).toString("base64"),
+            },
+          });
+        }
+        if (path === "assets/logo.svg") {
+          // Return directory-like response (no content field)
+          return Promise.resolve({
+            data: {
+              type: "dir",
+              name: "logo.svg",
+            },
+          });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        '⚠️ Logo file "assets/logo.svg" from config is not a file or has unexpected format'
+      );
+    });
+
+    it("should warn on generic logo fetch error from config file", async () => {
+      const configWithLogo = {
+        logo: { path: "broken/logo.svg", alt: "Logo" },
+      };
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === ".gitlyte.json") {
+          return Promise.resolve({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithLogo)).toString("base64"),
+            },
+          });
+        }
+        if (path === "broken/logo.svg") {
+          return Promise.reject(new Error("Network error"));
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Failed to fetch logo from config: Network error"
+      );
+    });
+
+    it("should warn on generic favicon fetch error from config file", async () => {
+      const configWithFavicon = {
+        favicon: { path: "broken/favicon.ico" },
+      };
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === ".gitlyte.json") {
+          return Promise.resolve({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithFavicon)).toString("base64"),
+            },
+          });
+        }
+        if (path === "broken/favicon.ico") {
+          return Promise.reject(new Error("Connection timeout"));
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Failed to fetch favicon from config: Connection timeout"
+      );
+    });
+
+    it("should warn on logo 404 error from config file", async () => {
+      const configWithLogo = {
+        logo: { path: "missing/logo.svg", alt: "Logo" },
+      };
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === ".gitlyte.json") {
+          return Promise.resolve({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithLogo)).toString("base64"),
+            },
+          });
+        }
+        if (path === "missing/logo.svg") {
+          return Promise.reject({ status: 404 });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Logo file not found (from config): missing/logo.svg"
+      );
+    });
+
+    it("should warn on favicon 404 error from config file", async () => {
+      const configWithFavicon = {
+        favicon: { path: "missing/favicon.ico" },
+      };
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === ".gitlyte.json") {
+          return Promise.resolve({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithFavicon)).toString("base64"),
+            },
+          });
+        }
+        if (path === "missing/favicon.ico") {
+          return Promise.reject({ status: 404 });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Favicon file not found (from config): missing/favicon.ico"
       );
     });
   });
