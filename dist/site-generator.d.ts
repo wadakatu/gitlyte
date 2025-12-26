@@ -4,6 +4,27 @@
  * A standalone version of the site generator that works without Probot dependencies.
  */
 import type { AIProviderInstance } from "./ai-provider.js";
+/** GitHub repository statistics */
+export interface RepoStats {
+    /** Number of stars/stargazers */
+    stars: number;
+    /** Number of forks */
+    forks: number;
+    /** Number of watchers/subscribers */
+    watchers: number;
+    /** Number of open issues */
+    openIssues: number;
+    /** Repository creation date (ISO 8601) */
+    createdAt: string;
+    /** Last push date (ISO 8601) */
+    updatedAt: string;
+    /** License name (e.g., "MIT License") */
+    license?: string;
+    /** Latest release version (e.g., "v1.2.0") */
+    latestRelease?: string;
+    /** Number of contributors */
+    contributorCount?: number;
+}
 export interface RepoInfo {
     name: string;
     fullName: string;
@@ -12,6 +33,8 @@ export interface RepoInfo {
     language?: string;
     topics: string[];
     readme?: string;
+    /** Dynamic GitHub statistics */
+    stats?: RepoStats;
 }
 /** Valid theme mode values - single source of truth */
 export declare const THEME_MODES: readonly ["light", "dark", "auto"];
@@ -104,6 +127,14 @@ export interface GeneratedSite {
  * Generate a complete site
  */
 export declare function generateSite(repoInfo: RepoInfo, aiProvider: AIProviderInstance, config: SiteConfig): Promise<GeneratedSite>;
+/**
+ * Format a number for display (e.g., 1234 -> "1.2K", 1234567 -> "1.2M")
+ */
+export declare function formatCount(count: number): string;
+/**
+ * Format an ISO date string to a relative date (e.g., "3 days ago", "2 months ago")
+ */
+export declare function formatRelativeDate(isoDate: string): string;
 /**
  * Generate sitemap.xml content
  * @param pages Array of generated pages (only .html files are included)

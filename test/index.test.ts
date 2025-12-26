@@ -67,6 +67,13 @@ describe("GitHub Action Entry Point", () => {
             html_url: "https://github.com/test-owner/test-repo",
             language: "TypeScript",
             topics: ["testing"],
+            stargazers_count: 1234,
+            forks_count: 567,
+            subscribers_count: 89,
+            open_issues_count: 12,
+            created_at: "2023-01-15T10:30:00Z",
+            pushed_at: "2024-12-20T15:45:00Z",
+            license: { name: "MIT License" },
           },
         }),
         getReadme: vi.fn().mockResolvedValue({
@@ -75,6 +82,13 @@ describe("GitHub Action Entry Point", () => {
           },
         }),
         getContent: vi.fn().mockRejectedValue({ status: 404 }),
+        listReleases: vi.fn().mockResolvedValue({
+          data: [{ tag_name: "v1.2.3" }],
+        }),
+        listContributors: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          headers: { link: '<https://api.github.com/repos/test/test/contributors?page=42>; rel="last"' },
+        }),
         ...overrides,
       },
     },
@@ -2593,6 +2607,334 @@ describe("GitHub Action Entry Point", () => {
             siteUrl: "https://config-url.com", // From config file
           }),
         })
+      );
+    });
+  });
+
+  describe("GitHub Statistics Fetching", () => {
+    it("should pass stats to generateSite when show-stats is true (default)", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(createMockOctokit());
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stats: expect.objectContaining({
+            stars: 1234,
+            forks: 567,
+            watchers: 89,
+            openIssues: 12,
+            license: "MIT License",
+          }),
+        }),
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it("should not pass stats to generateSite when show-stats is false", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "false",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(createMockOctokit());
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stats: undefined,
+        }),
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it("should fetch latest release when fetch-releases is true", async () => {
+      const mockOctokit = createMockOctokit();
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "true",
+          "fetch-releases": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockOctokit.rest.repos.listReleases).toHaveBeenCalledWith({
+        owner: "test-owner",
+        repo: "test-repo",
+        per_page: 1,
+      });
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stats: expect.objectContaining({
+            latestRelease: "v1.2.3",
+          }),
+        }),
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it("should not fetch releases when fetch-releases is false (default)", async () => {
+      const mockOctokit = createMockOctokit();
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "true",
+          "fetch-releases": "false",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockOctokit.rest.repos.listReleases).not.toHaveBeenCalled();
+    });
+
+    it("should warn but continue when release fetch fails", async () => {
+      const mockOctokit = createMockOctokit({
+        listReleases: vi.fn().mockRejectedValue(new Error("API error")),
+      });
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "true",
+          "fetch-releases": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to fetch latest release")
+      );
+      // Should still complete successfully
+      expect(mockSetFailed).not.toHaveBeenCalled();
+    });
+
+    it("should fetch contributor count when fetch-contributors is true", async () => {
+      const mockOctokit = createMockOctokit();
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "true",
+          "fetch-contributors": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockOctokit.rest.repos.listContributors).toHaveBeenCalledWith({
+        owner: "test-owner",
+        repo: "test-repo",
+        per_page: 1,
+        anon: "false",
+      });
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stats: expect.objectContaining({
+            contributorCount: 42, // From Link header parsing
+          }),
+        }),
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it("should fallback to response data length when no Link header", async () => {
+      const mockOctokit = createMockOctokit({
+        listContributors: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }, { id: 2 }, { id: 3 }],
+          headers: {}, // No Link header
+        }),
+      });
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "true",
+          "fetch-contributors": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stats: expect.objectContaining({
+            contributorCount: 3, // From response.data.length
+          }),
+        }),
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it("should warn but continue when contributor fetch fails", async () => {
+      const mockOctokit = createMockOctokit({
+        listContributors: vi.fn().mockRejectedValue(new Error("API error")),
+      });
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "true",
+          "fetch-contributors": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to fetch contributors")
+      );
+      // Should still complete successfully
+      expect(mockSetFailed).not.toHaveBeenCalled();
+    });
+
+    it("should not fetch contributors when fetch-contributors is false (default)", async () => {
+      const mockOctokit = createMockOctokit();
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "true",
+          "fetch-contributors": "false",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockOctokit.rest.repos.listContributors).not.toHaveBeenCalled();
+    });
+
+    it("should log stats summary with emojis", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(createMockOctokit());
+
+      await runAction();
+
+      // Stats are logged in format: "📊 Stats: ⭐ 1234 | 🍴 567 | 👀 89"
+      expect(mockInfo).toHaveBeenCalledWith(
+        expect.stringContaining("📊 Stats: ⭐ 1234 | 🍴 567 | 👀 89")
+      );
+    });
+
+    it("should handle repo without license", async () => {
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.repos.get = vi.fn().mockResolvedValue({
+        data: {
+          name: "test-repo",
+          full_name: "test-owner/test-repo",
+          description: "Test description",
+          html_url: "https://github.com/test-owner/test-repo",
+          language: "TypeScript",
+          topics: ["testing"],
+          stargazers_count: 100,
+          forks_count: 50,
+          subscribers_count: 25,
+          open_issues_count: 5,
+          created_at: "2024-01-01T00:00:00Z",
+          pushed_at: "2024-12-01T00:00:00Z",
+          license: null, // No license
+        },
+      });
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "show-stats": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stats: expect.objectContaining({
+            stars: 100,
+            license: undefined,
+          }),
+        }),
+        expect.anything(),
+        expect.anything()
       );
     });
   });

@@ -12,6 +12,7 @@ A GitHub Action that automatically generates beautiful, custom landing pages fro
 - **Responsive Design**: Looks great on all devices
 - **Multi-Provider Support**: Works with Anthropic, OpenAI, or Google AI
 - **GitHub Pages Ready**: Output is ready for GitHub Pages deployment
+- **GitHub Statistics**: Display stars, forks, watchers, and more on your site
 
 ## Quick Start
 
@@ -91,6 +92,9 @@ That's it! Push to main and your site will be generated automatically.
 | `site-url` | No | - | Site URL for canonical link and OG URL |
 | `generate-sitemap` | No | `true` | Generate sitemap.xml (requires `site-url`) |
 | `generate-robots` | No | `true` | Generate robots.txt (requires `site-url`) |
+| `show-stats` | No | `true` | Show GitHub statistics (stars, forks, etc.) on the site |
+| `fetch-contributors` | No | `false` | Fetch contributor count (requires additional API call) |
+| `fetch-releases` | No | `false` | Fetch latest release version (requires additional API call) |
 | `github-token` | No | `${{ github.token }}` | GitHub token for API access |
 
 ## Outputs
@@ -225,6 +229,25 @@ GitLyte supports multiple AI providers:
     twitter-handle: "@myproject"
     site-url: https://myproject.github.io/repo
 ```
+
+### With GitHub Statistics
+
+```yaml
+- uses: wadakatu/gitlyte@v1
+  with:
+    api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    show-stats: true
+    fetch-contributors: true
+    fetch-releases: true
+```
+
+This will display a statistics section on your generated site showing:
+- Stars, forks, and watchers count
+- Open issues count
+- License information
+- Latest release version (if `fetch-releases` is enabled)
+- Contributor count (if `fetch-contributors` is enabled)
+- Repository creation and last update dates
 
 ### Create PR Instead of Direct Commit
 
