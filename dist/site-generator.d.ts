@@ -25,6 +25,26 @@ export interface RepoStats {
     /** Number of contributors */
     contributorCount?: number;
 }
+/** GitHub contributor information */
+export interface Contributor {
+    /** GitHub username */
+    login: string;
+    /** Avatar URL */
+    avatarUrl: string;
+    /** Profile URL */
+    profileUrl: string;
+    /** Number of contributions */
+    contributions: number;
+    /** Type of contributor (User or Bot) */
+    type: "User" | "Bot";
+}
+/** Contributors page configuration */
+export interface ContributorsConfig {
+    /** Whether contributors page generation is enabled (default: false) */
+    enabled: boolean;
+    /** Maximum number of contributors to display (default: 50) */
+    maxContributors: number;
+}
 export interface RepoInfo {
     name: string;
     fullName: string;
@@ -35,6 +55,8 @@ export interface RepoInfo {
     readme?: string;
     /** Dynamic GitHub statistics */
     stats?: RepoStats;
+    /** Contributors list for contributors page */
+    contributors?: Contributor[];
 }
 /** Valid theme mode values - single source of truth */
 export declare const THEME_MODES: readonly ["light", "dark", "auto"];
@@ -111,6 +133,8 @@ export interface SiteConfig {
     sitemap?: SitemapConfig;
     /** Robots.txt generation configuration */
     robots?: RobotsConfig;
+    /** Contributors page configuration */
+    contributors?: ContributorsConfig;
 }
 export interface GeneratedPage {
     path: string;
@@ -122,6 +146,13 @@ export interface GeneratedSite {
         path: string;
         content: string;
     }>;
+}
+interface ColorPalette {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
 }
 /**
  * Generate a complete site
@@ -156,3 +187,22 @@ export declare function generateRobots(siteUrl: string, options?: {
     additionalRules?: string[];
     includeSitemap?: boolean;
 }): string;
+/**
+ * Build contributors section for AI prompt
+ */
+export declare function buildContributorsRequirements(contributors: Contributor[], repoInfo: RepoInfo): string;
+/**
+ * Generate contributors page HTML
+ */
+export declare function generateContributorsPage(repoInfo: RepoInfo, contributors: Contributor[], design: {
+    colors: {
+        light: ColorPalette;
+        dark: ColorPalette;
+    };
+    typography: {
+        headingFont: string;
+        bodyFont: string;
+    };
+    layout: string;
+}, config: SiteConfig, aiProvider: AIProviderInstance): Promise<string>;
+export {};

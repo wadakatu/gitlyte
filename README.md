@@ -95,6 +95,8 @@ That's it! Push to main and your site will be generated automatically.
 | `show-stats` | No | `true` | Show GitHub statistics (stars, forks, etc.) on the site |
 | `fetch-contributors` | No | `false` | Fetch contributor count (requires additional API call) |
 | `fetch-releases` | No | `false` | Fetch latest release version (requires additional API call) |
+| `generate-contributors-page` | No | `false` | Generate a dedicated contributors page with avatars and stats |
+| `max-contributors` | No | `50` | Maximum number of contributors to display (1-500) |
 | `github-token` | No | `${{ github.token }}` | GitHub token for API access |
 
 ## Outputs
@@ -142,6 +144,10 @@ Create a `.gitlyte.json` file in your repository root to customize generation:
   "robots": {
     "enabled": true,
     "additionalRules": ["Disallow: /private/"]
+  },
+  "contributors": {
+    "enabled": true,
+    "maxContributors": 50
   }
 }
 ```
@@ -169,6 +175,8 @@ Create a `.gitlyte.json` file in your repository root to customize generation:
 | `sitemap.priority` | number | `0.8` | Priority of URLs (0.0 to 1.0) |
 | `robots.enabled` | boolean | `true` | Enable/disable robots.txt generation |
 | `robots.additionalRules` | string[] | - | Additional rules for robots.txt |
+| `contributors.enabled` | boolean | `false` | Enable/disable contributors page generation |
+| `contributors.maxContributors` | number | `50` | Maximum number of contributors to display (1-500) |
 
 ## AI Providers
 
@@ -248,6 +256,22 @@ This will display a statistics section on your generated site showing:
 - Latest release version (if `fetch-releases` is enabled)
 - Contributor count (if `fetch-contributors` is enabled)
 - Repository creation and last update dates
+
+### With Contributors Page
+
+```yaml
+- uses: wadakatu/gitlyte@v1
+  with:
+    api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    generate-contributors-page: true
+    max-contributors: 100
+```
+
+This will generate a dedicated contributors page (`contributors.html`) showing:
+- Contributor avatars and usernames
+- Number of contributions per contributor
+- Links to contributor GitHub profiles
+- Grid layout with responsive design
 
 ### Create PR Instead of Direct Commit
 

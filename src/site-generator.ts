@@ -31,6 +31,28 @@ export interface RepoStats {
   contributorCount?: number;
 }
 
+/** GitHub contributor information */
+export interface Contributor {
+  /** GitHub username */
+  login: string;
+  /** Avatar URL */
+  avatarUrl: string;
+  /** Profile URL */
+  profileUrl: string;
+  /** Number of contributions */
+  contributions: number;
+  /** Type of contributor (User or Bot) */
+  type: "User" | "Bot";
+}
+
+/** Contributors page configuration */
+export interface ContributorsConfig {
+  /** Whether contributors page generation is enabled (default: false) */
+  enabled: boolean;
+  /** Maximum number of contributors to display (default: 50) */
+  maxContributors: number;
+}
+
 export interface RepoInfo {
   name: string;
   fullName: string;
@@ -41,6 +63,8 @@ export interface RepoInfo {
   readme?: string;
   /** Dynamic GitHub statistics */
   stats?: RepoStats;
+  /** Contributors list for contributors page */
+  contributors?: Contributor[];
 }
 
 /** Valid theme mode values - single source of truth */
@@ -137,6 +161,8 @@ export interface SiteConfig {
   sitemap?: SitemapConfig;
   /** Robots.txt generation configuration */
   robots?: RobotsConfig;
+  /** Contributors page configuration */
+  contributors?: ContributorsConfig;
 }
 
 export interface GeneratedPage {
@@ -248,7 +274,43 @@ export async function generateSite(
   const generated: string[] = ["index.html"];
   const skipped: string[] = [];
 
-  // Step 5: Generate sitemap.xml (if enabled and siteUrl is set)
+  // Step 5: Generate contributors page (if enabled and contributors data is available)
+  const contributorsEnabled = config.contributors?.enabled === true;
+  const hasContributors =
+    repoInfo.contributors && repoInfo.contributors.length > 0;
+
+  if (contributorsEnabled) {
+    if (hasContributors && repoInfo.contributors) {
+      core.info("Generating contributors page...");
+      try {
+        const contributorsHtml = await generateContributorsPage(
+          repoInfo,
+          repoInfo.contributors,
+          design,
+          config,
+          aiProvider
+        );
+        pages.push({ path: "contributors.html", html: contributorsHtml });
+        generated.push("contributors.html");
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        core.warning(
+          `Failed to generate contributors page: ${errorMessage}. ` +
+            "Site will be generated without contributors page."
+        );
+        skipped.push("contributors.html (generation failed)");
+      }
+    } else {
+      core.info(
+        "Contributors page skipped: no contributors data available. " +
+          "This may be because the repository has no contributors or the API call failed."
+      );
+      skipped.push("contributors.html (no data)");
+    }
+  }
+
+  // Step 6: Generate sitemap.xml (if enabled and siteUrl is set)
   const sitemapEnabled = config.sitemap?.enabled !== false;
   const robotsEnabled = config.robots?.enabled !== false;
   const siteUrl = config.seo?.siteUrl;
@@ -912,4 +974,155 @@ export function generateRobots(
   rules.push(...validAdditionalRules);
 
   return rules.join("\n");
+}
+
+/**
+ * Build contributors section for AI prompt
+ */
+export function buildContributorsRequirements(
+  contributors: Contributor[],
+  repoInfo: RepoInfo
+): string {
+  const contributorsList = contributors
+    .slice(0, 10) // Only include top 10 for prompt context
+    .map(
+      (c, i) =>
+        `${i + 1}. ${c.login} (${c.contributions} contributions) - ${c.avatarUrl}`
+    )
+    .join("\n");
+
+  return `CONTRIBUTORS DATA:
+Total contributors: ${contributors.length}
+Repository: ${repoInfo.name}
+
+Top contributors:
+${contributorsList}
+
+All contributor data will be embedded in the HTML as a data attribute for the full list.`;
+}
+
+/**
+ * Generate contributors page HTML
+ */
+export async function generateContributorsPage(
+  repoInfo: RepoInfo,
+  contributors: Contributor[],
+  design: {
+    colors: { light: ColorPalette; dark: ColorPalette };
+    typography: { headingFont: string; bodyFont: string };
+    layout: string;
+  },
+  config: SiteConfig,
+  aiProvider: AIProviderInstance
+): Promise<string> {
+  // Build theme-specific prompt based on toggle setting
+  const themePrompt = config.theme.toggle
+    ? buildDarkModeTogglePrompt(design, config.theme.mode)
+    : buildSingleThemePrompt(design, config.theme.mode);
+
+  // Build SEO requirements for contributors page
+  const seoRequirements = config.seo
+    ? `SEO REQUIREMENTS:
+- Page title: "Contributors - ${repoInfo.name}"
+- Meta description: "Meet the contributors who build and maintain ${repoInfo.name}"
+${config.seo.siteUrl ? `- Canonical URL: ${config.seo.siteUrl}/contributors` : ""}
+`
+    : "";
+
+  // Build contributors data for prompt
+  const contributorsPrompt = buildContributorsRequirements(
+    contributors,
+    repoInfo
+  );
+
+  const prompt = `Generate a beautiful contributors page HTML for this project.
+
+PROJECT INFO:
+- Name: ${repoInfo.name}
+- Description: ${repoInfo.description || "A software project"}
+- GitHub URL: ${repoInfo.htmlUrl}
+
+${contributorsPrompt}
+
+${themePrompt}
+
+${seoRequirements}
+
+DESIGN REQUIREMENTS:
+1. Use Tailwind CSS classes only (loaded via CDN)
+2. Create a responsive grid of contributor cards
+3. Each contributor card should include:
+   - Avatar image (use the avatarUrl from data)
+   - Username (login) with link to profileUrl
+   - Contribution count
+4. Add a navigation header with:
+   - Project name/logo linking to index.html
+   - "Back to Home" button
+5. Include a hero section with title "Contributors" and total count
+6. Make it responsive (mobile-first): 1 column on mobile, 2 on tablet, 3-4 on desktop
+7. Use modern design patterns matching the main site
+8. Include smooth hover effects on contributor cards
+9. Add a footer with GitHub link
+
+CONTRIBUTOR DATA TO EMBED:
+Generate the page with all ${contributors.length} contributors embedded directly in the HTML.
+Use this exact data for each contributor:
+${JSON.stringify(
+  contributors.map((c) => ({
+    login: c.login,
+    avatarUrl: c.avatarUrl,
+    profileUrl: c.profileUrl,
+    contributions: c.contributions,
+  })),
+  null,
+  2
+)}
+
+OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOCTYPE html>.`;
+
+  const result = await aiProvider.generateText({
+    prompt,
+    temperature: 0.7,
+  });
+
+  let html = cleanHtmlResponse(result.text);
+
+  // Validate that we got valid HTML
+  if (!html || html.length < 100) {
+    throw new Error(
+      "Contributors page generation failed: AI returned empty or invalid response. " +
+        `Response length: ${html?.length ?? 0} characters.`
+    );
+  }
+
+  if (!html.includes("<!DOCTYPE html>") && !html.includes("<html")) {
+    core.warning(
+      "Generated contributors HTML may be malformed: missing DOCTYPE or html tag. " +
+        `Response preview: ${html.slice(0, 100)}...`
+    );
+  }
+
+  // Repair incomplete HTML with warnings
+  if (!html.includes("</html>")) {
+    core.warning(
+      "Generated contributors HTML was incomplete, adding missing closing tags."
+    );
+    html = `${html}\n</body>\n</html>`;
+  }
+
+  // Ensure Tailwind CDN is included
+  if (!html.includes("tailwindcss")) {
+    if (html.includes("</head>")) {
+      html = html.replace(
+        "</head>",
+        `  <script src="https://cdn.tailwindcss.com"></script>\n  </head>`
+      );
+    } else {
+      core.warning(
+        "Generated contributors HTML missing </head> tag, cannot inject Tailwind CDN."
+      );
+    }
+  }
+
+  return html;
 }

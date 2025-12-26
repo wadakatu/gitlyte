@@ -2938,4 +2938,387 @@ describe("GitHub Action Entry Point", () => {
       );
     });
   });
+
+  describe("Contributors page generation", () => {
+    it("should fetch contributors when generate-contributors-page is true", async () => {
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.repos.listContributors = vi.fn().mockResolvedValue({
+        data: [
+          {
+            login: "user1",
+            avatar_url: "https://avatars.githubusercontent.com/user1",
+            html_url: "https://github.com/user1",
+            contributions: 150,
+            type: "User",
+          },
+          {
+            login: "user2",
+            avatar_url: "https://avatars.githubusercontent.com/user2",
+            html_url: "https://github.com/user2",
+            contributions: 75,
+            type: "User",
+          },
+        ],
+        headers: {},
+      });
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+          "max-contributors": "50",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockOctokit.rest.repos.listContributors).toHaveBeenCalled();
+      expect(mockInfo).toHaveBeenCalledWith(
+        expect.stringContaining("Fetching contributors")
+      );
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contributors: expect.arrayContaining([
+            expect.objectContaining({
+              login: "user1",
+              contributions: 150,
+            }),
+          ]),
+        }),
+        expect.anything(),
+        expect.objectContaining({
+          contributors: expect.objectContaining({
+            enabled: true,
+            maxContributors: 50,
+          }),
+        })
+      );
+    });
+
+    it("should not fetch contributors when generate-contributors-page is false (default)", async () => {
+      const mockOctokit = createMockOctokit();
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "false",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      // Should not log the contributors fetching message
+      expect(mockInfo).not.toHaveBeenCalledWith(
+        expect.stringContaining("Fetching contributors for contributors page")
+      );
+    });
+
+    it("should filter out bots from contributors list", async () => {
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.repos.listContributors = vi.fn().mockResolvedValue({
+        data: [
+          {
+            login: "user1",
+            avatar_url: "https://avatars.githubusercontent.com/user1",
+            html_url: "https://github.com/user1",
+            contributions: 150,
+            type: "User",
+          },
+          {
+            login: "dependabot[bot]",
+            avatar_url: "https://avatars.githubusercontent.com/bot",
+            html_url: "https://github.com/dependabot",
+            contributions: 50,
+            type: "Bot",
+          },
+        ],
+        headers: {},
+      });
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contributors: expect.arrayContaining([
+            expect.objectContaining({ login: "user1" }),
+          ]),
+        }),
+        expect.anything(),
+        expect.anything()
+      );
+
+      // Verify the bot is not included
+      const callArgs = mockGenerateSite.mock.calls[0][0];
+      expect(callArgs.contributors).toHaveLength(1);
+      expect(callArgs.contributors[0].login).toBe("user1");
+    });
+
+    it("should respect max-contributors limit", async () => {
+      const mockOctokit = createMockOctokit();
+      const manyContributors = Array.from({ length: 10 }, (_, i) => ({
+        login: `user${i + 1}`,
+        avatar_url: `https://avatars.githubusercontent.com/user${i + 1}`,
+        html_url: `https://github.com/user${i + 1}`,
+        contributions: 100 - i,
+        type: "User",
+      }));
+
+      mockOctokit.rest.repos.listContributors = vi.fn().mockResolvedValue({
+        data: manyContributors,
+        headers: {},
+      });
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+          "max-contributors": "5",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      const callArgs = mockGenerateSite.mock.calls[0][0];
+      expect(callArgs.contributors).toHaveLength(5);
+    });
+
+    it("should handle invalid max-contributors value", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+          "max-contributors": "invalid",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(createMockOctokit());
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid max-contributors")
+      );
+    });
+
+    it("should handle max-contributors exceeding limit", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+          "max-contributors": "1000",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(createMockOctokit());
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Maximum allowed is 500")
+      );
+    });
+
+    it("should handle API error when fetching contributors", async () => {
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.repos.listContributors = vi
+        .fn()
+        .mockRejectedValue(new Error("API rate limit exceeded"));
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to fetch contributors")
+      );
+      // Should still generate site without contributors
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contributors: undefined,
+        }),
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it("should handle 404 error when fetching contributors", async () => {
+      const mockOctokit = createMockOctokit();
+      const error = new Error("Not found") as Error & { status: number };
+      error.status = 404;
+      mockOctokit.rest.repos.listContributors = vi.fn().mockRejectedValue(error);
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockInfo).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "No contributor information available for contributors page"
+        )
+      );
+    });
+
+    it("should merge contributors config from .gitlyte.json", async () => {
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.repos.listContributors = vi.fn().mockResolvedValue({
+        data: [
+          {
+            login: "user1",
+            avatar_url: "https://avatars.githubusercontent.com/user1",
+            html_url: "https://github.com/user1",
+            contributions: 100,
+            type: "User",
+          },
+        ],
+        headers: {},
+      });
+
+      mockOctokit.rest.repos.getContent = vi.fn().mockImplementation(
+        async ({ path }: { path: string }) => {
+          if (path === ".gitlyte.json") {
+            return {
+              data: {
+                content: Buffer.from(
+                  JSON.stringify({
+                    contributors: {
+                      enabled: true,
+                      maxContributors: 25,
+                    },
+                  })
+                ).toString("base64"),
+              },
+            };
+          }
+          throw { status: 404 };
+        }
+      );
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          // Not explicitly setting generate-contributors-page, should use config file
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          contributors: expect.objectContaining({
+            enabled: true,
+            maxContributors: 25,
+          }),
+        })
+      );
+    });
+
+    it("should reject invalid contributors config in .gitlyte.json", async () => {
+      const mockOctokit = createMockOctokit();
+
+      mockOctokit.rest.repos.getContent = vi.fn().mockImplementation(
+        async ({ path }: { path: string }) => {
+          if (path === ".gitlyte.json") {
+            return {
+              data: {
+                content: Buffer.from(
+                  JSON.stringify({
+                    contributors: {
+                      enabled: "not-a-boolean", // Invalid type
+                    },
+                  })
+                ).toString("base64"),
+              },
+            };
+          }
+          throw { status: 404 };
+        }
+      );
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid contributors config")
+      );
+    });
+  });
 });

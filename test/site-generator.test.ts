@@ -5,6 +5,8 @@ import {
   generateRobots,
   formatCount,
   formatRelativeDate,
+  buildContributorsRequirements,
+  generateContributorsPage,
   THEME_MODES,
   SITEMAP_CHANGEFREQ,
   isValidThemeMode,
@@ -13,6 +15,7 @@ import {
   type SiteConfig,
   type GeneratedSite,
   type GeneratedPage,
+  type Contributor,
 } from "../src/site-generator.js";
 import type { AIProviderInstance } from "../src/ai-provider.js";
 import { selfRefine } from "../src/self-refine.js";
@@ -2017,6 +2020,390 @@ describe("Site Generator", () => {
       expect(htmlPrompt).toContain("Stars: 0");
       expect(htmlPrompt).toContain("Forks: 0");
       expect(htmlPrompt).toContain("Watchers: 0");
+    });
+  });
+
+  describe("Contributors page generation", () => {
+    const sampleContributors: Contributor[] = [
+      {
+        login: "user1",
+        avatarUrl: "https://avatars.githubusercontent.com/user1",
+        profileUrl: "https://github.com/user1",
+        contributions: 150,
+        type: "User",
+      },
+      {
+        login: "user2",
+        avatarUrl: "https://avatars.githubusercontent.com/user2",
+        profileUrl: "https://github.com/user2",
+        contributions: 75,
+        type: "User",
+      },
+      {
+        login: "user3",
+        avatarUrl: "https://avatars.githubusercontent.com/user3",
+        profileUrl: "https://github.com/user3",
+        contributions: 30,
+        type: "User",
+      },
+    ];
+
+    const VALID_CONTRIBUTORS_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Contributors - Test Repo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <h1>Contributors</h1>
+  <div class="grid">
+    <div class="contributor-card">user1</div>
+    <div class="contributor-card">user2</div>
+    <div class="contributor-card">user3</div>
+  </div>
+</body>
+</html>`;
+
+    describe("buildContributorsRequirements", () => {
+      it("should build requirements string with contributor data", () => {
+        const requirements = buildContributorsRequirements(
+          sampleContributors,
+          defaultRepoInfo
+        );
+
+        expect(requirements).toContain("CONTRIBUTORS DATA:");
+        expect(requirements).toContain("Total contributors: 3");
+        expect(requirements).toContain("Repository: test-repo");
+        expect(requirements).toContain("user1 (150 contributions)");
+        expect(requirements).toContain("user2 (75 contributions)");
+        expect(requirements).toContain("user3 (30 contributions)");
+      });
+
+      it("should limit top contributors to 10 in prompt", () => {
+        const manyContributors: Contributor[] = Array.from(
+          { length: 15 },
+          (_, i) => ({
+            login: `user${i + 1}`,
+            avatarUrl: `https://avatars.githubusercontent.com/user${i + 1}`,
+            profileUrl: `https://github.com/user${i + 1}`,
+            contributions: 100 - i,
+            type: "User" as const,
+          })
+        );
+
+        const requirements = buildContributorsRequirements(
+          manyContributors,
+          defaultRepoInfo
+        );
+
+        expect(requirements).toContain("Total contributors: 15");
+        expect(requirements).toContain("user1");
+        expect(requirements).toContain("user10");
+        expect(requirements).not.toContain("user11");
+        expect(requirements).not.toContain("user15");
+      });
+
+      it("should handle empty contributors array", () => {
+        const requirements = buildContributorsRequirements([], defaultRepoInfo);
+
+        expect(requirements).toContain("Total contributors: 0");
+      });
+    });
+
+    describe("generateContributorsPage", () => {
+      it("should generate valid HTML for contributors page", async () => {
+        const mockProvider = createMockAIProvider({
+          contributors: VALID_CONTRIBUTORS_HTML,
+        });
+
+        const design = {
+          colors: {
+            light: {
+              primary: "blue-600",
+              secondary: "indigo-600",
+              accent: "purple-500",
+              background: "white",
+              text: "gray-900",
+            },
+            dark: {
+              primary: "blue-400",
+              secondary: "indigo-400",
+              accent: "purple-400",
+              background: "gray-950",
+              text: "gray-50",
+            },
+          },
+          typography: {
+            headingFont: "Inter",
+            bodyFont: "Inter",
+          },
+          layout: "hero-centered",
+        };
+
+        const html = await generateContributorsPage(
+          defaultRepoInfo,
+          sampleContributors,
+          design,
+          defaultConfig,
+          mockProvider
+        );
+
+        expect(html).toContain("<!DOCTYPE html>");
+        expect(html).toContain("Contributors");
+        expect(html).toContain("tailwindcss");
+      });
+
+      it("should include all contributors in prompt", async () => {
+        const mockProvider = createMockAIProvider({
+          contributors: VALID_CONTRIBUTORS_HTML,
+        });
+
+        const design = {
+          colors: {
+            light: {
+              primary: "blue-600",
+              secondary: "indigo-600",
+              accent: "purple-500",
+              background: "white",
+              text: "gray-900",
+            },
+            dark: {
+              primary: "blue-400",
+              secondary: "indigo-400",
+              accent: "purple-400",
+              background: "gray-950",
+              text: "gray-50",
+            },
+          },
+          typography: {
+            headingFont: "Inter",
+            bodyFont: "Inter",
+          },
+          layout: "hero-centered",
+        };
+
+        await generateContributorsPage(
+          defaultRepoInfo,
+          sampleContributors,
+          design,
+          defaultConfig,
+          mockProvider
+        );
+
+        const calls = vi.mocked(mockProvider.generateText).mock.calls;
+        const prompt = calls[0][0].prompt;
+        expect(prompt).toContain("user1");
+        expect(prompt).toContain("user2");
+        expect(prompt).toContain("user3");
+        expect(prompt).toContain("150"); // contributions
+      });
+
+      it("should inject Tailwind CDN if missing", async () => {
+        const htmlWithoutTailwind = `<!DOCTYPE html>
+<html>
+<head><title>Contributors</title></head>
+<body>Contributors page</body>
+</html>`;
+
+        const mockProvider = createMockAIProvider({
+          contributors: htmlWithoutTailwind,
+        });
+
+        const design = {
+          colors: {
+            light: {
+              primary: "blue-600",
+              secondary: "indigo-600",
+              accent: "purple-500",
+              background: "white",
+              text: "gray-900",
+            },
+            dark: {
+              primary: "blue-400",
+              secondary: "indigo-400",
+              accent: "purple-400",
+              background: "gray-950",
+              text: "gray-50",
+            },
+          },
+          typography: {
+            headingFont: "Inter",
+            bodyFont: "Inter",
+          },
+          layout: "hero-centered",
+        };
+
+        const html = await generateContributorsPage(
+          defaultRepoInfo,
+          sampleContributors,
+          design,
+          defaultConfig,
+          mockProvider
+        );
+
+        expect(html).toContain("tailwindcss");
+      });
+
+      it("should throw error for empty AI response", async () => {
+        const mockProvider = createMockAIProvider({
+          contributors: "",
+        });
+
+        const design = {
+          colors: {
+            light: {
+              primary: "blue-600",
+              secondary: "indigo-600",
+              accent: "purple-500",
+              background: "white",
+              text: "gray-900",
+            },
+            dark: {
+              primary: "blue-400",
+              secondary: "indigo-400",
+              accent: "purple-400",
+              background: "gray-950",
+              text: "gray-50",
+            },
+          },
+          typography: {
+            headingFont: "Inter",
+            bodyFont: "Inter",
+          },
+          layout: "hero-centered",
+        };
+
+        await expect(
+          generateContributorsPage(
+            defaultRepoInfo,
+            sampleContributors,
+            design,
+            defaultConfig,
+            mockProvider
+          )
+        ).rejects.toThrow("Contributors page generation failed");
+      });
+    });
+
+    describe("generateSite with contributors", () => {
+      it("should generate contributors page when enabled and contributors provided", async () => {
+        const mockProvider = createMockAIProvider({
+          analysis: VALID_ANALYSIS_RESPONSE,
+          design: VALID_DESIGN_RESPONSE,
+          html: VALID_HTML_RESPONSE,
+          contributors: VALID_CONTRIBUTORS_HTML,
+        });
+
+        const configWithContributors: SiteConfig = {
+          ...defaultConfig,
+          contributors: {
+            enabled: true,
+            maxContributors: 50,
+          },
+        };
+
+        const repoInfoWithContributors: RepoInfo = {
+          ...defaultRepoInfo,
+          contributors: sampleContributors,
+        };
+
+        const result = await generateSite(
+          repoInfoWithContributors,
+          mockProvider,
+          configWithContributors
+        );
+
+        expect(result.pages).toHaveLength(2);
+        expect(result.pages.map((p) => p.path)).toContain("index.html");
+        expect(result.pages.map((p) => p.path)).toContain("contributors.html");
+      });
+
+      it("should skip contributors page when disabled", async () => {
+        const mockProvider = createMockAIProvider({
+          analysis: VALID_ANALYSIS_RESPONSE,
+          design: VALID_DESIGN_RESPONSE,
+          html: VALID_HTML_RESPONSE,
+        });
+
+        const configWithoutContributors: SiteConfig = {
+          ...defaultConfig,
+          contributors: {
+            enabled: false,
+            maxContributors: 50,
+          },
+        };
+
+        const repoInfoWithContributors: RepoInfo = {
+          ...defaultRepoInfo,
+          contributors: sampleContributors,
+        };
+
+        const result = await generateSite(
+          repoInfoWithContributors,
+          mockProvider,
+          configWithoutContributors
+        );
+
+        expect(result.pages).toHaveLength(1);
+        expect(result.pages[0].path).toBe("index.html");
+      });
+
+      it("should skip contributors page when no contributors data", async () => {
+        const mockProvider = createMockAIProvider({
+          analysis: VALID_ANALYSIS_RESPONSE,
+          design: VALID_DESIGN_RESPONSE,
+          html: VALID_HTML_RESPONSE,
+        });
+
+        const configWithContributors: SiteConfig = {
+          ...defaultConfig,
+          contributors: {
+            enabled: true,
+            maxContributors: 50,
+          },
+        };
+
+        // No contributors in repoInfo
+        const result = await generateSite(
+          defaultRepoInfo,
+          mockProvider,
+          configWithContributors
+        );
+
+        expect(result.pages).toHaveLength(1);
+        expect(result.pages[0].path).toBe("index.html");
+      });
+
+      it("should skip contributors page when contributors array is empty", async () => {
+        const mockProvider = createMockAIProvider({
+          analysis: VALID_ANALYSIS_RESPONSE,
+          design: VALID_DESIGN_RESPONSE,
+          html: VALID_HTML_RESPONSE,
+        });
+
+        const configWithContributors: SiteConfig = {
+          ...defaultConfig,
+          contributors: {
+            enabled: true,
+            maxContributors: 50,
+          },
+        };
+
+        const repoInfoWithEmptyContributors: RepoInfo = {
+          ...defaultRepoInfo,
+          contributors: [],
+        };
+
+        const result = await generateSite(
+          repoInfoWithEmptyContributors,
+          mockProvider,
+          configWithContributors
+        );
+
+        expect(result.pages).toHaveLength(1);
+        expect(result.pages[0].path).toBe("index.html");
+      });
     });
   });
 });

@@ -73,6 +73,14 @@ inputs:
     description: 'Fetch latest release version (requires additional API call)'
     required: false
     default: 'false'
+  generate-contributors-page:
+    description: 'Generate a dedicated contributors page with contributor avatars and stats'
+    required: false
+    default: 'false'
+  max-contributors:
+    description: 'Maximum number of contributors to display on the contributors page (default: 50)'
+    required: false
+    default: '50'
   github-token:
     description: 'GitHub token for API access (defaults to automatic workflow token)'
     required: false
