@@ -1059,7 +1059,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Logo file not found: missing-logo.svg"
+        "⚠️ Logo file not found: missing-logo.svg. Site will be generated without a logo."
       );
     });
 
@@ -1076,7 +1076,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Favicon file not found: missing-favicon.ico"
+        "⚠️ Favicon file not found: missing-favicon.ico. Site will use browser default icon."
       );
     });
 
@@ -1317,7 +1317,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Access denied to logo file: private/logo.svg"
+        "⚠️ Access denied to logo file: private/logo.svg. Site will be generated without a logo."
       );
     });
 
@@ -1360,7 +1360,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Authentication failed for favicon file: protected/favicon.ico"
+        "⚠️ Authentication failed for favicon file: protected/favicon.ico. Site will use browser default icon."
       );
     });
 
@@ -1403,7 +1403,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Access denied to favicon file: private/favicon.ico"
+        "⚠️ Access denied to favicon file: private/favicon.ico. Site will use browser default icon."
       );
     });
 
@@ -1446,7 +1446,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Failed to fetch favicon: Network timeout"
+        "⚠️ Failed to fetch favicon: Network timeout. Site will use browser default icon."
       );
     });
 
@@ -1489,7 +1489,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Failed to fetch logo: Connection refused"
+        "⚠️ Failed to fetch logo: Connection refused. Site will be generated without a logo."
       );
     });
 
@@ -1538,7 +1538,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        '⚠️ Logo file "assets/logo.svg" is not a file or has unexpected format'
+        '⚠️ Logo file "assets/logo.svg" is not a file or has unexpected format. Site will be generated without a logo.'
       );
     });
 
@@ -1587,7 +1587,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        '⚠️ Favicon file "assets/favicon.ico" is not a file or has unexpected format'
+        '⚠️ Favicon file "assets/favicon.ico" is not a file or has unexpected format. Site will use browser default icon.'
       );
     });
 
@@ -1872,7 +1872,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Access denied to logo file (from config): private/logo.svg"
+        "⚠️ Access denied to logo file (from config): private/logo.svg. Site will be generated without a logo."
       );
     });
 
@@ -1917,7 +1917,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Authentication failed for logo file (from config): auth/logo.svg"
+        "⚠️ Authentication failed for logo file (from config): auth/logo.svg. Site will be generated without a logo."
       );
     });
 
@@ -1962,7 +1962,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Access denied to favicon file (from config): private/favicon.ico"
+        "⚠️ Access denied to favicon file (from config): private/favicon.ico. Site will use browser default icon."
       );
     });
 
@@ -2007,7 +2007,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Authentication failed for favicon file (from config): auth/favicon.ico"
+        "⚠️ Authentication failed for favicon file (from config): auth/favicon.ico. Site will use browser default icon."
       );
     });
 
@@ -2058,7 +2058,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        '⚠️ Favicon file "assets/favicon.ico" from config is not a file or has unexpected format'
+        '⚠️ Favicon file "assets/favicon.ico" from config is not a file or has unexpected format. Site will use browser default icon.'
       );
     });
 
@@ -2109,7 +2109,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        '⚠️ Logo file "assets/logo.svg" from config is not a file or has unexpected format'
+        '⚠️ Logo file "assets/logo.svg" from config is not a file or has unexpected format. Site will be generated without a logo.'
       );
     });
 
@@ -2154,7 +2154,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Failed to fetch logo from config: Network error"
+        "⚠️ Failed to fetch logo from config: Network error. Site will be generated without a logo."
       );
     });
 
@@ -2199,7 +2199,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Failed to fetch favicon from config: Connection timeout"
+        "⚠️ Failed to fetch favicon from config: Connection timeout. Site will use browser default icon."
       );
     });
 
@@ -2244,7 +2244,7 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Logo file not found (from config): missing/logo.svg"
+        "⚠️ Logo file not found (from config): missing/logo.svg. Site will be generated without a logo."
       );
     });
 
@@ -2289,7 +2289,310 @@ describe("GitHub Action Entry Point", () => {
       await runAction();
 
       expect(mockWarning).toHaveBeenCalledWith(
-        "⚠️ Favicon file not found (from config): missing/favicon.ico"
+        "⚠️ Favicon file not found (from config): missing/favicon.ico. Site will use browser default icon."
+      );
+    });
+  });
+
+  describe("SEO Input Validation", () => {
+    it("should fail when site-url is invalid", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "site-url") return "not-a-valid-url";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid site-url")
+      );
+    });
+
+    it("should fail when site-url is not http/https", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "site-url") return "ftp://example.com";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid site-url")
+      );
+    });
+
+    it("should accept valid https site-url", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "site-url") return "https://example.com/my-project";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).not.toHaveBeenCalled();
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          seo: expect.objectContaining({
+            siteUrl: "https://example.com/my-project",
+          }),
+        })
+      );
+    });
+
+    it("should accept valid http site-url", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "site-url") return "http://localhost:3000";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).not.toHaveBeenCalled();
+    });
+
+    it("should fail when twitter-handle is invalid", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "twitter-handle") return "@invalid-handle!"; // Contains invalid character
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid twitter-handle")
+      );
+    });
+
+    it("should fail when twitter-handle is too long", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "twitter-handle") return "@thisisaverylonghandle"; // > 15 chars
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid twitter-handle")
+      );
+    });
+
+    it("should accept valid twitter-handle with @", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "twitter-handle") return "@myhandle";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).not.toHaveBeenCalled();
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          seo: expect.objectContaining({
+            twitterHandle: "@myhandle",
+          }),
+        })
+      );
+    });
+
+    it("should accept valid twitter-handle without @", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "twitter-handle") return "myhandle";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).not.toHaveBeenCalled();
+    });
+
+    it("should accept twitter-handle with underscores and numbers", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "twitter-handle") return "@user_name123";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockSetFailed).not.toHaveBeenCalled();
+    });
+
+    it("should pass SEO inputs to generateSite", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "seo-title") return "My Custom Title";
+        if (name === "seo-description") return "My custom description";
+        if (name === "twitter-handle") return "@myhandle";
+        if (name === "site-url") return "https://example.com";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          seo: {
+            title: "My Custom Title",
+            description: "My custom description",
+            ogImage: undefined,
+            twitterHandle: "@myhandle",
+            siteUrl: "https://example.com",
+          },
+        })
+      );
+    });
+
+    it("should log when SEO settings are provided", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "seo-title") return "My Title";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockInfo).toHaveBeenCalledWith("🔍 SEO settings provided");
+    });
+
+    it("should fail on invalid SEO config in .gitlyte.json", async () => {
+      const invalidConfig = {
+        seo: {
+          siteUrl: "not-a-url", // Invalid URL
+        },
+      };
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(invalidConfig)).toString("base64"),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid seo config in .gitlyte.json")
+      );
+    });
+
+    it("should fail on invalid Twitter handle in .gitlyte.json", async () => {
+      const invalidConfig = {
+        seo: {
+          twitterHandle: "@invalid-handle!", // Invalid characters
+        },
+      };
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(invalidConfig)).toString("base64"),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid seo config in .gitlyte.json")
+      );
+    });
+
+    it("should merge action input SEO with config file SEO", async () => {
+      const configWithSeo = {
+        seo: {
+          title: "Config Title",
+          description: "Config description",
+          keywords: ["keyword1", "keyword2"],
+          siteUrl: "https://config-url.com",
+        },
+      };
+
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "seo-title") return "Action Title"; // Override config title
+        if (name === "twitter-handle") return "@myhandle"; // Add new field
+        return "";
+      });
+
+      mockGetOctokit.mockReturnValue(
+        createMockOctokit({
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from(JSON.stringify(configWithSeo)).toString("base64"),
+            },
+          }),
+        })
+      );
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          seo: expect.objectContaining({
+            title: "Action Title", // From action input (overrides config)
+            description: "Config description", // From config file
+            keywords: ["keyword1", "keyword2"], // From config file
+            twitterHandle: "@myhandle", // From action input
+            siteUrl: "https://config-url.com", // From config file
+          }),
+        })
       );
     });
   });

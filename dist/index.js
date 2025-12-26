@@ -35352,8 +35352,17 @@ function buildSeoRequirements(repoInfo, config) {
         ? seo.keywords.join(", ")
         : repoInfo.topics?.join(", ") || "";
     const ogUrl = seo.siteUrl || repoInfo.htmlUrl;
-    const ogImage = seo.ogImage?.path || "";
-    const twitterHandle = seo.twitterHandle || "";
+    // OGP requires absolute URL - combine with siteUrl if available
+    const ogImagePath = seo.ogImage?.path || "";
+    const ogImage = ogImagePath && seo.siteUrl
+        ? `${seo.siteUrl.replace(/\/$/, "")}/${ogImagePath}`
+        : ogImagePath;
+    // Normalize Twitter handle to ensure @ prefix
+    const twitterHandle = seo.twitterHandle
+        ? seo.twitterHandle.startsWith("@")
+            ? seo.twitterHandle
+            : `@${seo.twitterHandle}`
+        : "";
     const canonical = seo.siteUrl || "";
     return `SEO AND OPEN GRAPH REQUIREMENTS:
 Generate these meta tags in the <head> section:
@@ -81095,6 +81104,28 @@ function isValidFaviconConfig(value) {
     return true;
 }
 /**
+ * Validate URL format (must be http or https)
+ */
+function isValidUrl(value) {
+    try {
+        const url = new URL(value);
+        return url.protocol === "http:" || url.protocol === "https:";
+    }
+    catch {
+        return false;
+    }
+}
+/**
+ * Validate Twitter handle format
+ * Valid format: optional @ followed by 1-15 alphanumeric characters or underscores
+ */
+function isValidTwitterHandle(value) {
+    // Remove @ if present, then validate the username part
+    const handle = value.startsWith("@") ? value.slice(1) : value;
+    // Twitter usernames: 1-15 chars, alphanumeric and underscores only
+    return /^[A-Za-z0-9_]{1,15}$/.test(handle);
+}
+/**
  * Validate SEO config structure from .gitlyte.json
  */
 function isValidSeoConfig(value) {
@@ -81108,12 +81139,21 @@ function isValidSeoConfig(value) {
     if (obj.description !== undefined && typeof obj.description !== "string") {
         return false;
     }
-    if (obj.twitterHandle !== undefined &&
-        typeof obj.twitterHandle !== "string") {
-        return false;
+    if (obj.twitterHandle !== undefined) {
+        if (typeof obj.twitterHandle !== "string") {
+            return false;
+        }
+        if (!isValidTwitterHandle(obj.twitterHandle)) {
+            return false;
+        }
     }
-    if (obj.siteUrl !== undefined && typeof obj.siteUrl !== "string") {
-        return false;
+    if (obj.siteUrl !== undefined) {
+        if (typeof obj.siteUrl !== "string") {
+            return false;
+        }
+        if (!isValidUrl(obj.siteUrl)) {
+            return false;
+        }
     }
     if (obj.keywords !== undefined) {
         if (!Array.isArray(obj.keywords)) {
@@ -81174,6 +81214,13 @@ async function run() {
             throw new Error(`Invalid theme-mode: ${themeModeRaw}. Must be one of: ${THEME_MODES.join(", ")}`);
         }
         const themeMode = themeModeRaw;
+        // Validate SEO inputs
+        if (siteUrlInput && !isValidUrl(siteUrlInput)) {
+            throw new Error(`Invalid site-url: ${siteUrlInput}. Must be a valid URL starting with http:// or https://`);
+        }
+        if (twitterHandleInput && !isValidTwitterHandle(twitterHandleInput)) {
+            throw new Error(`Invalid twitter-handle: ${twitterHandleInput}. Must be 1-15 characters (letters, numbers, underscores only)`);
+        }
         // Validate GitHub token
         const githubToken = core.getInput("github-token") || process.env.GITHUB_TOKEN;
         if (!githubToken) {
@@ -81239,23 +81286,23 @@ async function run() {
                     core.info(`✅ Logo fetched: ${logoPathInput}`);
                 }
                 else {
-                    core.warning(`⚠️ Logo file "${logoPathInput}" is not a file or has unexpected format`);
+                    core.warning(`⚠️ Logo file "${logoPathInput}" is not a file or has unexpected format. Site will be generated without a logo.`);
                 }
             }
             catch (error) {
                 const status = error.status;
                 if (status === 404) {
-                    core.warning(`⚠️ Logo file not found: ${logoPathInput}`);
+                    core.warning(`⚠️ Logo file not found: ${logoPathInput}. Site will be generated without a logo.`);
                 }
                 else if (status === 403) {
-                    core.warning(`⚠️ Access denied to logo file: ${logoPathInput}`);
+                    core.warning(`⚠️ Access denied to logo file: ${logoPathInput}. Site will be generated without a logo.`);
                 }
                 else if (status === 401) {
-                    core.warning(`⚠️ Authentication failed for logo file: ${logoPathInput}`);
+                    core.warning(`⚠️ Authentication failed for logo file: ${logoPathInput}. Site will be generated without a logo.`);
                 }
                 else {
                     const errorMessage = error instanceof Error ? error.message : String(error);
-                    core.warning(`⚠️ Failed to fetch logo: ${errorMessage}`);
+                    core.warning(`⚠️ Failed to fetch logo: ${errorMessage}. Site will be generated without a logo.`);
                 }
             }
         }
@@ -81273,23 +81320,23 @@ async function run() {
                     core.info(`✅ Favicon fetched: ${faviconPathInput}`);
                 }
                 else {
-                    core.warning(`⚠️ Favicon file "${faviconPathInput}" is not a file or has unexpected format`);
+                    core.warning(`⚠️ Favicon file "${faviconPathInput}" is not a file or has unexpected format. Site will use browser default icon.`);
                 }
             }
             catch (error) {
                 const status = error.status;
                 if (status === 404) {
-                    core.warning(`⚠️ Favicon file not found: ${faviconPathInput}`);
+                    core.warning(`⚠️ Favicon file not found: ${faviconPathInput}. Site will use browser default icon.`);
                 }
                 else if (status === 403) {
-                    core.warning(`⚠️ Access denied to favicon file: ${faviconPathInput}`);
+                    core.warning(`⚠️ Access denied to favicon file: ${faviconPathInput}. Site will use browser default icon.`);
                 }
                 else if (status === 401) {
-                    core.warning(`⚠️ Authentication failed for favicon file: ${faviconPathInput}`);
+                    core.warning(`⚠️ Authentication failed for favicon file: ${faviconPathInput}. Site will use browser default icon.`);
                 }
                 else {
                     const errorMessage = error instanceof Error ? error.message : String(error);
-                    core.warning(`⚠️ Failed to fetch favicon: ${errorMessage}`);
+                    core.warning(`⚠️ Failed to fetch favicon: ${errorMessage}. Site will use browser default icon.`);
                 }
             }
         }
@@ -81307,23 +81354,23 @@ async function run() {
                     core.info(`✅ OG image fetched: ${ogImagePathInput}`);
                 }
                 else {
-                    core.warning(`⚠️ OG image file "${ogImagePathInput}" is not a file or has unexpected format`);
+                    core.warning(`⚠️ OG image file "${ogImagePathInput}" is not a file or has unexpected format. Social media previews will not include an image.`);
                 }
             }
             catch (error) {
                 const status = error.status;
                 if (status === 404) {
-                    core.warning(`⚠️ OG image file not found: ${ogImagePathInput}`);
+                    core.warning(`⚠️ OG image file not found: ${ogImagePathInput}. Social media previews will not include an image.`);
                 }
                 else if (status === 403) {
-                    core.warning(`⚠️ Access denied to OG image file: ${ogImagePathInput}`);
+                    core.warning(`⚠️ Access denied to OG image file: ${ogImagePathInput}. Social media previews will not include an image.`);
                 }
                 else if (status === 401) {
-                    core.warning(`⚠️ Authentication failed for OG image file: ${ogImagePathInput}`);
+                    core.warning(`⚠️ Authentication failed for OG image file: ${ogImagePathInput}. Social media previews will not include an image.`);
                 }
                 else {
                     const errorMessage = error instanceof Error ? error.message : String(error);
-                    core.warning(`⚠️ Failed to fetch OG image: ${errorMessage}`);
+                    core.warning(`⚠️ Failed to fetch OG image: ${errorMessage}. Social media previews will not include an image.`);
                 }
             }
         }
@@ -81423,23 +81470,23 @@ async function run() {
                                 core.info(`✅ Logo fetched from config: ${parsedConfig.logo.path}`);
                             }
                             else {
-                                core.warning(`⚠️ Logo file "${parsedConfig.logo.path}" from config is not a file or has unexpected format`);
+                                core.warning(`⚠️ Logo file "${parsedConfig.logo.path}" from config is not a file or has unexpected format. Site will be generated without a logo.`);
                             }
                         }
                         catch (error) {
                             const status = error.status;
                             if (status === 404) {
-                                core.warning(`⚠️ Logo file not found (from config): ${parsedConfig.logo.path}`);
+                                core.warning(`⚠️ Logo file not found (from config): ${parsedConfig.logo.path}. Site will be generated without a logo.`);
                             }
                             else if (status === 403) {
-                                core.warning(`⚠️ Access denied to logo file (from config): ${parsedConfig.logo.path}`);
+                                core.warning(`⚠️ Access denied to logo file (from config): ${parsedConfig.logo.path}. Site will be generated without a logo.`);
                             }
                             else if (status === 401) {
-                                core.warning(`⚠️ Authentication failed for logo file (from config): ${parsedConfig.logo.path}`);
+                                core.warning(`⚠️ Authentication failed for logo file (from config): ${parsedConfig.logo.path}. Site will be generated without a logo.`);
                             }
                             else {
                                 const errorMessage = error instanceof Error ? error.message : String(error);
-                                core.warning(`⚠️ Failed to fetch logo from config: ${errorMessage}`);
+                                core.warning(`⚠️ Failed to fetch logo from config: ${errorMessage}. Site will be generated without a logo.`);
                             }
                         }
                     }
@@ -81466,23 +81513,23 @@ async function run() {
                                 core.info(`✅ Favicon fetched from config: ${parsedConfig.favicon.path}`);
                             }
                             else {
-                                core.warning(`⚠️ Favicon file "${parsedConfig.favicon.path}" from config is not a file or has unexpected format`);
+                                core.warning(`⚠️ Favicon file "${parsedConfig.favicon.path}" from config is not a file or has unexpected format. Site will use browser default icon.`);
                             }
                         }
                         catch (error) {
                             const status = error.status;
                             if (status === 404) {
-                                core.warning(`⚠️ Favicon file not found (from config): ${parsedConfig.favicon.path}`);
+                                core.warning(`⚠️ Favicon file not found (from config): ${parsedConfig.favicon.path}. Site will use browser default icon.`);
                             }
                             else if (status === 403) {
-                                core.warning(`⚠️ Access denied to favicon file (from config): ${parsedConfig.favicon.path}`);
+                                core.warning(`⚠️ Access denied to favicon file (from config): ${parsedConfig.favicon.path}. Site will use browser default icon.`);
                             }
                             else if (status === 401) {
-                                core.warning(`⚠️ Authentication failed for favicon file (from config): ${parsedConfig.favicon.path}`);
+                                core.warning(`⚠️ Authentication failed for favicon file (from config): ${parsedConfig.favicon.path}. Site will use browser default icon.`);
                             }
                             else {
                                 const errorMessage = error instanceof Error ? error.message : String(error);
-                                core.warning(`⚠️ Failed to fetch favicon from config: ${errorMessage}`);
+                                core.warning(`⚠️ Failed to fetch favicon from config: ${errorMessage}. Site will use browser default icon.`);
                             }
                         }
                     }
@@ -81504,23 +81551,23 @@ async function run() {
                                 core.info(`✅ OG image fetched from config: ${parsedConfig.seo.ogImage.path}`);
                             }
                             else {
-                                core.warning(`⚠️ OG image file "${parsedConfig.seo.ogImage.path}" from config is not a file or has unexpected format`);
+                                core.warning(`⚠️ OG image file "${parsedConfig.seo.ogImage.path}" from config is not a file or has unexpected format. Social media previews will not include an image.`);
                             }
                         }
                         catch (error) {
                             const status = error.status;
                             if (status === 404) {
-                                core.warning(`⚠️ OG image file not found (from config): ${parsedConfig.seo.ogImage.path}`);
+                                core.warning(`⚠️ OG image file not found (from config): ${parsedConfig.seo.ogImage.path}. Social media previews will not include an image.`);
                             }
                             else if (status === 403) {
-                                core.warning(`⚠️ Access denied to OG image file (from config): ${parsedConfig.seo.ogImage.path}`);
+                                core.warning(`⚠️ Access denied to OG image file (from config): ${parsedConfig.seo.ogImage.path}. Social media previews will not include an image.`);
                             }
                             else if (status === 401) {
-                                core.warning(`⚠️ Authentication failed for OG image file (from config): ${parsedConfig.seo.ogImage.path}`);
+                                core.warning(`⚠️ Authentication failed for OG image file (from config): ${parsedConfig.seo.ogImage.path}. Social media previews will not include an image.`);
                             }
                             else {
                                 const errorMessage = error instanceof Error ? error.message : String(error);
-                                core.warning(`⚠️ Failed to fetch OG image from config: ${errorMessage}`);
+                                core.warning(`⚠️ Failed to fetch OG image from config: ${errorMessage}. Social media previews will not include an image.`);
                             }
                         }
                     }

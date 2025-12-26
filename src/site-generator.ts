@@ -224,8 +224,18 @@ function buildSeoRequirements(repoInfo: RepoInfo, config: SiteConfig): string {
     ? seo.keywords.join(", ")
     : repoInfo.topics?.join(", ") || "";
   const ogUrl = seo.siteUrl || repoInfo.htmlUrl;
-  const ogImage = seo.ogImage?.path || "";
-  const twitterHandle = seo.twitterHandle || "";
+  // OGP requires absolute URL - combine with siteUrl if available
+  const ogImagePath = seo.ogImage?.path || "";
+  const ogImage =
+    ogImagePath && seo.siteUrl
+      ? `${seo.siteUrl.replace(/\/$/, "")}/${ogImagePath}`
+      : ogImagePath;
+  // Normalize Twitter handle to ensure @ prefix
+  const twitterHandle = seo.twitterHandle
+    ? seo.twitterHandle.startsWith("@")
+      ? seo.twitterHandle
+      : `@${seo.twitterHandle}`
+    : "";
   const canonical = seo.siteUrl || "";
 
   return `SEO AND OPEN GRAPH REQUIREMENTS:
