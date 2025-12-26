@@ -1002,4 +1002,220 @@ describe("Site Generator", () => {
       expect(THEME_MODES.length).toBe(3);
     });
   });
+
+  describe("SEO Configuration", () => {
+    it("should include SEO requirements in prompt when provided", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithSeo: SiteConfig = {
+        ...defaultConfig,
+        seo: {
+          title: "My Custom Title",
+          description: "My custom description for search engines",
+          keywords: ["test", "seo", "keywords"],
+          twitterHandle: "@myhandle",
+          siteUrl: "https://example.com",
+        },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithSeo);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).toContain("SEO AND OPEN GRAPH REQUIREMENTS");
+      expect(htmlPrompt).toContain("My Custom Title");
+      expect(htmlPrompt).toContain("My custom description for search engines");
+      expect(htmlPrompt).toContain("test, seo, keywords");
+      expect(htmlPrompt).toContain("@myhandle");
+      expect(htmlPrompt).toContain("https://example.com");
+    });
+
+    it("should use repo data as fallback for SEO values", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithEmptySeo: SiteConfig = {
+        ...defaultConfig,
+        seo: {},
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithEmptySeo);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      // Should use repo name as title fallback
+      expect(htmlPrompt).toContain("test-repo");
+      // Should use repo description as description fallback
+      expect(htmlPrompt).toContain("A test repository");
+      // Should use repo topics as keywords fallback
+      expect(htmlPrompt).toContain("typescript, testing");
+    });
+
+    it("should generate absolute OG image URL when siteUrl is provided", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithOgImage: SiteConfig = {
+        ...defaultConfig,
+        seo: {
+          ogImage: { path: "og-image.png" },
+          siteUrl: "https://example.com",
+        },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithOgImage);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      // OG image should be absolute URL
+      expect(htmlPrompt).toContain("https://example.com/og-image.png");
+    });
+
+    it("should use relative OG image path when siteUrl is not provided", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithOgImageOnly: SiteConfig = {
+        ...defaultConfig,
+        seo: {
+          ogImage: { path: "og-image.png" },
+        },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithOgImageOnly);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      // Should use relative path when no siteUrl (for og:image)
+      expect(htmlPrompt).toContain("og-image.png");
+      // Note: og:url still uses repo htmlUrl, so https:// will be present there
+      // We just verify the og:image is not an absolute URL with siteUrl
+      expect(htmlPrompt).not.toContain("undefined/og-image.png");
+    });
+
+    it("should normalize Twitter handle to ensure @ prefix", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithTwitterNoAt: SiteConfig = {
+        ...defaultConfig,
+        seo: {
+          twitterHandle: "myhandle",
+        },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithTwitterNoAt);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      // Should add @ prefix
+      expect(htmlPrompt).toContain("@myhandle");
+    });
+
+    it("should not double @ prefix on Twitter handle", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithTwitterAt: SiteConfig = {
+        ...defaultConfig,
+        seo: {
+          twitterHandle: "@myhandle",
+        },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithTwitterAt);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      // Should have exactly one @ prefix, not @@myhandle
+      expect(htmlPrompt).toContain("@myhandle");
+      expect(htmlPrompt).not.toContain("@@myhandle");
+    });
+
+    it("should include Twitter Card with summary_large_image when OG image is provided", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithOgImage: SiteConfig = {
+        ...defaultConfig,
+        seo: {
+          ogImage: { path: "og-image.png" },
+          siteUrl: "https://example.com",
+        },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithOgImage);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).toContain('twitter:card" content="summary_large_image"');
+    });
+
+    it("should include Twitter Card with summary when no OG image", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithoutOgImage: SiteConfig = {
+        ...defaultConfig,
+        seo: {
+          title: "Test Title",
+        },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithoutOgImage);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).toContain('twitter:card" content="summary"');
+    });
+
+    it("should strip trailing slash from siteUrl when building OG image URL", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithTrailingSlash: SiteConfig = {
+        ...defaultConfig,
+        seo: {
+          ogImage: { path: "og-image.png" },
+          siteUrl: "https://example.com/",
+        },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithTrailingSlash);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      // Should not have double slash
+      expect(htmlPrompt).toContain("https://example.com/og-image.png");
+      expect(htmlPrompt).not.toContain("https://example.com//og-image.png");
+    });
+  });
 });

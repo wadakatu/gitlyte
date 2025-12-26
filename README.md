@@ -84,6 +84,11 @@ That's it! Push to main and your site will be generated automatically.
 | `site-instructions` | No | - | Custom instructions for AI generation (tone, language, style) |
 | `logo-path` | No | - | Path to logo image file in repository (e.g., `assets/logo.svg`) |
 | `favicon-path` | No | - | Path to favicon file in repository (e.g., `assets/favicon.ico`) |
+| `seo-title` | No | - | Custom page title for SEO (defaults to repository name) |
+| `seo-description` | No | - | Meta description for search engines |
+| `og-image-path` | No | - | Path to Open Graph image file (e.g., `assets/og-image.png`) |
+| `twitter-handle` | No | - | Twitter/X handle for Twitter Card (e.g., `@username`) |
+| `site-url` | No | - | Site URL for canonical link and OG URL |
 | `github-token` | No | `${{ github.token }}` | GitHub token for API access |
 
 ## Outputs
@@ -114,6 +119,14 @@ Create a `.gitlyte.json` file in your repository root to customize generation:
   },
   "favicon": {
     "path": "assets/favicon.ico"
+  },
+  "seo": {
+    "title": "My Awesome Project",
+    "description": "A powerful tool for developers",
+    "keywords": ["developer-tools", "productivity"],
+    "ogImage": { "path": "assets/og-image.png" },
+    "twitterHandle": "@myproject",
+    "siteUrl": "https://myproject.github.io/repo"
   }
 }
 ```
@@ -130,6 +143,12 @@ Create a `.gitlyte.json` file in your repository root to customize generation:
 | `logo.path` | string | - | Path to logo image file in repository |
 | `logo.alt` | string | - | Alt text for the logo image |
 | `favicon.path` | string | - | Path to favicon file in repository |
+| `seo.title` | string | - | Custom page title (defaults to repository name) |
+| `seo.description` | string | - | Meta description for search engines |
+| `seo.keywords` | string[] | - | Keywords for search engines |
+| `seo.ogImage.path` | string | - | Path to Open Graph image file |
+| `seo.twitterHandle` | string | - | Twitter/X handle for Twitter Card |
+| `seo.siteUrl` | string | - | Site URL for canonical link and OG URL |
 
 ## AI Providers
 
@@ -176,6 +195,19 @@ GitLyte supports multiple AI providers:
   with:
     api-key: ${{ secrets.ANTHROPIC_API_KEY }}
     quality: high
+```
+
+### With SEO Settings
+
+```yaml
+- uses: wadakatu/gitlyte@v1
+  with:
+    api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    seo-title: My Awesome Project
+    seo-description: A powerful tool that makes developers more productive
+    og-image-path: assets/og-image.png
+    twitter-handle: "@myproject"
+    site-url: https://myproject.github.io/repo
 ```
 
 ### Create PR Instead of Direct Commit

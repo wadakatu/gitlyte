@@ -38,6 +38,21 @@ inputs:
   favicon-path:
     description: 'Path to favicon file in repository (e.g., assets/favicon.ico)'
     required: false
+  seo-title:
+    description: 'Custom page title for SEO (defaults to repository name)'
+    required: false
+  seo-description:
+    description: 'Meta description for search engines'
+    required: false
+  og-image-path:
+    description: 'Path to Open Graph image file in repository (e.g., assets/og-image.png)'
+    required: false
+  twitter-handle:
+    description: 'Twitter/X handle for Twitter Card (e.g., @username)'
+    required: false
+  site-url:
+    description: 'Site URL for canonical link and OG URL (e.g., https://example.github.io/repo)'
+    required: false
   github-token:
     description: 'GitHub token for API access (defaults to automatic workflow token)'
     required: false

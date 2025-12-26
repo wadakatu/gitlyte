@@ -7,6 +7,7 @@ import {
   THEME_MODES,
   isValidThemeMode,
   type ThemeMode,
+  type SeoConfig,
 } from "./site-generator.js";
 
 /**
@@ -39,6 +40,83 @@ function isValidFaviconConfig(value: unknown): value is { path: string } {
   if (typeof obj.path !== "string" || obj.path.trim() === "") {
     return false;
   }
+  return true;
+}
+
+/**
+ * Validate URL format (must be http or https)
+ */
+function isValidUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate Twitter handle format
+ * Valid format: optional @ followed by 1-15 alphanumeric characters or underscores
+ */
+function isValidTwitterHandle(value: string): boolean {
+  // Remove @ if present, then validate the username part
+  const handle = value.startsWith("@") ? value.slice(1) : value;
+  // Twitter usernames: 1-15 chars, alphanumeric and underscores only
+  return /^[A-Za-z0-9_]{1,15}$/.test(handle);
+}
+
+/**
+ * Validate SEO config structure from .gitlyte.json
+ */
+function isValidSeoConfig(value: unknown): value is SeoConfig {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+
+  if (obj.title !== undefined && typeof obj.title !== "string") {
+    return false;
+  }
+  if (obj.description !== undefined && typeof obj.description !== "string") {
+    return false;
+  }
+  if (obj.twitterHandle !== undefined) {
+    if (typeof obj.twitterHandle !== "string") {
+      return false;
+    }
+    if (!isValidTwitterHandle(obj.twitterHandle)) {
+      return false;
+    }
+  }
+  if (obj.siteUrl !== undefined) {
+    if (typeof obj.siteUrl !== "string") {
+      return false;
+    }
+    if (!isValidUrl(obj.siteUrl)) {
+      return false;
+    }
+  }
+
+  if (obj.keywords !== undefined) {
+    if (!Array.isArray(obj.keywords)) {
+      return false;
+    }
+    if (!obj.keywords.every((k) => typeof k === "string")) {
+      return false;
+    }
+  }
+
+  if (obj.ogImage !== undefined) {
+    if (typeof obj.ogImage !== "object" || obj.ogImage === null) {
+      return false;
+    }
+    const ogImage = obj.ogImage as Record<string, unknown>;
+    if (typeof ogImage.path !== "string" || ogImage.path.trim() === "") {
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -75,6 +153,13 @@ export async function run(): Promise<void> {
     const logoPathInput = core.getInput("logo-path");
     const faviconPathInput = core.getInput("favicon-path");
 
+    // SEO inputs
+    const seoTitleInput = core.getInput("seo-title");
+    const seoDescriptionInput = core.getInput("seo-description");
+    const ogImagePathInput = core.getInput("og-image-path");
+    const twitterHandleInput = core.getInput("twitter-handle");
+    const siteUrlInput = core.getInput("site-url");
+
     // Validate provider
     if (!AI_PROVIDERS.includes(provider)) {
       throw new Error(
@@ -96,6 +181,18 @@ export async function run(): Promise<void> {
       );
     }
     const themeMode: ThemeMode = themeModeRaw;
+
+    // Validate SEO inputs
+    if (siteUrlInput && !isValidUrl(siteUrlInput)) {
+      throw new Error(
+        `Invalid site-url: ${siteUrlInput}. Must be a valid URL starting with http:// or https://`
+      );
+    }
+    if (twitterHandleInput && !isValidTwitterHandle(twitterHandleInput)) {
+      throw new Error(
+        `Invalid twitter-handle: ${twitterHandleInput}. Must be 1-15 characters (letters, numbers, underscores only)`
+      );
+    }
 
     // Validate GitHub token
     const githubToken =
@@ -124,6 +221,14 @@ export async function run(): Promise<void> {
     }
     if (faviconPathInput) {
       core.info(`⭐ Favicon: ${faviconPathInput}`);
+    }
+    if (
+      seoTitleInput ||
+      seoDescriptionInput ||
+      ogImagePathInput ||
+      siteUrlInput
+    ) {
+      core.info("🔍 SEO settings provided");
     }
 
     // Get repository info
@@ -166,23 +271,29 @@ export async function run(): Promise<void> {
           core.info(`✅ Logo fetched: ${logoPathInput}`);
         } else {
           core.warning(
-            `⚠️ Logo file "${logoPathInput}" is not a file or has unexpected format`
+            `⚠️ Logo file "${logoPathInput}" is not a file or has unexpected format. Site will be generated without a logo.`
           );
         }
       } catch (error) {
         const status = (error as { status?: number }).status;
         if (status === 404) {
-          core.warning(`⚠️ Logo file not found: ${logoPathInput}`);
+          core.warning(
+            `⚠️ Logo file not found: ${logoPathInput}. Site will be generated without a logo.`
+          );
         } else if (status === 403) {
-          core.warning(`⚠️ Access denied to logo file: ${logoPathInput}`);
+          core.warning(
+            `⚠️ Access denied to logo file: ${logoPathInput}. Site will be generated without a logo.`
+          );
         } else if (status === 401) {
           core.warning(
-            `⚠️ Authentication failed for logo file: ${logoPathInput}`
+            `⚠️ Authentication failed for logo file: ${logoPathInput}. Site will be generated without a logo.`
           );
         } else {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
-          core.warning(`⚠️ Failed to fetch logo: ${errorMessage}`);
+          core.warning(
+            `⚠️ Failed to fetch logo: ${errorMessage}. Site will be generated without a logo.`
+          );
         }
       }
     }
@@ -201,26 +312,97 @@ export async function run(): Promise<void> {
           core.info(`✅ Favicon fetched: ${faviconPathInput}`);
         } else {
           core.warning(
-            `⚠️ Favicon file "${faviconPathInput}" is not a file or has unexpected format`
+            `⚠️ Favicon file "${faviconPathInput}" is not a file or has unexpected format. Site will use browser default icon.`
           );
         }
       } catch (error) {
         const status = (error as { status?: number }).status;
         if (status === 404) {
-          core.warning(`⚠️ Favicon file not found: ${faviconPathInput}`);
+          core.warning(
+            `⚠️ Favicon file not found: ${faviconPathInput}. Site will use browser default icon.`
+          );
         } else if (status === 403) {
-          core.warning(`⚠️ Access denied to favicon file: ${faviconPathInput}`);
+          core.warning(
+            `⚠️ Access denied to favicon file: ${faviconPathInput}. Site will use browser default icon.`
+          );
         } else if (status === 401) {
           core.warning(
-            `⚠️ Authentication failed for favicon file: ${faviconPathInput}`
+            `⚠️ Authentication failed for favicon file: ${faviconPathInput}. Site will use browser default icon.`
           );
         } else {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
-          core.warning(`⚠️ Failed to fetch favicon: ${errorMessage}`);
+          core.warning(
+            `⚠️ Failed to fetch favicon: ${errorMessage}. Site will use browser default icon.`
+          );
         }
       }
     }
+
+    // Fetch OG image file if specified
+    let ogImageContent: Buffer | undefined;
+    if (ogImagePathInput) {
+      try {
+        const { data: ogImageData } = await octokit.rest.repos.getContent({
+          owner,
+          repo,
+          path: ogImagePathInput,
+        });
+        if ("content" in ogImageData && ogImageData.encoding === "base64") {
+          ogImageContent = Buffer.from(ogImageData.content, "base64");
+          core.info(`✅ OG image fetched: ${ogImagePathInput}`);
+        } else {
+          core.warning(
+            `⚠️ OG image file "${ogImagePathInput}" is not a file or has unexpected format. Social media previews will not include an image.`
+          );
+        }
+      } catch (error) {
+        const status = (error as { status?: number }).status;
+        if (status === 404) {
+          core.warning(
+            `⚠️ OG image file not found: ${ogImagePathInput}. Social media previews will not include an image.`
+          );
+        } else if (status === 403) {
+          core.warning(
+            `⚠️ Access denied to OG image file: ${ogImagePathInput}. Social media previews will not include an image.`
+          );
+        } else if (status === 401) {
+          core.warning(
+            `⚠️ Authentication failed for OG image file: ${ogImagePathInput}. Social media previews will not include an image.`
+          );
+        } else {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          core.warning(
+            `⚠️ Failed to fetch OG image: ${errorMessage}. Social media previews will not include an image.`
+          );
+        }
+      }
+    }
+
+    // Build initial SEO config from action inputs
+    const buildSeoConfig = (): SeoConfig | undefined => {
+      const hasSeoInput =
+        seoTitleInput ||
+        seoDescriptionInput ||
+        ogImageContent ||
+        twitterHandleInput ||
+        siteUrlInput;
+
+      if (!hasSeoInput) {
+        return undefined;
+      }
+
+      return {
+        title: seoTitleInput || undefined,
+        description: seoDescriptionInput || undefined,
+        ogImage: ogImageContent
+          ? { path: path.basename(ogImagePathInput) }
+          : undefined,
+        twitterHandle: twitterHandleInput || undefined,
+        siteUrl: siteUrlInput || undefined,
+      };
+    };
 
     // Load config from .gitlyte.json if exists
     let config: {
@@ -229,6 +411,7 @@ export async function run(): Promise<void> {
       prompts: { siteInstructions?: string };
       logo?: { path: string; alt?: string };
       favicon?: { path: string };
+      seo?: SeoConfig;
     } = {
       outputDirectory,
       theme: {
@@ -248,6 +431,8 @@ export async function run(): Promise<void> {
       favicon: faviconContent
         ? { path: path.basename(faviconPathInput) }
         : undefined,
+      // SEO config from action inputs
+      seo: buildSeoConfig(),
     };
     try {
       const { data: configFile } = await octokit.rest.repos.getContent({
@@ -284,6 +469,17 @@ export async function run(): Promise<void> {
             );
           }
 
+          // Validate SEO config if present
+          if (
+            parsedConfig.seo !== undefined &&
+            !isValidSeoConfig(parsedConfig.seo)
+          ) {
+            throw new Error(
+              "Invalid seo config in .gitlyte.json. " +
+                `Expected { title?: string, description?: string, keywords?: string[], ogImage?: { path: string }, twitterHandle?: string, siteUrl?: string }, got: ${JSON.stringify(parsedConfig.seo)}`
+            );
+          }
+
           // Validate and fetch logo from config file if not provided via action input
           let configLogo: { path: string; alt?: string } | undefined;
           if (!logoContent && parsedConfig.logo !== undefined) {
@@ -315,28 +511,28 @@ export async function run(): Promise<void> {
                 );
               } else {
                 core.warning(
-                  `⚠️ Logo file "${parsedConfig.logo.path}" from config is not a file or has unexpected format`
+                  `⚠️ Logo file "${parsedConfig.logo.path}" from config is not a file or has unexpected format. Site will be generated without a logo.`
                 );
               }
             } catch (error) {
               const status = (error as { status?: number }).status;
               if (status === 404) {
                 core.warning(
-                  `⚠️ Logo file not found (from config): ${parsedConfig.logo.path}`
+                  `⚠️ Logo file not found (from config): ${parsedConfig.logo.path}. Site will be generated without a logo.`
                 );
               } else if (status === 403) {
                 core.warning(
-                  `⚠️ Access denied to logo file (from config): ${parsedConfig.logo.path}`
+                  `⚠️ Access denied to logo file (from config): ${parsedConfig.logo.path}. Site will be generated without a logo.`
                 );
               } else if (status === 401) {
                 core.warning(
-                  `⚠️ Authentication failed for logo file (from config): ${parsedConfig.logo.path}`
+                  `⚠️ Authentication failed for logo file (from config): ${parsedConfig.logo.path}. Site will be generated without a logo.`
                 );
               } else {
                 const errorMessage =
                   error instanceof Error ? error.message : String(error);
                 core.warning(
-                  `⚠️ Failed to fetch logo from config: ${errorMessage}`
+                  `⚠️ Failed to fetch logo from config: ${errorMessage}. Site will be generated without a logo.`
                 );
               }
             }
@@ -375,28 +571,81 @@ export async function run(): Promise<void> {
                 );
               } else {
                 core.warning(
-                  `⚠️ Favicon file "${parsedConfig.favicon.path}" from config is not a file or has unexpected format`
+                  `⚠️ Favicon file "${parsedConfig.favicon.path}" from config is not a file or has unexpected format. Site will use browser default icon.`
                 );
               }
             } catch (error) {
               const status = (error as { status?: number }).status;
               if (status === 404) {
                 core.warning(
-                  `⚠️ Favicon file not found (from config): ${parsedConfig.favicon.path}`
+                  `⚠️ Favicon file not found (from config): ${parsedConfig.favicon.path}. Site will use browser default icon.`
                 );
               } else if (status === 403) {
                 core.warning(
-                  `⚠️ Access denied to favicon file (from config): ${parsedConfig.favicon.path}`
+                  `⚠️ Access denied to favicon file (from config): ${parsedConfig.favicon.path}. Site will use browser default icon.`
                 );
               } else if (status === 401) {
                 core.warning(
-                  `⚠️ Authentication failed for favicon file (from config): ${parsedConfig.favicon.path}`
+                  `⚠️ Authentication failed for favicon file (from config): ${parsedConfig.favicon.path}. Site will use browser default icon.`
                 );
               } else {
                 const errorMessage =
                   error instanceof Error ? error.message : String(error);
                 core.warning(
-                  `⚠️ Failed to fetch favicon from config: ${errorMessage}`
+                  `⚠️ Failed to fetch favicon from config: ${errorMessage}. Site will use browser default icon.`
+                );
+              }
+            }
+          }
+
+          // Fetch OG image from config if not provided via action input
+          let configOgImage: { path: string } | undefined;
+          if (!ogImageContent && parsedConfig.seo?.ogImage?.path) {
+            try {
+              const { data: configOgImageData } =
+                await octokit.rest.repos.getContent({
+                  owner,
+                  repo,
+                  path: parsedConfig.seo.ogImage.path,
+                });
+              if (
+                "content" in configOgImageData &&
+                configOgImageData.encoding === "base64"
+              ) {
+                ogImageContent = Buffer.from(
+                  configOgImageData.content,
+                  "base64"
+                );
+                configOgImage = {
+                  path: path.basename(parsedConfig.seo.ogImage.path),
+                };
+                core.info(
+                  `✅ OG image fetched from config: ${parsedConfig.seo.ogImage.path}`
+                );
+              } else {
+                core.warning(
+                  `⚠️ OG image file "${parsedConfig.seo.ogImage.path}" from config is not a file or has unexpected format. Social media previews will not include an image.`
+                );
+              }
+            } catch (error) {
+              const status = (error as { status?: number }).status;
+              if (status === 404) {
+                core.warning(
+                  `⚠️ OG image file not found (from config): ${parsedConfig.seo.ogImage.path}. Social media previews will not include an image.`
+                );
+              } else if (status === 403) {
+                core.warning(
+                  `⚠️ Access denied to OG image file (from config): ${parsedConfig.seo.ogImage.path}. Social media previews will not include an image.`
+                );
+              } else if (status === 401) {
+                core.warning(
+                  `⚠️ Authentication failed for OG image file (from config): ${parsedConfig.seo.ogImage.path}. Social media previews will not include an image.`
+                );
+              } else {
+                const errorMessage =
+                  error instanceof Error ? error.message : String(error);
+                core.warning(
+                  `⚠️ Failed to fetch OG image from config: ${errorMessage}. Social media previews will not include an image.`
                 );
               }
             }
@@ -432,6 +681,31 @@ export async function run(): Promise<void> {
                 ? { path: path.basename(faviconPathInput) }
                 : configFavicon
               : undefined,
+            // SEO: merge action inputs with config file, action inputs take precedence
+            seo: (() => {
+              const actionSeo = buildSeoConfig();
+              const configSeo = parsedConfig.seo as SeoConfig | undefined;
+
+              // If no SEO config from either source, return undefined
+              if (!actionSeo && !configSeo) {
+                return undefined;
+              }
+
+              // Build merged SEO config
+              return {
+                title: actionSeo?.title ?? configSeo?.title,
+                description: actionSeo?.description ?? configSeo?.description,
+                keywords: configSeo?.keywords,
+                ogImage: ogImageContent
+                  ? ogImagePathInput
+                    ? { path: path.basename(ogImagePathInput) }
+                    : configOgImage
+                  : undefined,
+                twitterHandle:
+                  actionSeo?.twitterHandle ?? configSeo?.twitterHandle,
+                siteUrl: actionSeo?.siteUrl ?? configSeo?.siteUrl,
+              };
+            })(),
           };
         } catch (parseError) {
           // JSON parse error - this is a user config error, fail explicitly
@@ -449,7 +723,8 @@ export async function run(): Promise<void> {
           error.message.startsWith("Invalid theme mode") ||
           error.message.startsWith("Invalid theme.toggle") ||
           error.message.startsWith("Invalid logo config") ||
-          error.message.startsWith("Invalid favicon config"))
+          error.message.startsWith("Invalid favicon config") ||
+          error.message.startsWith("Invalid seo config"))
       ) {
         throw error;
       }
@@ -564,6 +839,23 @@ export async function run(): Promise<void> {
           error instanceof Error ? error.message : String(error);
         throw new Error(
           `Failed to write favicon "${config.favicon.path}" to "${faviconFilePath}": ${errorMessage}`,
+          { cause: error }
+        );
+      }
+    }
+
+    // Write OG image file if fetched
+    if (ogImageContent && config.seo?.ogImage) {
+      const ogImageFilePath = path.join(outDir, config.seo.ogImage.path);
+      validatePath(ogImageFilePath, config.seo.ogImage.path);
+      try {
+        fs.writeFileSync(ogImageFilePath, ogImageContent);
+        core.info(`🔍 Written: ${ogImageFilePath}`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to write OG image "${config.seo.ogImage.path}" to "${ogImageFilePath}": ${errorMessage}`,
           { cause: error }
         );
       }

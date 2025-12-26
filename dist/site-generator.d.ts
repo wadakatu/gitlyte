@@ -21,6 +21,24 @@ export type ThemeMode = (typeof THEME_MODES)[number];
  * Type guard to validate if a value is a valid ThemeMode
  */
 export declare function isValidThemeMode(value: unknown): value is ThemeMode;
+/** SEO and Open Graph configuration */
+export interface SeoConfig {
+    /** Custom page title (defaults to repository name) */
+    title?: string;
+    /** Meta description for search engines */
+    description?: string;
+    /** Keywords for search engines */
+    keywords?: string[];
+    /** Open Graph image configuration */
+    ogImage?: {
+        /** Relative path to OG image file in output directory (after copying) */
+        path: string;
+    };
+    /** Twitter/X handle (e.g., "@username") */
+    twitterHandle?: string;
+    /** Site URL for canonical link and OG URL */
+    siteUrl?: string;
+}
 export interface SiteConfig {
     outputDirectory: string;
     theme: {
@@ -44,6 +62,8 @@ export interface SiteConfig {
         /** Relative path to favicon file in output directory (after copying) */
         path: string;
     };
+    /** SEO and Open Graph configuration */
+    seo?: SeoConfig;
 }
 export interface GeneratedPage {
     path: string;
