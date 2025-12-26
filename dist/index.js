@@ -80952,16 +80952,16 @@ const AI_PROVIDERS = ["anthropic", "openai", "google"];
 const QUALITY_MODES = ["standard", "high"];
 const MODEL_CONFIG = {
     anthropic: {
-        standard: "claude-sonnet-4-20250514",
-        high: "claude-sonnet-4-20250514",
+        standard: "claude-sonnet-4-5",
+        high: "claude-sonnet-4-5",
     },
     openai: {
-        standard: "gpt-4o",
-        high: "gpt-4o",
+        standard: "gpt-4.1",
+        high: "gpt-4.1",
     },
     google: {
-        standard: "gemini-2.0-flash",
-        high: "gemini-2.0-flash",
+        standard: "gemini-3-flash",
+        high: "gemini-3-flash",
     },
 };
 function createAIProvider(provider, quality, apiKey) {

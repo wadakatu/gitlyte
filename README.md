@@ -137,9 +137,9 @@ GitLyte supports multiple AI providers:
 
 | Provider | Secret Name | Model |
 |----------|-------------|-------|
-| Anthropic (default) | `ANTHROPIC_API_KEY` | Claude Sonnet 4 |
-| OpenAI | `OPENAI_API_KEY` | GPT-4o |
-| Google | `GOOGLE_API_KEY` | Gemini 2.0 Flash |
+| Anthropic (default) | `ANTHROPIC_API_KEY` | Claude Sonnet 4.5 |
+| OpenAI | `OPENAI_API_KEY` | GPT-4.1 |
+| Google | `GOOGLE_API_KEY` | Gemini 3 Flash |
 
 ### Using a different provider
 
