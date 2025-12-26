@@ -204,6 +204,70 @@ describe("Site Generator", () => {
       const htmlPrompt = calls[2][0].prompt;
       expect(htmlPrompt).toContain("Use a friendly tone");
     });
+
+    it("should include logo in prompt when provided", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithLogo: SiteConfig = {
+        ...defaultConfig,
+        logo: { path: "logo.svg", alt: "My Logo" },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithLogo);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).toContain("logo.svg");
+      expect(htmlPrompt).toContain("My Logo");
+      expect(htmlPrompt).toContain("LOGO:");
+    });
+
+    it("should include favicon in prompt when provided", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithFavicon: SiteConfig = {
+        ...defaultConfig,
+        favicon: { path: "favicon.ico" },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithFavicon);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).toContain("favicon.ico");
+      expect(htmlPrompt).toContain("FAVICON:");
+    });
+
+    it("should include both logo and favicon in prompt when provided", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithBoth: SiteConfig = {
+        ...defaultConfig,
+        logo: { path: "logo.png", alt: "Project Logo" },
+        favicon: { path: "icon.ico" },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithBoth);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).toContain("logo.png");
+      expect(htmlPrompt).toContain("Project Logo");
+      expect(htmlPrompt).toContain("icon.ico");
+      expect(htmlPrompt).toContain("except for the provided logo");
+    });
   });
 
   describe("Repository Analysis", () => {

@@ -97,6 +97,8 @@ describe("GitHub Action Entry Point", () => {
         "theme-mode": "", // Empty = not explicitly set, defaults to "dark"
         "theme-toggle": "", // Empty = not explicitly set, defaults to false
         "site-instructions": "", // Empty = not explicitly set
+        "logo-path": "", // Empty = not provided
+        "favicon-path": "", // Empty = not provided
         "github-token": "test-github-token",
       };
       return inputs[name] || "";
@@ -921,6 +923,173 @@ describe("GitHub Action Entry Point", () => {
         }),
         expect.anything(),
         expect.anything()
+      );
+    });
+  });
+
+  describe("Logo and Favicon", () => {
+    it("should fetch and write logo file when logo-path is provided", async () => {
+      const logoContent = Buffer.from("fake-logo-content");
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "logo-path") return "assets/logo.svg";
+        return "";
+      });
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === "assets/logo.svg") {
+          return Promise.resolve({
+            data: {
+              content: logoContent.toString("base64"),
+              encoding: "base64",
+            },
+          });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockInfo).toHaveBeenCalledWith("🖼️ Logo: assets/logo.svg");
+      expect(mockInfo).toHaveBeenCalledWith("✅ Logo fetched: assets/logo.svg");
+      expect(mockWriteFileSync).toHaveBeenCalledWith(
+        expect.stringContaining("logo.svg"),
+        logoContent
+      );
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          logo: { path: "logo.svg", alt: "test-repo" },
+        })
+      );
+    });
+
+    it("should fetch and write favicon file when favicon-path is provided", async () => {
+      const faviconContent = Buffer.from("fake-favicon-content");
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "favicon-path") return "assets/favicon.ico";
+        return "";
+      });
+
+      const mockGetContent = vi.fn().mockImplementation(({ path }: { path: string }) => {
+        if (path === "assets/favicon.ico") {
+          return Promise.resolve({
+            data: {
+              content: faviconContent.toString("base64"),
+              encoding: "base64",
+            },
+          });
+        }
+        return Promise.reject({ status: 404 });
+      });
+
+      mockGetOctokit.mockReturnValue({
+        rest: {
+          repos: {
+            get: vi.fn().mockResolvedValue({
+              data: {
+                name: "test-repo",
+                full_name: "test-owner/test-repo",
+                description: "Test",
+                html_url: "https://github.com/test-owner/test-repo",
+                language: "TypeScript",
+                topics: [],
+              },
+            }),
+            getReadme: vi.fn().mockRejectedValue({ status: 404 }),
+            getContent: mockGetContent,
+          },
+        },
+      });
+
+      await runAction();
+
+      expect(mockInfo).toHaveBeenCalledWith("⭐ Favicon: assets/favicon.ico");
+      expect(mockInfo).toHaveBeenCalledWith("✅ Favicon fetched: assets/favicon.ico");
+      expect(mockWriteFileSync).toHaveBeenCalledWith(
+        expect.stringContaining("favicon.ico"),
+        faviconContent
+      );
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          favicon: { path: "favicon.ico" },
+        })
+      );
+    });
+
+    it("should warn when logo file is not found", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "logo-path") return "missing-logo.svg";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Logo file not found: missing-logo.svg"
+      );
+    });
+
+    it("should warn when favicon file is not found", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === "api-key") return "test-key";
+        if (name === "provider") return "anthropic";
+        if (name === "quality") return "standard";
+        if (name === "github-token") return "test-token";
+        if (name === "favicon-path") return "missing-favicon.ico";
+        return "";
+      });
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        "⚠️ Favicon file not found: missing-favicon.ico"
+      );
+    });
+
+    it("should not set logo/favicon config when paths are not provided", async () => {
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          logo: undefined,
+          favicon: undefined,
+        })
       );
     });
   });

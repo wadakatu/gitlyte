@@ -44,6 +44,18 @@ export interface SiteConfig {
     toggle: boolean;
   };
   prompts: { siteInstructions?: string };
+  /** Logo configuration */
+  logo?: {
+    /** Relative path to logo file in output directory (after copying) */
+    path: string;
+    /** Alt text for the logo image */
+    alt?: string;
+  };
+  /** Favicon configuration */
+  favicon?: {
+    /** Relative path to favicon file in output directory (after copying) */
+    path: string;
+  };
 }
 
 export interface GeneratedPage {
@@ -157,6 +169,28 @@ export async function generateSite(
 }
 
 /**
+ * Build logo and favicon requirements for AI prompt
+ */
+function buildAssetRequirements(config: SiteConfig): string {
+  const parts: string[] = [];
+
+  if (config.logo) {
+    parts.push(`LOGO:
+- Logo image path: ${config.logo.path}
+- Alt text: ${config.logo.alt || config.logo.path}
+- Display the logo in the header/navigation area
+- Use appropriate sizing (e.g., h-8 or h-10 for header logos)`);
+  }
+
+  if (config.favicon) {
+    parts.push(`FAVICON:
+- Include this favicon link in the <head>: <link rel="icon" href="${config.favicon.path}">`);
+  }
+
+  return parts.length > 0 ? `${parts.join("\n\n")}\n\n` : "";
+}
+
+/**
  * Build requirements string for refinement context
  */
 function buildRequirements(
@@ -170,6 +204,9 @@ function buildRequirements(
     ? buildDarkModeTogglePrompt(design, config.theme.mode)
     : buildSingleThemePrompt(design, config.theme.mode);
 
+  // Build logo/favicon requirements
+  const assetRequirements = buildAssetRequirements(config);
+
   return `PROJECT INFO:
 - Name: ${analysis.name}
 - Description: ${analysis.description}
@@ -178,14 +215,14 @@ function buildRequirements(
 - GitHub URL: ${repoInfo.htmlUrl}
 
 ${themeRequirements}
-
+${assetRequirements}
 REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
 2. Include: hero section with project name and description, features section, footer with GitHub link
 3. Make it responsive (mobile-first)
 4. Use modern design patterns (gradients, shadows, rounded corners)
 5. Include smooth hover effects
-6. No external images - use gradients or emoji as placeholders
+6. No external images - use gradients or emoji as placeholders${config.logo ? " (except for the provided logo)" : ""}
 7. Include a "View on GitHub" button linking to: ${repoInfo.htmlUrl}
 8. The page should work standalone without any build step`;
 }
@@ -420,6 +457,9 @@ async function generateIndexPage(
     ? buildDarkModeTogglePrompt(design, config.theme.mode)
     : buildSingleThemePrompt(design, config.theme.mode);
 
+  // Build logo/favicon requirements
+  const assetRequirements = buildAssetRequirements(config);
+
   const prompt = `Generate a modern, beautiful landing page HTML for this project.
 
 PROJECT INFO:
@@ -430,14 +470,13 @@ PROJECT INFO:
 - GitHub URL: ${repoInfo.htmlUrl}
 
 ${themePrompt}
-
-REQUIREMENTS:
+${assetRequirements}REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
 2. Include: hero section with project name and description, features section, footer with GitHub link
 3. Make it responsive (mobile-first)
 4. Use modern design patterns (gradients, shadows, rounded corners)
 5. Include smooth hover effects
-6. No external images - use gradients or emoji as placeholders
+6. No external images - use gradients or emoji as placeholders${config.logo ? " (except for the provided logo)" : ""}
 7. Include a "View on GitHub" button linking to: ${repoInfo.htmlUrl}
 8. The page should work standalone without any build step${customInstructions}
 
