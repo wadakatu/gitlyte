@@ -32,6 +32,12 @@ inputs:
   site-instructions:
     description: 'Custom instructions for AI generation (tone, language, style preferences)'
     required: false
+  logo-path:
+    description: 'Path to logo image file in repository (e.g., assets/logo.svg)'
+    required: false
+  favicon-path:
+    description: 'Path to favicon file in repository (e.g., assets/favicon.ico)'
+    required: false
   github-token:
     description: 'GitHub token for API access (defaults to automatic workflow token)'
     required: false

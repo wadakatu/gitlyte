@@ -8,6 +8,40 @@ import {
   isValidThemeMode,
   type ThemeMode,
 } from "./site-generator.js";
+
+/**
+ * Validate logo config structure from .gitlyte.json
+ */
+function isValidLogoConfig(
+  value: unknown
+): value is { path: string; alt?: string } {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  if (typeof obj.path !== "string" || obj.path.trim() === "") {
+    return false;
+  }
+  if (obj.alt !== undefined && typeof obj.alt !== "string") {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Validate favicon config structure from .gitlyte.json
+ */
+function isValidFaviconConfig(value: unknown): value is { path: string } {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  if (typeof obj.path !== "string" || obj.path.trim() === "") {
+    return false;
+  }
+  return true;
+}
+
 import {
   createAIProvider,
   AI_PROVIDERS,
@@ -36,6 +70,10 @@ export async function run(): Promise<void> {
     // Site instructions input
     const siteInstructionsInput = core.getInput("site-instructions");
     const siteInstructionsExplicit = siteInstructionsInput !== "";
+
+    // Logo and favicon inputs
+    const logoPathInput = core.getInput("logo-path");
+    const faviconPathInput = core.getInput("favicon-path");
 
     // Validate provider
     if (!AI_PROVIDERS.includes(provider)) {
@@ -81,6 +119,12 @@ export async function run(): Promise<void> {
     if (siteInstructionsExplicit) {
       core.info("📝 Custom site instructions provided");
     }
+    if (logoPathInput) {
+      core.info(`🖼️ Logo: ${logoPathInput}`);
+    }
+    if (faviconPathInput) {
+      core.info(`⭐ Favicon: ${faviconPathInput}`);
+    }
 
     // Get repository info
     const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
@@ -108,8 +152,84 @@ export async function run(): Promise<void> {
       }
     }
 
+    // Fetch logo file if specified
+    let logoContent: Buffer | undefined;
+    if (logoPathInput) {
+      try {
+        const { data: logoData } = await octokit.rest.repos.getContent({
+          owner,
+          repo,
+          path: logoPathInput,
+        });
+        if ("content" in logoData && logoData.encoding === "base64") {
+          logoContent = Buffer.from(logoData.content, "base64");
+          core.info(`✅ Logo fetched: ${logoPathInput}`);
+        } else {
+          core.warning(
+            `⚠️ Logo file "${logoPathInput}" is not a file or has unexpected format`
+          );
+        }
+      } catch (error) {
+        const status = (error as { status?: number }).status;
+        if (status === 404) {
+          core.warning(`⚠️ Logo file not found: ${logoPathInput}`);
+        } else if (status === 403) {
+          core.warning(`⚠️ Access denied to logo file: ${logoPathInput}`);
+        } else if (status === 401) {
+          core.warning(
+            `⚠️ Authentication failed for logo file: ${logoPathInput}`
+          );
+        } else {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          core.warning(`⚠️ Failed to fetch logo: ${errorMessage}`);
+        }
+      }
+    }
+
+    // Fetch favicon file if specified
+    let faviconContent: Buffer | undefined;
+    if (faviconPathInput) {
+      try {
+        const { data: faviconData } = await octokit.rest.repos.getContent({
+          owner,
+          repo,
+          path: faviconPathInput,
+        });
+        if ("content" in faviconData && faviconData.encoding === "base64") {
+          faviconContent = Buffer.from(faviconData.content, "base64");
+          core.info(`✅ Favicon fetched: ${faviconPathInput}`);
+        } else {
+          core.warning(
+            `⚠️ Favicon file "${faviconPathInput}" is not a file or has unexpected format`
+          );
+        }
+      } catch (error) {
+        const status = (error as { status?: number }).status;
+        if (status === 404) {
+          core.warning(`⚠️ Favicon file not found: ${faviconPathInput}`);
+        } else if (status === 403) {
+          core.warning(`⚠️ Access denied to favicon file: ${faviconPathInput}`);
+        } else if (status === 401) {
+          core.warning(
+            `⚠️ Authentication failed for favicon file: ${faviconPathInput}`
+          );
+        } else {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          core.warning(`⚠️ Failed to fetch favicon: ${errorMessage}`);
+        }
+      }
+    }
+
     // Load config from .gitlyte.json if exists
-    let config = {
+    let config: {
+      outputDirectory: string;
+      theme: { mode: ThemeMode; toggle: boolean };
+      prompts: { siteInstructions?: string };
+      logo?: { path: string; alt?: string };
+      favicon?: { path: string };
+    } = {
       outputDirectory,
       theme: {
         mode: themeMode,
@@ -119,7 +239,15 @@ export async function run(): Promise<void> {
         siteInstructions: siteInstructionsExplicit
           ? siteInstructionsInput
           : undefined,
-      } as { siteInstructions?: string },
+      },
+      // Logo config: use filename from input path for output path
+      logo: logoContent
+        ? { path: path.basename(logoPathInput), alt: repoData.name }
+        : undefined,
+      // Favicon config: use filename from input path for output path
+      favicon: faviconContent
+        ? { path: path.basename(faviconPathInput) }
+        : undefined,
     };
     try {
       const { data: configFile } = await octokit.rest.repos.getContent({
@@ -156,6 +284,124 @@ export async function run(): Promise<void> {
             );
           }
 
+          // Validate and fetch logo from config file if not provided via action input
+          let configLogo: { path: string; alt?: string } | undefined;
+          if (!logoContent && parsedConfig.logo !== undefined) {
+            if (!isValidLogoConfig(parsedConfig.logo)) {
+              throw new Error(
+                "Invalid logo config in .gitlyte.json. " +
+                  `Expected { path: string, alt?: string }, got: ${JSON.stringify(parsedConfig.logo)}`
+              );
+            }
+            // Fetch logo file from config
+            try {
+              const { data: configLogoData } =
+                await octokit.rest.repos.getContent({
+                  owner,
+                  repo,
+                  path: parsedConfig.logo.path,
+                });
+              if (
+                "content" in configLogoData &&
+                configLogoData.encoding === "base64"
+              ) {
+                logoContent = Buffer.from(configLogoData.content, "base64");
+                configLogo = {
+                  path: path.basename(parsedConfig.logo.path),
+                  alt: parsedConfig.logo.alt,
+                };
+                core.info(
+                  `✅ Logo fetched from config: ${parsedConfig.logo.path}`
+                );
+              } else {
+                core.warning(
+                  `⚠️ Logo file "${parsedConfig.logo.path}" from config is not a file or has unexpected format`
+                );
+              }
+            } catch (error) {
+              const status = (error as { status?: number }).status;
+              if (status === 404) {
+                core.warning(
+                  `⚠️ Logo file not found (from config): ${parsedConfig.logo.path}`
+                );
+              } else if (status === 403) {
+                core.warning(
+                  `⚠️ Access denied to logo file (from config): ${parsedConfig.logo.path}`
+                );
+              } else if (status === 401) {
+                core.warning(
+                  `⚠️ Authentication failed for logo file (from config): ${parsedConfig.logo.path}`
+                );
+              } else {
+                const errorMessage =
+                  error instanceof Error ? error.message : String(error);
+                core.warning(
+                  `⚠️ Failed to fetch logo from config: ${errorMessage}`
+                );
+              }
+            }
+          }
+
+          // Validate and fetch favicon from config file if not provided via action input
+          let configFavicon: { path: string } | undefined;
+          if (!faviconContent && parsedConfig.favicon !== undefined) {
+            if (!isValidFaviconConfig(parsedConfig.favicon)) {
+              throw new Error(
+                "Invalid favicon config in .gitlyte.json. " +
+                  `Expected { path: string }, got: ${JSON.stringify(parsedConfig.favicon)}`
+              );
+            }
+            // Fetch favicon file from config
+            try {
+              const { data: configFaviconData } =
+                await octokit.rest.repos.getContent({
+                  owner,
+                  repo,
+                  path: parsedConfig.favicon.path,
+                });
+              if (
+                "content" in configFaviconData &&
+                configFaviconData.encoding === "base64"
+              ) {
+                faviconContent = Buffer.from(
+                  configFaviconData.content,
+                  "base64"
+                );
+                configFavicon = {
+                  path: path.basename(parsedConfig.favicon.path),
+                };
+                core.info(
+                  `✅ Favicon fetched from config: ${parsedConfig.favicon.path}`
+                );
+              } else {
+                core.warning(
+                  `⚠️ Favicon file "${parsedConfig.favicon.path}" from config is not a file or has unexpected format`
+                );
+              }
+            } catch (error) {
+              const status = (error as { status?: number }).status;
+              if (status === 404) {
+                core.warning(
+                  `⚠️ Favicon file not found (from config): ${parsedConfig.favicon.path}`
+                );
+              } else if (status === 403) {
+                core.warning(
+                  `⚠️ Access denied to favicon file (from config): ${parsedConfig.favicon.path}`
+                );
+              } else if (status === 401) {
+                core.warning(
+                  `⚠️ Authentication failed for favicon file (from config): ${parsedConfig.favicon.path}`
+                );
+              } else {
+                const errorMessage =
+                  error instanceof Error ? error.message : String(error);
+                core.warning(
+                  `⚠️ Failed to fetch favicon from config: ${errorMessage}`
+                );
+              }
+            }
+          }
+
           // Merge config: explicit action input > config file > default
           config = {
             outputDirectory: parsedConfig.outputDirectory || outputDirectory,
@@ -174,6 +420,18 @@ export async function run(): Promise<void> {
                 ? siteInstructionsInput
                 : parsedConfig.prompts?.siteInstructions,
             },
+            // Logo: action input takes precedence, then config file (with fetched content)
+            logo: logoContent
+              ? logoPathInput
+                ? { path: path.basename(logoPathInput), alt: repoData.name }
+                : configLogo
+              : undefined,
+            // Favicon: action input takes precedence, then config file (with fetched content)
+            favicon: faviconContent
+              ? faviconPathInput
+                ? { path: path.basename(faviconPathInput) }
+                : configFavicon
+              : undefined,
           };
         } catch (parseError) {
           // JSON parse error - this is a user config error, fail explicitly
@@ -189,7 +447,9 @@ export async function run(): Promise<void> {
         error instanceof Error &&
         (error.message.startsWith("Invalid JSON in .gitlyte.json") ||
           error.message.startsWith("Invalid theme mode") ||
-          error.message.startsWith("Invalid theme.toggle"))
+          error.message.startsWith("Invalid theme.toggle") ||
+          error.message.startsWith("Invalid logo config") ||
+          error.message.startsWith("Invalid favicon config"))
       ) {
         throw error;
       }
@@ -270,6 +530,40 @@ export async function run(): Promise<void> {
           error instanceof Error ? error.message : String(error);
         throw new Error(
           `Failed to write asset "${asset.path}" to "${filePath}": ${errorMessage}`,
+          { cause: error }
+        );
+      }
+    }
+
+    // Write logo file if fetched
+    if (logoContent && config.logo) {
+      const logoFilePath = path.join(outDir, config.logo.path);
+      validatePath(logoFilePath, config.logo.path);
+      try {
+        fs.writeFileSync(logoFilePath, logoContent);
+        core.info(`🖼️ Written: ${logoFilePath}`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to write logo "${config.logo.path}" to "${logoFilePath}": ${errorMessage}`,
+          { cause: error }
+        );
+      }
+    }
+
+    // Write favicon file if fetched
+    if (faviconContent && config.favicon) {
+      const faviconFilePath = path.join(outDir, config.favicon.path);
+      validatePath(faviconFilePath, config.favicon.path);
+      try {
+        fs.writeFileSync(faviconFilePath, faviconContent);
+        core.info(`⭐ Written: ${faviconFilePath}`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to write favicon "${config.favicon.path}" to "${faviconFilePath}": ${errorMessage}`,
           { cause: error }
         );
       }

@@ -82,6 +82,8 @@ That's it! Push to main and your site will be generated automatically.
 | `theme-mode` | No | `dark` | Theme mode: `light`, `dark`, or `auto` |
 | `theme-toggle` | No | `false` | Include a light/dark mode toggle button |
 | `site-instructions` | No | - | Custom instructions for AI generation (tone, language, style) |
+| `logo-path` | No | - | Path to logo image file in repository (e.g., `assets/logo.svg`) |
+| `favicon-path` | No | - | Path to favicon file in repository (e.g., `assets/favicon.ico`) |
 | `github-token` | No | `${{ github.token }}` | GitHub token for API access |
 
 ## Outputs
@@ -100,10 +102,18 @@ Create a `.gitlyte.json` file in your repository root to customize generation:
   "enabled": true,
   "outputDirectory": "docs",
   "theme": {
-    "mode": "dark"
+    "mode": "dark",
+    "toggle": true
   },
   "prompts": {
     "siteInstructions": "Use a friendly, approachable tone"
+  },
+  "logo": {
+    "path": "assets/logo.svg",
+    "alt": "My Project Logo"
+  },
+  "favicon": {
+    "path": "assets/favicon.ico"
   }
 }
 ```
@@ -114,8 +124,12 @@ Create a `.gitlyte.json` file in your repository root to customize generation:
 |--------|------|---------|-------------|
 | `enabled` | boolean | `true` | Enable/disable site generation |
 | `outputDirectory` | string | `"docs"` | Output directory for generated files |
-| `theme.mode` | string | `"dark"` | Theme mode: `"light"` or `"dark"` |
+| `theme.mode` | string | `"dark"` | Theme mode: `"light"`, `"dark"`, or `"auto"` |
+| `theme.toggle` | boolean | `false` | Include a light/dark mode toggle button |
 | `prompts.siteInstructions` | string | - | Custom instructions for AI generation (tone, language, style) |
+| `logo.path` | string | - | Path to logo image file in repository |
+| `logo.alt` | string | - | Alt text for the logo image |
+| `favicon.path` | string | - | Path to favicon file in repository |
 
 ## AI Providers
 

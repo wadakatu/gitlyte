@@ -32,6 +32,18 @@ export interface SiteConfig {
     prompts: {
         siteInstructions?: string;
     };
+    /** Logo configuration */
+    logo?: {
+        /** Relative path to logo file in output directory (after copying) */
+        path: string;
+        /** Alt text for the logo image */
+        alt?: string;
+    };
+    /** Favicon configuration */
+    favicon?: {
+        /** Relative path to favicon file in output directory (after copying) */
+        path: string;
+    };
 }
 export interface GeneratedPage {
     path: string;
