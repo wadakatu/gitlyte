@@ -35287,6 +35287,16 @@ function isValidThemeMode(value) {
     return (typeof value === "string" &&
         THEME_MODES.includes(value));
 }
+/** Valid changefreq values for sitemap */
+const SITEMAP_CHANGEFREQ = [
+    "always",
+    "hourly",
+    "daily",
+    "weekly",
+    "monthly",
+    "yearly",
+    "never",
+];
 /**
  * Generate a complete site
  */
@@ -35316,11 +35326,84 @@ async function generateSite(repoInfo, aiProvider, config) {
         core.info(`📈 Self-Refine: ${refinementResult.iterations} iterations, ` +
             `final score: ${refinementResult.evaluation.score}/10`);
     }
+    // Build the pages array
+    const pages = [{ path: "index.html", html: indexHtml }];
+    // Track generation results for summary
+    const generated = ["index.html"];
+    const skipped = [];
+    // Step 5: Generate sitemap.xml (if enabled and siteUrl is set)
+    const sitemapEnabled = config.sitemap?.enabled !== false;
+    const robotsEnabled = config.robots?.enabled !== false;
+    const siteUrl = config.seo?.siteUrl;
+    if (sitemapEnabled || robotsEnabled) {
+        if (!siteUrl) {
+            if (sitemapEnabled) {
+                core.warning("Sitemap generation skipped: site-url is required for sitemap.xml. " +
+                    "Set seo.siteUrl in .gitlyte.json or use the site-url action input.");
+                skipped.push("sitemap.xml (no site-url)");
+            }
+            if (robotsEnabled) {
+                core.warning("Robots.txt generation skipped: site-url is required for robots.txt. " +
+                    "Set seo.siteUrl in .gitlyte.json or use the site-url action input.");
+                skipped.push("robots.txt (no site-url)");
+            }
+        }
+        else {
+            // Track whether sitemap was actually generated (for robots.txt Sitemap directive)
+            let sitemapGenerated = false;
+            if (sitemapEnabled) {
+                core.info("Generating sitemap.xml...");
+                try {
+                    const sitemapXml = generateSitemap(pages, siteUrl, {
+                        changefreq: config.sitemap?.changefreq,
+                        priority: config.sitemap?.priority,
+                    });
+                    pages.push({ path: "sitemap.xml", html: sitemapXml });
+                    sitemapGenerated = true;
+                    generated.push("sitemap.xml");
+                }
+                catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    core.warning(`Failed to generate sitemap.xml: ${errorMessage}. ` +
+                        "Site will be generated without a sitemap.");
+                    skipped.push("sitemap.xml (generation failed)");
+                }
+            }
+            if (robotsEnabled) {
+                core.info("Generating robots.txt...");
+                try {
+                    const robotsTxt = generateRobots(siteUrl, {
+                        additionalRules: config.robots?.additionalRules,
+                        includeSitemap: sitemapGenerated,
+                    });
+                    pages.push({ path: "robots.txt", html: robotsTxt });
+                    generated.push("robots.txt");
+                }
+                catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    core.warning(`Failed to generate robots.txt: ${errorMessage}. ` +
+                        "Site will be generated without robots.txt.");
+                    skipped.push("robots.txt (generation failed)");
+                }
+            }
+        }
+    }
+    else {
+        // Track explicitly disabled features
+        if (!sitemapEnabled) {
+            skipped.push("sitemap.xml (disabled)");
+        }
+        if (!robotsEnabled) {
+            skipped.push("robots.txt (disabled)");
+        }
+    }
+    // Log generation summary
     core.info("Site generation complete!");
-    return {
-        pages: [{ path: "index.html", html: indexHtml }],
-        assets: [],
-    };
+    core.info(`  Generated: ${generated.join(", ")}`);
+    if (skipped.length > 0) {
+        core.info(`  Skipped: ${skipped.join(", ")}`);
+    }
+    return { pages, assets: [] };
 }
 /**
  * Build logo and favicon requirements for AI prompt
@@ -35662,6 +35745,58 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
         }
     }
     return html;
+}
+/**
+ * Generate sitemap.xml content
+ * @param pages Array of generated pages (only .html files are included)
+ * @param siteUrl Base URL for the site (required for absolute URLs)
+ * @param options Sitemap options (changefreq, priority)
+ * @returns XML string for sitemap.xml
+ */
+function generateSitemap(pages, siteUrl, options = {}) {
+    const today = new Date().toISOString().split("T")[0];
+    const changefreq = options.changefreq || "weekly";
+    const priority = options.priority ?? 0.8;
+    // Normalize siteUrl (remove trailing slash)
+    const baseUrl = siteUrl.replace(/\/$/, "");
+    const urls = pages
+        .filter((page) => page.path.endsWith(".html"))
+        .map((page) => {
+        // Generate absolute URL
+        const loc = page.path === "index.html"
+            ? baseUrl
+            : `${baseUrl}/${page.path.replace(/index\.html$/, "").replace(/\.html$/, "")}`;
+        return `  <url>
+    <loc>${loc}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
+    })
+        .join("\n");
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>`;
+}
+/**
+ * Generate robots.txt content
+ * @param siteUrl Base URL for the site (used for sitemap reference)
+ * @param options Options for robots.txt generation
+ * @returns Text content for robots.txt
+ */
+function generateRobots(siteUrl, options = {}) {
+    const { additionalRules = [], includeSitemap = true } = options;
+    // Normalize siteUrl (remove trailing slash)
+    const baseUrl = siteUrl.replace(/\/$/, "");
+    const rules = ["User-agent: *", "Allow: /", ""];
+    if (includeSitemap) {
+        rules.push(`Sitemap: ${baseUrl}/sitemap.xml`);
+    }
+    // Filter out empty strings from additional rules
+    const validAdditionalRules = additionalRules.filter((rule) => rule.trim() !== "");
+    rules.push(...validAdditionalRules);
+    return rules.join("\n");
 }
 
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@ai-sdk+provider@3.0.0/node_modules/@ai-sdk/provider/dist/index.mjs
@@ -81174,6 +81309,53 @@ function isValidSeoConfig(value) {
     }
     return true;
 }
+/**
+ * Validate sitemap config structure from .gitlyte.json
+ */
+function isValidSitemapConfig(value) {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+    const obj = value;
+    if (typeof obj.enabled !== "boolean") {
+        return false;
+    }
+    if (obj.changefreq !== undefined) {
+        if (typeof obj.changefreq !== "string" ||
+            !SITEMAP_CHANGEFREQ.includes(obj.changefreq)) {
+            return false;
+        }
+    }
+    if (obj.priority !== undefined) {
+        if (typeof obj.priority !== "number" ||
+            obj.priority < 0 ||
+            obj.priority > 1) {
+            return false;
+        }
+    }
+    return true;
+}
+/**
+ * Validate robots config structure from .gitlyte.json
+ */
+function isValidRobotsConfig(value) {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+    const obj = value;
+    if (typeof obj.enabled !== "boolean") {
+        return false;
+    }
+    if (obj.additionalRules !== undefined) {
+        if (!Array.isArray(obj.additionalRules)) {
+            return false;
+        }
+        if (!obj.additionalRules.every((r) => typeof r === "string")) {
+            return false;
+        }
+    }
+    return true;
+}
 
 async function run() {
     try {
@@ -81201,6 +81383,13 @@ async function run() {
         const ogImagePathInput = core.getInput("og-image-path");
         const twitterHandleInput = core.getInput("twitter-handle");
         const siteUrlInput = core.getInput("site-url");
+        // Sitemap and robots.txt inputs
+        const generateSitemapInput = core.getInput("generate-sitemap");
+        const generateSitemapExplicit = generateSitemapInput !== "";
+        const generateSitemap = generateSitemapInput !== "false"; // default true
+        const generateRobotsInput = core.getInput("generate-robots");
+        const generateRobotsExplicit = generateRobotsInput !== "";
+        const generateRobots = generateRobotsInput !== "false"; // default true
         // Validate provider
         if (!AI_PROVIDERS.includes(provider)) {
             throw new Error(`Invalid provider: ${provider}. Must be one of: ${AI_PROVIDERS.join(", ")}`);
@@ -81416,6 +81605,10 @@ async function run() {
                 : undefined,
             // SEO config from action inputs
             seo: buildSeoConfig(),
+            // Sitemap config from action inputs (default enabled)
+            sitemap: { enabled: generateSitemap },
+            // Robots config from action inputs (default enabled)
+            robots: { enabled: generateRobots },
         };
         try {
             const { data: configFile } = await octokit.rest.repos.getContent({
@@ -81445,6 +81638,18 @@ async function run() {
                         !isValidSeoConfig(parsedConfig.seo)) {
                         throw new Error("Invalid seo config in .gitlyte.json. " +
                             `Expected { title?: string, description?: string, keywords?: string[], ogImage?: { path: string }, twitterHandle?: string, siteUrl?: string }, got: ${JSON.stringify(parsedConfig.seo)}`);
+                    }
+                    // Validate sitemap config if present
+                    if (parsedConfig.sitemap !== undefined &&
+                        !isValidSitemapConfig(parsedConfig.sitemap)) {
+                        throw new Error("Invalid sitemap config in .gitlyte.json. " +
+                            `Expected { enabled: boolean, changefreq?: "${SITEMAP_CHANGEFREQ.join('" | "')}", priority?: number (0.0-1.0) }, got: ${JSON.stringify(parsedConfig.sitemap)}`);
+                    }
+                    // Validate robots config if present
+                    if (parsedConfig.robots !== undefined &&
+                        !isValidRobotsConfig(parsedConfig.robots)) {
+                        throw new Error("Invalid robots config in .gitlyte.json. " +
+                            `Expected { enabled: boolean, additionalRules?: string[] }, got: ${JSON.stringify(parsedConfig.robots)}`);
                     }
                     // Validate and fetch logo from config file if not provided via action input
                     let configLogo;
@@ -81623,6 +81828,31 @@ async function run() {
                                 siteUrl: actionSeo?.siteUrl ?? configSeo?.siteUrl,
                             };
                         })(),
+                        // Sitemap: merge action inputs with config file, action inputs take precedence
+                        sitemap: (() => {
+                            const configSitemap = parsedConfig.sitemap;
+                            // Action input takes precedence for enabled flag
+                            const enabled = generateSitemapExplicit
+                                ? generateSitemap
+                                : (configSitemap?.enabled ?? generateSitemap);
+                            return {
+                                enabled,
+                                changefreq: configSitemap?.changefreq,
+                                priority: configSitemap?.priority,
+                            };
+                        })(),
+                        // Robots: merge action inputs with config file, action inputs take precedence
+                        robots: (() => {
+                            const configRobots = parsedConfig.robots;
+                            // Action input takes precedence for enabled flag
+                            const enabled = generateRobotsExplicit
+                                ? generateRobots
+                                : (configRobots?.enabled ?? generateRobots);
+                            return {
+                                enabled,
+                                additionalRules: configRobots?.additionalRules,
+                            };
+                        })(),
                     };
                 }
                 catch (parseError) {
@@ -81640,7 +81870,9 @@ async function run() {
                     error.message.startsWith("Invalid theme.toggle") ||
                     error.message.startsWith("Invalid logo config") ||
                     error.message.startsWith("Invalid favicon config") ||
-                    error.message.startsWith("Invalid seo config"))) {
+                    error.message.startsWith("Invalid seo config") ||
+                    error.message.startsWith("Invalid sitemap config") ||
+                    error.message.startsWith("Invalid robots config"))) {
                 throw error;
             }
             // Check if file not found

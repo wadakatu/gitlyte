@@ -89,6 +89,8 @@ That's it! Push to main and your site will be generated automatically.
 | `og-image-path` | No | - | Path to Open Graph image file (e.g., `assets/og-image.png`) |
 | `twitter-handle` | No | - | Twitter/X handle for Twitter Card (e.g., `@username`) |
 | `site-url` | No | - | Site URL for canonical link and OG URL |
+| `generate-sitemap` | No | `true` | Generate sitemap.xml (requires `site-url`) |
+| `generate-robots` | No | `true` | Generate robots.txt (requires `site-url`) |
 | `github-token` | No | `${{ github.token }}` | GitHub token for API access |
 
 ## Outputs
@@ -127,6 +129,15 @@ Create a `.gitlyte.json` file in your repository root to customize generation:
     "ogImage": { "path": "assets/og-image.png" },
     "twitterHandle": "@myproject",
     "siteUrl": "https://myproject.github.io/repo"
+  },
+  "sitemap": {
+    "enabled": true,
+    "changefreq": "weekly",
+    "priority": 0.8
+  },
+  "robots": {
+    "enabled": true,
+    "additionalRules": ["Disallow: /private/"]
   }
 }
 ```
@@ -149,6 +160,11 @@ Create a `.gitlyte.json` file in your repository root to customize generation:
 | `seo.ogImage.path` | string | - | Path to Open Graph image file |
 | `seo.twitterHandle` | string | - | Twitter/X handle for Twitter Card |
 | `seo.siteUrl` | string | - | Site URL for canonical link and OG URL |
+| `sitemap.enabled` | boolean | `true` | Enable/disable sitemap.xml generation |
+| `sitemap.changefreq` | string | `"weekly"` | How frequently the page changes |
+| `sitemap.priority` | number | `0.8` | Priority of URLs (0.0 to 1.0) |
+| `robots.enabled` | boolean | `true` | Enable/disable robots.txt generation |
+| `robots.additionalRules` | string[] | - | Additional rules for robots.txt |
 
 ## AI Providers
 

@@ -53,6 +53,14 @@ inputs:
   site-url:
     description: 'Site URL for canonical link and OG URL (e.g., https://example.github.io/repo)'
     required: false
+  generate-sitemap:
+    description: 'Generate sitemap.xml for search engine crawlers (true/false, requires site-url)'
+    required: false
+    default: 'true'
+  generate-robots:
+    description: 'Generate robots.txt for search engine crawlers (true/false, requires site-url)'
+    required: false
+    default: 'true'
   github-token:
     description: 'GitHub token for API access (defaults to automatic workflow token)'
     required: false
