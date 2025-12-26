@@ -222,6 +222,110 @@ GitLyte uses AI to analyze your repository and create a custom website:
 
 The AI reads your README and repository metadata to understand your project, then generates a unique landing page tailored to your project's purpose.
 
+## FAQ
+
+### Which AI provider should I use?
+
+**Anthropic (Claude)** is recommended for most users. It provides excellent design quality and understands project context well. OpenAI and Google are good alternatives if you already have API keys for those services.
+
+### Where do I get an API key?
+
+- **Anthropic**: [console.anthropic.com](https://console.anthropic.com/)
+- **OpenAI**: [platform.openai.com](https://platform.openai.com/)
+- **Google**: [aistudio.google.com](https://aistudio.google.com/)
+
+### How much does it cost?
+
+GitLyte itself is free. You only pay for AI API usage:
+- **Standard mode**: ~$0.01-0.05 per generation
+- **High quality mode**: ~$0.05-0.15 per generation
+
+Actual costs depend on your README length and AI provider pricing.
+
+### Can I customize the generated site?
+
+Yes! You can:
+- Use `site-instructions` to guide the AI's tone and style
+- Add your own logo and favicon
+- Choose light/dark theme mode
+- Add a theme toggle button
+
+### Will GitLyte overwrite my existing files?
+
+GitLyte only writes to the specified `output-directory` (default: `docs`). It will overwrite files within that directory but won't touch files outside of it.
+
+### Can I use GitLyte with a monorepo?
+
+Yes. Just specify the correct `output-directory` and configure your workflow to run in the appropriate directory.
+
+### Does GitLyte work with private repositories?
+
+Yes. GitLyte uses the GitHub token provided in the workflow, which has access to private repository content.
+
+## Troubleshooting
+
+### "API key is required" error
+
+**Cause**: The API key secret is not set or has the wrong name.
+
+**Solution**:
+1. Go to repository Settings > Secrets and variables > Actions
+2. Verify the secret name matches your provider:
+   - Anthropic: `ANTHROPIC_API_KEY`
+   - OpenAI: `OPENAI_API_KEY`
+   - Google: `GOOGLE_API_KEY`
+3. Ensure the secret value is correct (no extra spaces)
+
+### Site is not generated
+
+**Cause**: The workflow may have failed or the output wasn't committed.
+
+**Solution**:
+1. Check the Actions tab for workflow errors
+2. Verify `permissions: contents: write` is set in your workflow
+3. Ensure the commit step runs after generation
+
+### GitHub Pages shows 404
+
+**Cause**: GitHub Pages is not configured correctly.
+
+**Solution**:
+1. Go to Settings > Pages
+2. Set Source to "Deploy from a branch"
+3. Select the correct branch (e.g., `main`) and folder (`/docs`)
+4. Wait a few minutes for deployment
+
+### Styles are broken or missing
+
+**Cause**: The generated HTML uses Tailwind CSS via CDN.
+
+**Solution**:
+1. Ensure your network allows CDN access
+2. Check if any Content Security Policy blocks external scripts
+3. Try regenerating the site
+
+### Permission denied errors
+
+**Cause**: The workflow lacks necessary permissions.
+
+**Solution**: Add these permissions to your workflow:
+
+```yaml
+permissions:
+  contents: write
+  pull-requests: write  # Only if using PR workflow
+```
+
+### AI generation failed
+
+**Cause**: AI API rate limits or temporary errors.
+
+**Solution**:
+1. Wait a few minutes and retry
+2. Check your API key has sufficient credits
+3. Try a different AI provider
+4. Use `high` quality mode (includes retry logic)
+
 ## Development
 
 ```bash
