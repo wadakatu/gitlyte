@@ -9,6 +9,28 @@ import type { AIProviderInstance } from "./ai-provider.js";
 import { selfRefine } from "./self-refine.js";
 import { cleanJsonResponse, cleanHtmlResponse } from "./ai-response-utils.js";
 
+/** GitHub repository statistics */
+export interface RepoStats {
+  /** Number of stars/stargazers */
+  stars: number;
+  /** Number of forks */
+  forks: number;
+  /** Number of watchers/subscribers */
+  watchers: number;
+  /** Number of open issues */
+  openIssues: number;
+  /** Repository creation date (ISO 8601) */
+  createdAt: string;
+  /** Last push date (ISO 8601) */
+  updatedAt: string;
+  /** License name (e.g., "MIT License") */
+  license?: string;
+  /** Latest release version (e.g., "v1.2.0") */
+  latestRelease?: string;
+  /** Number of contributors */
+  contributorCount?: number;
+}
+
 export interface RepoInfo {
   name: string;
   fullName: string;
@@ -17,6 +39,8 @@ export interface RepoInfo {
   language?: string;
   topics: string[];
   readme?: string;
+  /** Dynamic GitHub statistics */
+  stats?: RepoStats;
 }
 
 /** Valid theme mode values - single source of truth */
@@ -311,6 +335,67 @@ export async function generateSite(
 }
 
 /**
+ * Format a number for display (e.g., 1234 -> "1.2K", 1234567 -> "1.2M")
+ */
+export function formatCount(count: number): string {
+  if (count >= 1000000) {
+    return `${(count / 1000000).toFixed(1)}M`;
+  }
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}K`;
+  }
+  return count.toString();
+}
+
+/**
+ * Format an ISO date string to a relative date (e.g., "3 days ago", "2 months ago")
+ */
+export function formatRelativeDate(isoDate: string): string {
+  const date = new Date(isoDate);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+  return `${Math.floor(diffDays / 365)} years ago`;
+}
+
+/**
+ * Build GitHub statistics section for AI prompt
+ */
+function buildStatsRequirements(stats: RepoStats): string {
+  const lines: string[] = [
+    "GITHUB STATISTICS (display these prominently in a stats bar below the hero section):",
+    `- Stars: ${formatCount(stats.stars)}`,
+    `- Forks: ${formatCount(stats.forks)}`,
+    `- Watchers: ${formatCount(stats.watchers)}`,
+    `- Last Updated: ${formatRelativeDate(stats.updatedAt)}`,
+  ];
+
+  if (stats.license) {
+    lines.push(`- License: ${stats.license}`);
+  }
+  if (stats.latestRelease) {
+    lines.push(`- Latest Release: ${stats.latestRelease}`);
+  }
+  if (stats.contributorCount !== undefined) {
+    lines.push(`- Contributors: ${formatCount(stats.contributorCount)}`);
+  }
+
+  lines.push("");
+  lines.push("Design the stats section with:");
+  lines.push("- A horizontal layout with icons and numbers");
+  lines.push("- Subtle background to make stats stand out");
+  lines.push("- Responsive design (stack on mobile if needed)");
+
+  return lines.join("\n");
+}
+
+/**
  * Build logo and favicon requirements for AI prompt
  */
 function buildAssetRequirements(config: SiteConfig): string {
@@ -404,6 +489,11 @@ function buildRequirements(
   // Build SEO requirements
   const seoRequirements = buildSeoRequirements(repoInfo, config);
 
+  // Build stats requirements
+  const statsRequirements = repoInfo.stats
+    ? `${buildStatsRequirements(repoInfo.stats)}\n\n`
+    : "";
+
   return `PROJECT INFO:
 - Name: ${analysis.name}
 - Description: ${analysis.description}
@@ -412,7 +502,7 @@ function buildRequirements(
 - GitHub URL: ${repoInfo.htmlUrl}
 
 ${themeRequirements}
-${assetRequirements}${seoRequirements}REQUIREMENTS:
+${assetRequirements}${seoRequirements}${statsRequirements}REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
 2. Include: hero section with project name and description, features section, footer with GitHub link
 3. Make it responsive (mobile-first)
@@ -659,6 +749,11 @@ async function generateIndexPage(
   // Build SEO requirements
   const seoRequirements = buildSeoRequirements(repoInfo, config);
 
+  // Build stats requirements
+  const statsRequirements = repoInfo.stats
+    ? `${buildStatsRequirements(repoInfo.stats)}\n\n`
+    : "";
+
   const prompt = `Generate a modern, beautiful landing page HTML for this project.
 
 PROJECT INFO:
@@ -669,7 +764,7 @@ PROJECT INFO:
 - GitHub URL: ${repoInfo.htmlUrl}
 
 ${themePrompt}
-${assetRequirements}${seoRequirements}REQUIREMENTS:
+${assetRequirements}${seoRequirements}${statsRequirements}REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
 2. Include: hero section with project name and description, features section, footer with GitHub link
 3. Make it responsive (mobile-first)

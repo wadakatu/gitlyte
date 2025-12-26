@@ -3,10 +3,13 @@ import {
   generateSite,
   generateSitemap,
   generateRobots,
+  formatCount,
+  formatRelativeDate,
   THEME_MODES,
   SITEMAP_CHANGEFREQ,
   isValidThemeMode,
   type RepoInfo,
+  type RepoStats,
   type SiteConfig,
   type GeneratedSite,
   type GeneratedPage,
@@ -1760,6 +1763,202 @@ describe("Site Generator", () => {
         "yearly",
         "never",
       ]);
+    });
+  });
+
+  describe("formatCount", () => {
+    it("should return number as-is when less than 1000", () => {
+      expect(formatCount(0)).toBe("0");
+      expect(formatCount(1)).toBe("1");
+      expect(formatCount(100)).toBe("100");
+      expect(formatCount(999)).toBe("999");
+    });
+
+    it("should format thousands with K suffix", () => {
+      expect(formatCount(1000)).toBe("1.0K");
+      expect(formatCount(1500)).toBe("1.5K");
+      expect(formatCount(10000)).toBe("10.0K");
+      expect(formatCount(999999)).toBe("1000.0K");
+    });
+
+    it("should format millions with M suffix", () => {
+      expect(formatCount(1000000)).toBe("1.0M");
+      expect(formatCount(1500000)).toBe("1.5M");
+      expect(formatCount(10000000)).toBe("10.0M");
+    });
+  });
+
+  describe("formatRelativeDate", () => {
+    it("should return 'today' for today's date", () => {
+      const today = new Date().toISOString();
+      expect(formatRelativeDate(today)).toBe("today");
+    });
+
+    it("should return 'yesterday' for yesterday's date", () => {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(yesterday)).toBe("yesterday");
+    });
+
+    it("should return 'X days ago' for dates within a week", () => {
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(threeDaysAgo)).toBe("3 days ago");
+
+      const sixDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(sixDaysAgo)).toBe("6 days ago");
+    });
+
+    it("should return 'X weeks ago' for dates within a month", () => {
+      const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(twoWeeksAgo)).toBe("2 weeks ago");
+
+      const threeWeeksAgo = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(threeWeeksAgo)).toBe("3 weeks ago");
+    });
+
+    it("should return 'X months ago' for dates within a year", () => {
+      const twoMonthsAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(twoMonthsAgo)).toBe("2 months ago");
+
+      const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(sixMonthsAgo)).toBe("6 months ago");
+    });
+
+    it("should return 'X years ago' for dates older than a year", () => {
+      const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(oneYearAgo)).toBe("1 years ago");
+
+      const twoYearsAgo = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(twoYearsAgo)).toBe("2 years ago");
+    });
+  });
+
+  describe("GitHub Statistics", () => {
+    const defaultRepoInfo: RepoInfo = {
+      name: "test-repo",
+      fullName: "owner/test-repo",
+      description: "A test repository",
+      htmlUrl: "https://github.com/owner/test-repo",
+      language: "TypeScript",
+      topics: ["typescript", "testing"],
+      readme: "# Test Repo\n\nThis is a test repository.",
+    };
+
+    const defaultConfig: SiteConfig = {
+      outputDirectory: "docs",
+      theme: { mode: "dark", toggle: false },
+      prompts: {},
+    };
+
+    const sampleStats: RepoStats = {
+      stars: 1234,
+      forks: 567,
+      watchers: 89,
+      openIssues: 12,
+      createdAt: "2023-01-15T10:30:00Z",
+      updatedAt: "2024-12-20T15:45:00Z",
+      license: "MIT License",
+      latestRelease: "v1.2.3",
+      contributorCount: 42,
+    };
+
+    it("should include stats in prompt when provided", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const repoInfoWithStats: RepoInfo = {
+        ...defaultRepoInfo,
+        stats: sampleStats,
+      };
+
+      await generateSite(repoInfoWithStats, mockProvider, defaultConfig);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).toContain("GITHUB STATISTICS");
+      expect(htmlPrompt).toContain("1.2K"); // formatted stars
+      expect(htmlPrompt).toContain("567"); // forks
+      expect(htmlPrompt).toContain("MIT License");
+      expect(htmlPrompt).toContain("v1.2.3");
+      expect(htmlPrompt).toContain("42"); // contributors
+    });
+
+    it("should not include stats section when stats is undefined", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      await generateSite(defaultRepoInfo, mockProvider, defaultConfig);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).not.toContain("GITHUB STATISTICS");
+    });
+
+    it("should handle stats without optional fields", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const statsWithoutOptional: RepoStats = {
+        stars: 100,
+        forks: 50,
+        watchers: 25,
+        openIssues: 5,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-12-01T00:00:00Z",
+      };
+
+      const repoInfoWithMinimalStats: RepoInfo = {
+        ...defaultRepoInfo,
+        stats: statsWithoutOptional,
+      };
+
+      await generateSite(repoInfoWithMinimalStats, mockProvider, defaultConfig);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).toContain("GITHUB STATISTICS");
+      expect(htmlPrompt).toContain("100"); // stars
+      expect(htmlPrompt).not.toContain("License:");
+      expect(htmlPrompt).not.toContain("Latest Release:");
+      expect(htmlPrompt).not.toContain("Contributors:");
+    });
+
+    it("should format large numbers with K and M suffixes", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const statsWithLargeNumbers: RepoStats = {
+        stars: 50000,
+        forks: 12345,
+        watchers: 1500000,
+        openIssues: 999,
+        createdAt: "2020-01-01T00:00:00Z",
+        updatedAt: "2024-12-01T00:00:00Z",
+      };
+
+      const repoInfoWithLargeStats: RepoInfo = {
+        ...defaultRepoInfo,
+        stats: statsWithLargeNumbers,
+      };
+
+      await generateSite(repoInfoWithLargeStats, mockProvider, defaultConfig);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).toContain("50.0K"); // stars
+      expect(htmlPrompt).toContain("12.3K"); // forks
+      expect(htmlPrompt).toContain("1.5M"); // watchers
     });
   });
 });

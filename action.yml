@@ -61,6 +61,18 @@ inputs:
     description: 'Generate robots.txt for search engine crawlers (true/false, requires site-url)'
     required: false
     default: 'true'
+  show-stats:
+    description: 'Show GitHub statistics (stars, forks, etc.) on the generated site'
+    required: false
+    default: 'true'
+  fetch-contributors:
+    description: 'Fetch contributor count (requires additional API call)'
+    required: false
+    default: 'false'
+  fetch-releases:
+    description: 'Fetch latest release version (requires additional API call)'
+    required: false
+    default: 'false'
   github-token:
     description: 'GitHub token for API access (defaults to automatic workflow token)'
     required: false

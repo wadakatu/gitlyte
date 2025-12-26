@@ -35406,6 +35406,65 @@ async function generateSite(repoInfo, aiProvider, config) {
     return { pages, assets: [] };
 }
 /**
+ * Format a number for display (e.g., 1234 -> "1.2K", 1234567 -> "1.2M")
+ */
+function formatCount(count) {
+    if (count >= 1000000) {
+        return `${(count / 1000000).toFixed(1)}M`;
+    }
+    if (count >= 1000) {
+        return `${(count / 1000).toFixed(1)}K`;
+    }
+    return count.toString();
+}
+/**
+ * Format an ISO date string to a relative date (e.g., "3 days ago", "2 months ago")
+ */
+function formatRelativeDate(isoDate) {
+    const date = new Date(isoDate);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0)
+        return "today";
+    if (diffDays === 1)
+        return "yesterday";
+    if (diffDays < 7)
+        return `${diffDays} days ago`;
+    if (diffDays < 30)
+        return `${Math.floor(diffDays / 7)} weeks ago`;
+    if (diffDays < 365)
+        return `${Math.floor(diffDays / 30)} months ago`;
+    return `${Math.floor(diffDays / 365)} years ago`;
+}
+/**
+ * Build GitHub statistics section for AI prompt
+ */
+function buildStatsRequirements(stats) {
+    const lines = [
+        "GITHUB STATISTICS (display these prominently in a stats bar below the hero section):",
+        `- Stars: ${formatCount(stats.stars)}`,
+        `- Forks: ${formatCount(stats.forks)}`,
+        `- Watchers: ${formatCount(stats.watchers)}`,
+        `- Last Updated: ${formatRelativeDate(stats.updatedAt)}`,
+    ];
+    if (stats.license) {
+        lines.push(`- License: ${stats.license}`);
+    }
+    if (stats.latestRelease) {
+        lines.push(`- Latest Release: ${stats.latestRelease}`);
+    }
+    if (stats.contributorCount !== undefined) {
+        lines.push(`- Contributors: ${formatCount(stats.contributorCount)}`);
+    }
+    lines.push("");
+    lines.push("Design the stats section with:");
+    lines.push("- A horizontal layout with icons and numbers");
+    lines.push("- Subtle background to make stats stand out");
+    lines.push("- Responsive design (stack on mobile if needed)");
+    return lines.join("\n");
+}
+/**
  * Build logo and favicon requirements for AI prompt
  */
 function buildAssetRequirements(config) {
@@ -35483,6 +35542,10 @@ function buildRequirements(repoInfo, analysis, design, config) {
     const assetRequirements = buildAssetRequirements(config);
     // Build SEO requirements
     const seoRequirements = buildSeoRequirements(repoInfo, config);
+    // Build stats requirements
+    const statsRequirements = repoInfo.stats
+        ? `${buildStatsRequirements(repoInfo.stats)}\n\n`
+        : "";
     return `PROJECT INFO:
 - Name: ${analysis.name}
 - Description: ${analysis.description}
@@ -35491,7 +35554,7 @@ function buildRequirements(repoInfo, analysis, design, config) {
 - GitHub URL: ${repoInfo.htmlUrl}
 
 ${themeRequirements}
-${assetRequirements}${seoRequirements}REQUIREMENTS:
+${assetRequirements}${seoRequirements}${statsRequirements}REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
 2. Include: hero section with project name and description, features section, footer with GitHub link
 3. Make it responsive (mobile-first)
@@ -35695,6 +35758,10 @@ async function generateIndexPage(repoInfo, analysis, design, config, aiProvider)
     const assetRequirements = buildAssetRequirements(config);
     // Build SEO requirements
     const seoRequirements = buildSeoRequirements(repoInfo, config);
+    // Build stats requirements
+    const statsRequirements = repoInfo.stats
+        ? `${buildStatsRequirements(repoInfo.stats)}\n\n`
+        : "";
     const prompt = `Generate a modern, beautiful landing page HTML for this project.
 
 PROJECT INFO:
@@ -35705,7 +35772,7 @@ PROJECT INFO:
 - GitHub URL: ${repoInfo.htmlUrl}
 
 ${themePrompt}
-${assetRequirements}${seoRequirements}REQUIREMENTS:
+${assetRequirements}${seoRequirements}${statsRequirements}REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
 2. Include: hero section with project name and description, features section, footer with GitHub link
 3. Make it responsive (mobile-first)
@@ -81390,6 +81457,11 @@ async function run() {
         const generateRobotsInput = core.getInput("generate-robots");
         const generateRobotsExplicit = generateRobotsInput !== "";
         const generateRobots = generateRobotsInput !== "false"; // default true
+        // GitHub stats inputs
+        const showStatsInput = core.getInput("show-stats");
+        const showStats = showStatsInput !== "false"; // default true
+        const fetchContributors = core.getInput("fetch-contributors") === "true"; // default false
+        const fetchReleases = core.getInput("fetch-releases") === "true"; // default false
         // Validate provider
         if (!AI_PROVIDERS.includes(provider)) {
             throw new Error(`Invalid provider: ${provider}. Must be one of: ${AI_PROVIDERS.join(", ")}`);
@@ -81440,6 +81512,71 @@ async function run() {
         }
         // Get repository info
         const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
+        // Build GitHub stats if enabled
+        let repoStats;
+        if (showStats) {
+            core.info("📊 Fetching GitHub statistics...");
+            repoStats = {
+                stars: repoData.stargazers_count,
+                forks: repoData.forks_count,
+                watchers: repoData.subscribers_count,
+                openIssues: repoData.open_issues_count,
+                createdAt: repoData.created_at,
+                updatedAt: repoData.pushed_at,
+                license: repoData.license?.name ?? undefined,
+            };
+            // Optionally fetch latest release
+            if (fetchReleases) {
+                try {
+                    const { data: releases } = await octokit.rest.repos.listReleases({
+                        owner,
+                        repo,
+                        per_page: 1,
+                    });
+                    if (releases.length > 0) {
+                        repoStats.latestRelease = releases[0].tag_name;
+                        core.info(`🏷️ Latest release: ${releases[0].tag_name}`);
+                    }
+                }
+                catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    core.warning(`⚠️ Failed to fetch latest release: ${errorMessage}. Proceeding without release info.`);
+                }
+            }
+            // Optionally fetch contributor count
+            if (fetchContributors) {
+                try {
+                    // Use per_page=1 and check the Link header for total count
+                    const response = await octokit.rest.repos.listContributors({
+                        owner,
+                        repo,
+                        per_page: 1,
+                        anon: "false",
+                    });
+                    // Parse the Link header to get total count
+                    const linkHeader = response.headers.link;
+                    if (linkHeader) {
+                        // Extract last page number from Link header
+                        const lastPageMatch = linkHeader.match(/page=(\d+)>; rel="last"/);
+                        if (lastPageMatch) {
+                            repoStats.contributorCount = Number.parseInt(lastPageMatch[1], 10);
+                        }
+                    }
+                    if (!repoStats.contributorCount && response.data.length > 0) {
+                        // Fallback: if no Link header, just count what we have
+                        repoStats.contributorCount = response.data.length;
+                    }
+                    if (repoStats.contributorCount) {
+                        core.info(`👨‍💻 Contributors: ${repoStats.contributorCount}`);
+                    }
+                }
+                catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    core.warning(`⚠️ Failed to fetch contributors: ${errorMessage}. Proceeding without contributor info.`);
+                }
+            }
+            core.info(`📊 Stats: ⭐ ${repoStats.stars} | 🍴 ${repoStats.forks} | 👀 ${repoStats.watchers}`);
+        }
         // Get README
         let readme;
         try {
@@ -81896,6 +82033,7 @@ async function run() {
             language: repoData.language || undefined,
             topics: repoData.topics || [],
             readme,
+            stats: repoStats,
         };
         core.info("🎨 Generating site...");
         const result = await generateSite(repoInfo, aiProvider, config);

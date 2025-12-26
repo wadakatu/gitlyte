@@ -12,6 +12,7 @@ import {
   type SitemapConfig,
   type RobotsConfig,
   type SitemapChangefreq,
+  type RepoStats,
 } from "./site-generator.js";
 
 /**
@@ -230,6 +231,12 @@ export async function run(): Promise<void> {
     const generateRobotsExplicit = generateRobotsInput !== "";
     const generateRobots = generateRobotsInput !== "false"; // default true
 
+    // GitHub stats inputs
+    const showStatsInput = core.getInput("show-stats");
+    const showStats = showStatsInput !== "false"; // default true
+    const fetchContributors = core.getInput("fetch-contributors") === "true"; // default false
+    const fetchReleases = core.getInput("fetch-releases") === "true"; // default false
+
     // Validate provider
     if (!AI_PROVIDERS.includes(provider)) {
       throw new Error(
@@ -303,6 +310,85 @@ export async function run(): Promise<void> {
 
     // Get repository info
     const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
+
+    // Build GitHub stats if enabled
+    let repoStats: RepoStats | undefined;
+    if (showStats) {
+      core.info("📊 Fetching GitHub statistics...");
+
+      repoStats = {
+        stars: repoData.stargazers_count,
+        forks: repoData.forks_count,
+        watchers: repoData.subscribers_count,
+        openIssues: repoData.open_issues_count,
+        createdAt: repoData.created_at,
+        updatedAt: repoData.pushed_at,
+        license: repoData.license?.name ?? undefined,
+      };
+
+      // Optionally fetch latest release
+      if (fetchReleases) {
+        try {
+          const { data: releases } = await octokit.rest.repos.listReleases({
+            owner,
+            repo,
+            per_page: 1,
+          });
+          if (releases.length > 0) {
+            repoStats.latestRelease = releases[0].tag_name;
+            core.info(`🏷️ Latest release: ${releases[0].tag_name}`);
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          core.warning(
+            `⚠️ Failed to fetch latest release: ${errorMessage}. Proceeding without release info.`
+          );
+        }
+      }
+
+      // Optionally fetch contributor count
+      if (fetchContributors) {
+        try {
+          // Use per_page=1 and check the Link header for total count
+          const response = await octokit.rest.repos.listContributors({
+            owner,
+            repo,
+            per_page: 1,
+            anon: "false",
+          });
+          // Parse the Link header to get total count
+          const linkHeader = response.headers.link;
+          if (linkHeader) {
+            // Extract last page number from Link header
+            const lastPageMatch = linkHeader.match(/page=(\d+)>; rel="last"/);
+            if (lastPageMatch) {
+              repoStats.contributorCount = Number.parseInt(
+                lastPageMatch[1],
+                10
+              );
+            }
+          }
+          if (!repoStats.contributorCount && response.data.length > 0) {
+            // Fallback: if no Link header, just count what we have
+            repoStats.contributorCount = response.data.length;
+          }
+          if (repoStats.contributorCount) {
+            core.info(`👨‍💻 Contributors: ${repoStats.contributorCount}`);
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          core.warning(
+            `⚠️ Failed to fetch contributors: ${errorMessage}. Proceeding without contributor info.`
+          );
+        }
+      }
+
+      core.info(
+        `📊 Stats: ⭐ ${repoStats.stars} | 🍴 ${repoStats.forks} | 👀 ${repoStats.watchers}`
+      );
+    }
 
     // Get README
     let readme: string | undefined;
@@ -886,6 +972,7 @@ export async function run(): Promise<void> {
       language: repoData.language || undefined,
       topics: repoData.topics || [],
       readme,
+      stats: repoStats,
     };
 
     core.info("🎨 Generating site...");
