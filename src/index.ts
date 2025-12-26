@@ -5,9 +5,13 @@ import * as path from "node:path";
 import {
   generateSite,
   THEME_MODES,
+  SITEMAP_CHANGEFREQ,
   isValidThemeMode,
   type ThemeMode,
   type SeoConfig,
+  type SitemapConfig,
+  type RobotsConfig,
+  type SitemapChangefreq,
 } from "./site-generator.js";
 
 /**
@@ -120,6 +124,63 @@ function isValidSeoConfig(value: unknown): value is SeoConfig {
   return true;
 }
 
+/**
+ * Validate sitemap config structure from .gitlyte.json
+ */
+function isValidSitemapConfig(value: unknown): value is SitemapConfig {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+
+  if (typeof obj.enabled !== "boolean") {
+    return false;
+  }
+  if (obj.changefreq !== undefined) {
+    if (
+      typeof obj.changefreq !== "string" ||
+      !SITEMAP_CHANGEFREQ.includes(obj.changefreq as SitemapChangefreq)
+    ) {
+      return false;
+    }
+  }
+  if (obj.priority !== undefined) {
+    if (
+      typeof obj.priority !== "number" ||
+      obj.priority < 0 ||
+      obj.priority > 1
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Validate robots config structure from .gitlyte.json
+ */
+function isValidRobotsConfig(value: unknown): value is RobotsConfig {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+
+  if (typeof obj.enabled !== "boolean") {
+    return false;
+  }
+  if (obj.additionalRules !== undefined) {
+    if (!Array.isArray(obj.additionalRules)) {
+      return false;
+    }
+    if (!obj.additionalRules.every((r) => typeof r === "string")) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 import {
   createAIProvider,
   AI_PROVIDERS,
@@ -159,6 +220,15 @@ export async function run(): Promise<void> {
     const ogImagePathInput = core.getInput("og-image-path");
     const twitterHandleInput = core.getInput("twitter-handle");
     const siteUrlInput = core.getInput("site-url");
+
+    // Sitemap and robots.txt inputs
+    const generateSitemapInput = core.getInput("generate-sitemap");
+    const generateSitemapExplicit = generateSitemapInput !== "";
+    const generateSitemap = generateSitemapInput !== "false"; // default true
+
+    const generateRobotsInput = core.getInput("generate-robots");
+    const generateRobotsExplicit = generateRobotsInput !== "";
+    const generateRobots = generateRobotsInput !== "false"; // default true
 
     // Validate provider
     if (!AI_PROVIDERS.includes(provider)) {
@@ -412,6 +482,8 @@ export async function run(): Promise<void> {
       logo?: { path: string; alt?: string };
       favicon?: { path: string };
       seo?: SeoConfig;
+      sitemap?: SitemapConfig;
+      robots?: RobotsConfig;
     } = {
       outputDirectory,
       theme: {
@@ -433,6 +505,10 @@ export async function run(): Promise<void> {
         : undefined,
       // SEO config from action inputs
       seo: buildSeoConfig(),
+      // Sitemap config from action inputs (default enabled)
+      sitemap: { enabled: generateSitemap },
+      // Robots config from action inputs (default enabled)
+      robots: { enabled: generateRobots },
     };
     try {
       const { data: configFile } = await octokit.rest.repos.getContent({
@@ -477,6 +553,28 @@ export async function run(): Promise<void> {
             throw new Error(
               "Invalid seo config in .gitlyte.json. " +
                 `Expected { title?: string, description?: string, keywords?: string[], ogImage?: { path: string }, twitterHandle?: string, siteUrl?: string }, got: ${JSON.stringify(parsedConfig.seo)}`
+            );
+          }
+
+          // Validate sitemap config if present
+          if (
+            parsedConfig.sitemap !== undefined &&
+            !isValidSitemapConfig(parsedConfig.sitemap)
+          ) {
+            throw new Error(
+              "Invalid sitemap config in .gitlyte.json. " +
+                `Expected { enabled: boolean, changefreq?: "${SITEMAP_CHANGEFREQ.join('" | "')}", priority?: number (0.0-1.0) }, got: ${JSON.stringify(parsedConfig.sitemap)}`
+            );
+          }
+
+          // Validate robots config if present
+          if (
+            parsedConfig.robots !== undefined &&
+            !isValidRobotsConfig(parsedConfig.robots)
+          ) {
+            throw new Error(
+              "Invalid robots config in .gitlyte.json. " +
+                `Expected { enabled: boolean, additionalRules?: string[] }, got: ${JSON.stringify(parsedConfig.robots)}`
             );
           }
 
@@ -706,6 +804,39 @@ export async function run(): Promise<void> {
                 siteUrl: actionSeo?.siteUrl ?? configSeo?.siteUrl,
               };
             })(),
+            // Sitemap: merge action inputs with config file, action inputs take precedence
+            sitemap: (() => {
+              const configSitemap = parsedConfig.sitemap as
+                | SitemapConfig
+                | undefined;
+
+              // Action input takes precedence for enabled flag
+              const enabled = generateSitemapExplicit
+                ? generateSitemap
+                : (configSitemap?.enabled ?? generateSitemap);
+
+              return {
+                enabled,
+                changefreq: configSitemap?.changefreq,
+                priority: configSitemap?.priority,
+              };
+            })(),
+            // Robots: merge action inputs with config file, action inputs take precedence
+            robots: (() => {
+              const configRobots = parsedConfig.robots as
+                | RobotsConfig
+                | undefined;
+
+              // Action input takes precedence for enabled flag
+              const enabled = generateRobotsExplicit
+                ? generateRobots
+                : (configRobots?.enabled ?? generateRobots);
+
+              return {
+                enabled,
+                additionalRules: configRobots?.additionalRules,
+              };
+            })(),
           };
         } catch (parseError) {
           // JSON parse error - this is a user config error, fail explicitly
@@ -724,7 +855,9 @@ export async function run(): Promise<void> {
           error.message.startsWith("Invalid theme.toggle") ||
           error.message.startsWith("Invalid logo config") ||
           error.message.startsWith("Invalid favicon config") ||
-          error.message.startsWith("Invalid seo config"))
+          error.message.startsWith("Invalid seo config") ||
+          error.message.startsWith("Invalid sitemap config") ||
+          error.message.startsWith("Invalid robots config"))
       ) {
         throw error;
       }

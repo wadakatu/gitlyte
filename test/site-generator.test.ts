@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   generateSite,
+  generateSitemap,
+  generateRobots,
   THEME_MODES,
+  SITEMAP_CHANGEFREQ,
   isValidThemeMode,
   type RepoInfo,
   type SiteConfig,
   type GeneratedSite,
+  type GeneratedPage,
 } from "../src/site-generator.js";
 import type { AIProviderInstance } from "../src/ai-provider.js";
 import { selfRefine } from "../src/self-refine.js";
@@ -1216,6 +1220,362 @@ describe("Site Generator", () => {
       // Should not have double slash
       expect(htmlPrompt).toContain("https://example.com/og-image.png");
       expect(htmlPrompt).not.toContain("https://example.com//og-image.png");
+    });
+  });
+
+  describe("generateSitemap", () => {
+    it("should generate valid sitemap XML", () => {
+      const pages: GeneratedPage[] = [{ path: "index.html", html: "<html></html>" }];
+      const siteUrl = "https://example.com";
+
+      const result = generateSitemap(pages, siteUrl);
+
+      expect(result).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+      expect(result).toContain("<urlset");
+      expect(result).toContain("</urlset>");
+      expect(result).toContain("<url>");
+      expect(result).toContain("<loc>https://example.com</loc>");
+    });
+
+    it("should use siteUrl as loc for index.html", () => {
+      const pages: GeneratedPage[] = [{ path: "index.html", html: "" }];
+      const siteUrl = "https://example.com";
+
+      const result = generateSitemap(pages, siteUrl);
+
+      expect(result).toContain("<loc>https://example.com</loc>");
+    });
+
+    it("should generate proper URL for non-index pages", () => {
+      const pages: GeneratedPage[] = [
+        { path: "index.html", html: "" },
+        { path: "about.html", html: "" },
+      ];
+      const siteUrl = "https://example.com";
+
+      const result = generateSitemap(pages, siteUrl);
+
+      expect(result).toContain("<loc>https://example.com</loc>");
+      expect(result).toContain("<loc>https://example.com/about</loc>");
+    });
+
+    it("should use default changefreq and priority", () => {
+      const pages: GeneratedPage[] = [{ path: "index.html", html: "" }];
+      const siteUrl = "https://example.com";
+
+      const result = generateSitemap(pages, siteUrl);
+
+      expect(result).toContain("<changefreq>weekly</changefreq>");
+      expect(result).toContain("<priority>0.8</priority>");
+    });
+
+    it("should use custom changefreq and priority", () => {
+      const pages: GeneratedPage[] = [{ path: "index.html", html: "" }];
+      const siteUrl = "https://example.com";
+
+      const result = generateSitemap(pages, siteUrl, {
+        changefreq: "daily",
+        priority: 1.0,
+      });
+
+      expect(result).toContain("<changefreq>daily</changefreq>");
+      expect(result).toContain("<priority>1</priority>");
+    });
+
+    it("should include lastmod with today's date", () => {
+      const pages: GeneratedPage[] = [{ path: "index.html", html: "" }];
+      const siteUrl = "https://example.com";
+      const today = new Date().toISOString().split("T")[0];
+
+      const result = generateSitemap(pages, siteUrl);
+
+      expect(result).toContain(`<lastmod>${today}</lastmod>`);
+    });
+
+    it("should strip trailing slash from siteUrl", () => {
+      const pages: GeneratedPage[] = [{ path: "index.html", html: "" }];
+      const siteUrl = "https://example.com/";
+
+      const result = generateSitemap(pages, siteUrl);
+
+      expect(result).toContain("<loc>https://example.com</loc>");
+      expect(result).not.toContain("https://example.com/</loc>");
+    });
+
+    it("should only include .html files", () => {
+      const pages: GeneratedPage[] = [
+        { path: "index.html", html: "" },
+        { path: "sitemap.xml", html: "" },
+        { path: "robots.txt", html: "" },
+      ];
+      const siteUrl = "https://example.com";
+
+      const result = generateSitemap(pages, siteUrl);
+
+      expect(result).toContain("<loc>https://example.com</loc>");
+      expect(result).not.toContain("sitemap.xml");
+      expect(result).not.toContain("robots.txt");
+    });
+  });
+
+  describe("generateRobots", () => {
+    it("should generate valid robots.txt content", () => {
+      const siteUrl = "https://example.com";
+
+      const result = generateRobots(siteUrl);
+
+      expect(result).toContain("User-agent: *");
+      expect(result).toContain("Allow: /");
+      expect(result).toContain("Sitemap: https://example.com/sitemap.xml");
+    });
+
+    it("should strip trailing slash from siteUrl", () => {
+      const siteUrl = "https://example.com/";
+
+      const result = generateRobots(siteUrl);
+
+      expect(result).toContain("Sitemap: https://example.com/sitemap.xml");
+      expect(result).not.toContain("https://example.com//sitemap.xml");
+    });
+
+    it("should include additional rules when provided", () => {
+      const siteUrl = "https://example.com";
+      const additionalRules = ["Disallow: /private/", "Disallow: /admin/"];
+
+      const result = generateRobots(siteUrl, additionalRules);
+
+      expect(result).toContain("Disallow: /private/");
+      expect(result).toContain("Disallow: /admin/");
+    });
+
+    it("should handle empty additional rules", () => {
+      const siteUrl = "https://example.com";
+
+      const result = generateRobots(siteUrl, []);
+
+      expect(result).toContain("User-agent: *");
+      expect(result).toContain("Allow: /");
+      expect(result).toContain("Sitemap:");
+    });
+  });
+
+  describe("Sitemap and Robots Integration", () => {
+    it("should generate sitemap.xml when siteUrl is set and sitemap is enabled", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithSiteUrl: SiteConfig = {
+        ...defaultConfig,
+        seo: { siteUrl: "https://example.com" },
+        sitemap: { enabled: true },
+      };
+
+      const result = await generateSite(
+        defaultRepoInfo,
+        mockProvider,
+        configWithSiteUrl
+      );
+
+      expect(result.pages.length).toBeGreaterThan(1);
+      const sitemapPage = result.pages.find((p) => p.path === "sitemap.xml");
+      expect(sitemapPage).toBeDefined();
+      expect(sitemapPage?.html).toContain("<urlset");
+      expect(sitemapPage?.html).toContain("https://example.com");
+    });
+
+    it("should generate robots.txt when siteUrl is set and robots is enabled", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithSiteUrl: SiteConfig = {
+        ...defaultConfig,
+        seo: { siteUrl: "https://example.com" },
+        robots: { enabled: true },
+      };
+
+      const result = await generateSite(
+        defaultRepoInfo,
+        mockProvider,
+        configWithSiteUrl
+      );
+
+      const robotsPage = result.pages.find((p) => p.path === "robots.txt");
+      expect(robotsPage).toBeDefined();
+      expect(robotsPage?.html).toContain("User-agent: *");
+      expect(robotsPage?.html).toContain("Sitemap:");
+    });
+
+    it("should not generate sitemap.xml when siteUrl is not set", async () => {
+      const core = await import("@actions/core");
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithoutSiteUrl: SiteConfig = {
+        ...defaultConfig,
+        sitemap: { enabled: true },
+      };
+
+      const result = await generateSite(
+        defaultRepoInfo,
+        mockProvider,
+        configWithoutSiteUrl
+      );
+
+      expect(result.pages).toHaveLength(1);
+      expect(result.pages[0].path).toBe("index.html");
+      expect(core.warning).toHaveBeenCalledWith(
+        expect.stringContaining("Sitemap generation skipped")
+      );
+    });
+
+    it("should not generate robots.txt when siteUrl is not set", async () => {
+      const core = await import("@actions/core");
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithoutSiteUrl: SiteConfig = {
+        ...defaultConfig,
+        robots: { enabled: true },
+      };
+
+      const result = await generateSite(
+        defaultRepoInfo,
+        mockProvider,
+        configWithoutSiteUrl
+      );
+
+      expect(result.pages).toHaveLength(1);
+      expect(core.warning).toHaveBeenCalledWith(
+        expect.stringContaining("Robots.txt generation skipped")
+      );
+    });
+
+    it("should not generate sitemap.xml when explicitly disabled", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configDisabled: SiteConfig = {
+        ...defaultConfig,
+        seo: { siteUrl: "https://example.com" },
+        sitemap: { enabled: false },
+        robots: { enabled: false },
+      };
+
+      const result = await generateSite(
+        defaultRepoInfo,
+        mockProvider,
+        configDisabled
+      );
+
+      expect(result.pages).toHaveLength(1);
+      expect(result.pages[0].path).toBe("index.html");
+    });
+
+    it("should use custom sitemap options from config", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithOptions: SiteConfig = {
+        ...defaultConfig,
+        seo: { siteUrl: "https://example.com" },
+        sitemap: {
+          enabled: true,
+          changefreq: "daily",
+          priority: 1.0,
+        },
+      };
+
+      const result = await generateSite(
+        defaultRepoInfo,
+        mockProvider,
+        configWithOptions
+      );
+
+      const sitemapPage = result.pages.find((p) => p.path === "sitemap.xml");
+      expect(sitemapPage?.html).toContain("<changefreq>daily</changefreq>");
+      expect(sitemapPage?.html).toContain("<priority>1</priority>");
+    });
+
+    it("should include additional rules in robots.txt from config", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithRules: SiteConfig = {
+        ...defaultConfig,
+        seo: { siteUrl: "https://example.com" },
+        robots: {
+          enabled: true,
+          additionalRules: ["Disallow: /private/"],
+        },
+      };
+
+      const result = await generateSite(
+        defaultRepoInfo,
+        mockProvider,
+        configWithRules
+      );
+
+      const robotsPage = result.pages.find((p) => p.path === "robots.txt");
+      expect(robotsPage?.html).toContain("Disallow: /private/");
+    });
+
+    it("should generate both sitemap and robots by default when siteUrl is set", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configDefaultEnabled: SiteConfig = {
+        ...defaultConfig,
+        seo: { siteUrl: "https://example.com" },
+      };
+
+      const result = await generateSite(
+        defaultRepoInfo,
+        mockProvider,
+        configDefaultEnabled
+      );
+
+      expect(result.pages).toHaveLength(3);
+      expect(result.pages.map((p) => p.path)).toContain("index.html");
+      expect(result.pages.map((p) => p.path)).toContain("sitemap.xml");
+      expect(result.pages.map((p) => p.path)).toContain("robots.txt");
+    });
+  });
+
+  describe("SITEMAP_CHANGEFREQ", () => {
+    it("should contain valid changefreq values", () => {
+      expect(SITEMAP_CHANGEFREQ).toEqual([
+        "always",
+        "hourly",
+        "daily",
+        "weekly",
+        "monthly",
+        "yearly",
+        "never",
+      ]);
     });
   });
 });

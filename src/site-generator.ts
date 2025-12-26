@@ -54,6 +54,38 @@ export interface SeoConfig {
   siteUrl?: string;
 }
 
+/** Valid changefreq values for sitemap */
+export const SITEMAP_CHANGEFREQ = [
+  "always",
+  "hourly",
+  "daily",
+  "weekly",
+  "monthly",
+  "yearly",
+  "never",
+] as const;
+
+/** Sitemap changefreq type */
+export type SitemapChangefreq = (typeof SITEMAP_CHANGEFREQ)[number];
+
+/** Sitemap configuration */
+export interface SitemapConfig {
+  /** Whether sitemap generation is enabled (default: true) */
+  enabled: boolean;
+  /** How frequently the page changes (default: "weekly") */
+  changefreq?: SitemapChangefreq;
+  /** Priority of this URL relative to other URLs (0.0 to 1.0, default: 0.8) */
+  priority?: number;
+}
+
+/** Robots.txt configuration */
+export interface RobotsConfig {
+  /** Whether robots.txt generation is enabled (default: true) */
+  enabled: boolean;
+  /** Additional rules to include in robots.txt */
+  additionalRules?: string[];
+}
+
 export interface SiteConfig {
   outputDirectory: string;
   theme: {
@@ -77,6 +109,10 @@ export interface SiteConfig {
   };
   /** SEO and Open Graph configuration */
   seo?: SeoConfig;
+  /** Sitemap generation configuration */
+  sitemap?: SitemapConfig;
+  /** Robots.txt generation configuration */
+  robots?: RobotsConfig;
 }
 
 export interface GeneratedPage {
@@ -181,12 +217,52 @@ export async function generateSite(
     );
   }
 
+  // Build the pages array
+  const pages: GeneratedPage[] = [{ path: "index.html", html: indexHtml }];
+
+  // Step 5: Generate sitemap.xml (if enabled and siteUrl is set)
+  const sitemapEnabled = config.sitemap?.enabled !== false;
+  const robotsEnabled = config.robots?.enabled !== false;
+  const siteUrl = config.seo?.siteUrl;
+
+  if (sitemapEnabled || robotsEnabled) {
+    if (!siteUrl) {
+      if (sitemapEnabled) {
+        core.warning(
+          "Sitemap generation skipped: site-url is required for sitemap.xml. " +
+            "Set seo.siteUrl in .gitlyte.json or use the site-url action input."
+        );
+      }
+      if (robotsEnabled) {
+        core.warning(
+          "Robots.txt generation skipped: site-url is required for robots.txt. " +
+            "Set seo.siteUrl in .gitlyte.json or use the site-url action input."
+        );
+      }
+    } else {
+      if (sitemapEnabled) {
+        core.info("Generating sitemap.xml...");
+        const sitemapXml = generateSitemap(pages, siteUrl, {
+          changefreq: config.sitemap?.changefreq,
+          priority: config.sitemap?.priority,
+        });
+        pages.push({ path: "sitemap.xml", html: sitemapXml });
+      }
+
+      if (robotsEnabled) {
+        core.info("Generating robots.txt...");
+        const robotsTxt = generateRobots(
+          siteUrl,
+          config.robots?.additionalRules
+        );
+        pages.push({ path: "robots.txt", html: robotsTxt });
+      }
+    }
+  }
+
   core.info("Site generation complete!");
 
-  return {
-    pages: [{ path: "index.html", html: indexHtml }],
-    assets: [],
-  };
+  return { pages, assets: [] };
 }
 
 /**
@@ -603,4 +679,71 @@ OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOC
   }
 
   return html;
+}
+
+/**
+ * Generate sitemap.xml content
+ * @param pages Array of generated pages (only .html files are included)
+ * @param siteUrl Base URL for the site (required for absolute URLs)
+ * @param options Sitemap options (changefreq, priority)
+ * @returns XML string for sitemap.xml
+ */
+export function generateSitemap(
+  pages: GeneratedPage[],
+  siteUrl: string,
+  options: { changefreq?: SitemapChangefreq; priority?: number } = {}
+): string {
+  const today = new Date().toISOString().split("T")[0];
+  const changefreq = options.changefreq || "weekly";
+  const priority = options.priority ?? 0.8;
+
+  // Normalize siteUrl (remove trailing slash)
+  const baseUrl = siteUrl.replace(/\/$/, "");
+
+  const urls = pages
+    .filter((page) => page.path.endsWith(".html"))
+    .map((page) => {
+      // Generate absolute URL
+      const loc =
+        page.path === "index.html"
+          ? baseUrl
+          : `${baseUrl}/${page.path.replace(/index\.html$/, "").replace(/\.html$/, "")}`;
+
+      return `  <url>
+    <loc>${loc}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
+    })
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>`;
+}
+
+/**
+ * Generate robots.txt content
+ * @param siteUrl Base URL for the site (used for sitemap reference)
+ * @param additionalRules Additional rules to include
+ * @returns Text content for robots.txt
+ */
+export function generateRobots(
+  siteUrl: string,
+  additionalRules: string[] = []
+): string {
+  // Normalize siteUrl (remove trailing slash)
+  const baseUrl = siteUrl.replace(/\/$/, "");
+
+  const rules = [
+    "User-agent: *",
+    "Allow: /",
+    "",
+    `Sitemap: ${baseUrl}/sitemap.xml`,
+    ...additionalRules,
+  ];
+
+  return rules.join("\n");
 }

@@ -39,6 +39,26 @@ export interface SeoConfig {
     /** Site URL for canonical link and OG URL */
     siteUrl?: string;
 }
+/** Valid changefreq values for sitemap */
+export declare const SITEMAP_CHANGEFREQ: readonly ["always", "hourly", "daily", "weekly", "monthly", "yearly", "never"];
+/** Sitemap changefreq type */
+export type SitemapChangefreq = (typeof SITEMAP_CHANGEFREQ)[number];
+/** Sitemap configuration */
+export interface SitemapConfig {
+    /** Whether sitemap generation is enabled (default: true) */
+    enabled: boolean;
+    /** How frequently the page changes (default: "weekly") */
+    changefreq?: SitemapChangefreq;
+    /** Priority of this URL relative to other URLs (0.0 to 1.0, default: 0.8) */
+    priority?: number;
+}
+/** Robots.txt configuration */
+export interface RobotsConfig {
+    /** Whether robots.txt generation is enabled (default: true) */
+    enabled: boolean;
+    /** Additional rules to include in robots.txt */
+    additionalRules?: string[];
+}
 export interface SiteConfig {
     outputDirectory: string;
     theme: {
@@ -64,6 +84,10 @@ export interface SiteConfig {
     };
     /** SEO and Open Graph configuration */
     seo?: SeoConfig;
+    /** Sitemap generation configuration */
+    sitemap?: SitemapConfig;
+    /** Robots.txt generation configuration */
+    robots?: RobotsConfig;
 }
 export interface GeneratedPage {
     path: string;
@@ -80,3 +104,21 @@ export interface GeneratedSite {
  * Generate a complete site
  */
 export declare function generateSite(repoInfo: RepoInfo, aiProvider: AIProviderInstance, config: SiteConfig): Promise<GeneratedSite>;
+/**
+ * Generate sitemap.xml content
+ * @param pages Array of generated pages (only .html files are included)
+ * @param siteUrl Base URL for the site (required for absolute URLs)
+ * @param options Sitemap options (changefreq, priority)
+ * @returns XML string for sitemap.xml
+ */
+export declare function generateSitemap(pages: GeneratedPage[], siteUrl: string, options?: {
+    changefreq?: SitemapChangefreq;
+    priority?: number;
+}): string;
+/**
+ * Generate robots.txt content
+ * @param siteUrl Base URL for the site (used for sitemap reference)
+ * @param additionalRules Additional rules to include
+ * @returns Text content for robots.txt
+ */
+export declare function generateRobots(siteUrl: string, additionalRules?: string[]): string;
