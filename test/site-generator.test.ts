@@ -1316,6 +1316,51 @@ describe("Site Generator", () => {
       expect(result).not.toContain("sitemap.xml");
       expect(result).not.toContain("robots.txt");
     });
+
+    it("should handle subdirectory HTML files", () => {
+      const pages: GeneratedPage[] = [
+        { path: "index.html", html: "" },
+        { path: "docs/guide.html", html: "" },
+        { path: "docs/api.html", html: "" },
+      ];
+      const siteUrl = "https://example.com";
+
+      const result = generateSitemap(pages, siteUrl);
+
+      expect(result).toContain("<loc>https://example.com</loc>");
+      expect(result).toContain("<loc>https://example.com/docs/guide</loc>");
+      expect(result).toContain("<loc>https://example.com/docs/api</loc>");
+    });
+
+    it("should handle subdirectory index.html files", () => {
+      const pages: GeneratedPage[] = [
+        { path: "index.html", html: "" },
+        { path: "docs/index.html", html: "" },
+        { path: "about/index.html", html: "" },
+      ];
+      const siteUrl = "https://example.com";
+
+      const result = generateSitemap(pages, siteUrl);
+
+      expect(result).toContain("<loc>https://example.com</loc>");
+      expect(result).toContain("<loc>https://example.com/docs/</loc>");
+      expect(result).toContain("<loc>https://example.com/about/</loc>");
+    });
+
+    it("should handle deeply nested paths", () => {
+      const pages: GeneratedPage[] = [
+        { path: "index.html", html: "" },
+        { path: "docs/api/v2/index.html", html: "" },
+        { path: "docs/api/v2/endpoints.html", html: "" },
+      ];
+      const siteUrl = "https://example.com";
+
+      const result = generateSitemap(pages, siteUrl);
+
+      expect(result).toContain("<loc>https://example.com</loc>");
+      expect(result).toContain("<loc>https://example.com/docs/api/v2/</loc>");
+      expect(result).toContain("<loc>https://example.com/docs/api/v2/endpoints</loc>");
+    });
   });
 
   describe("generateRobots", () => {
@@ -1340,9 +1385,10 @@ describe("Site Generator", () => {
 
     it("should include additional rules when provided", () => {
       const siteUrl = "https://example.com";
-      const additionalRules = ["Disallow: /private/", "Disallow: /admin/"];
 
-      const result = generateRobots(siteUrl, additionalRules);
+      const result = generateRobots(siteUrl, {
+        additionalRules: ["Disallow: /private/", "Disallow: /admin/"],
+      });
 
       expect(result).toContain("Disallow: /private/");
       expect(result).toContain("Disallow: /admin/");
@@ -1351,11 +1397,50 @@ describe("Site Generator", () => {
     it("should handle empty additional rules", () => {
       const siteUrl = "https://example.com";
 
-      const result = generateRobots(siteUrl, []);
+      const result = generateRobots(siteUrl, { additionalRules: [] });
 
       expect(result).toContain("User-agent: *");
       expect(result).toContain("Allow: /");
       expect(result).toContain("Sitemap:");
+    });
+
+    it("should include sitemap reference by default", () => {
+      const siteUrl = "https://example.com";
+
+      const result = generateRobots(siteUrl);
+
+      expect(result).toContain("Sitemap: https://example.com/sitemap.xml");
+    });
+
+    it("should not include sitemap reference when includeSitemap is false", () => {
+      const siteUrl = "https://example.com";
+
+      const result = generateRobots(siteUrl, { includeSitemap: false });
+
+      expect(result).toContain("User-agent: *");
+      expect(result).toContain("Allow: /");
+      expect(result).not.toContain("Sitemap:");
+    });
+
+    it("should include sitemap reference when includeSitemap is true", () => {
+      const siteUrl = "https://example.com";
+
+      const result = generateRobots(siteUrl, { includeSitemap: true });
+
+      expect(result).toContain("Sitemap: https://example.com/sitemap.xml");
+    });
+
+    it("should filter out empty strings from additional rules", () => {
+      const siteUrl = "https://example.com";
+
+      const result = generateRobots(siteUrl, {
+        additionalRules: ["Disallow: /private/", "", "  ", "Disallow: /admin/"],
+      });
+
+      expect(result).toContain("Disallow: /private/");
+      expect(result).toContain("Disallow: /admin/");
+      // Should not have extra blank lines from empty rules
+      expect(result).not.toMatch(/\n\s*\n\s*\n/);
     });
   });
 
@@ -1562,6 +1647,105 @@ describe("Site Generator", () => {
       expect(result.pages.map((p) => p.path)).toContain("index.html");
       expect(result.pages.map((p) => p.path)).toContain("sitemap.xml");
       expect(result.pages.map((p) => p.path)).toContain("robots.txt");
+    });
+
+    it("should log generated files in summary", async () => {
+      const core = await import("@actions/core");
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithSiteUrl: SiteConfig = {
+        ...defaultConfig,
+        seo: { siteUrl: "https://example.com" },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithSiteUrl);
+
+      expect(core.info).toHaveBeenCalledWith(
+        expect.stringContaining("Generated: index.html, sitemap.xml, robots.txt")
+      );
+    });
+
+    it("should log skipped files when site-url is not set", async () => {
+      const core = await import("@actions/core");
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithoutSiteUrl: SiteConfig = {
+        ...defaultConfig,
+        sitemap: { enabled: true },
+        robots: { enabled: true },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithoutSiteUrl);
+
+      expect(core.info).toHaveBeenCalledWith(
+        expect.stringContaining("Skipped:")
+      );
+      expect(core.info).toHaveBeenCalledWith(
+        expect.stringContaining("sitemap.xml (no site-url)")
+      );
+      expect(core.info).toHaveBeenCalledWith(
+        expect.stringContaining("robots.txt (no site-url)")
+      );
+    });
+
+    it("should log skipped files when features are disabled", async () => {
+      const core = await import("@actions/core");
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configDisabled: SiteConfig = {
+        ...defaultConfig,
+        sitemap: { enabled: false },
+        robots: { enabled: false },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configDisabled);
+
+      expect(core.info).toHaveBeenCalledWith(
+        expect.stringContaining("Skipped:")
+      );
+      expect(core.info).toHaveBeenCalledWith(
+        expect.stringContaining("sitemap.xml (disabled)")
+      );
+      expect(core.info).toHaveBeenCalledWith(
+        expect.stringContaining("robots.txt (disabled)")
+      );
+    });
+
+    it("should not log skipped line when all features are generated", async () => {
+      const core = await import("@actions/core");
+      vi.mocked(core.info).mockClear();
+
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const configWithSiteUrl: SiteConfig = {
+        ...defaultConfig,
+        seo: { siteUrl: "https://example.com" },
+        sitemap: { enabled: true },
+        robots: { enabled: true },
+      };
+
+      await generateSite(defaultRepoInfo, mockProvider, configWithSiteUrl);
+
+      // Check that no "Skipped:" line was logged
+      const infoCalls = vi.mocked(core.info).mock.calls.map((call) => call[0]);
+      const skippedCalls = infoCalls.filter((msg) => msg.includes("Skipped:"));
+      expect(skippedCalls).toHaveLength(0);
     });
   });
 

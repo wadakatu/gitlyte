@@ -220,6 +220,10 @@ export async function generateSite(
   // Build the pages array
   const pages: GeneratedPage[] = [{ path: "index.html", html: indexHtml }];
 
+  // Track generation results for summary
+  const generated: string[] = ["index.html"];
+  const skipped: string[] = [];
+
   // Step 5: Generate sitemap.xml (if enabled and siteUrl is set)
   const sitemapEnabled = config.sitemap?.enabled !== false;
   const robotsEnabled = config.robots?.enabled !== false;
@@ -232,35 +236,76 @@ export async function generateSite(
           "Sitemap generation skipped: site-url is required for sitemap.xml. " +
             "Set seo.siteUrl in .gitlyte.json or use the site-url action input."
         );
+        skipped.push("sitemap.xml (no site-url)");
       }
       if (robotsEnabled) {
         core.warning(
           "Robots.txt generation skipped: site-url is required for robots.txt. " +
             "Set seo.siteUrl in .gitlyte.json or use the site-url action input."
         );
+        skipped.push("robots.txt (no site-url)");
       }
     } else {
+      // Track whether sitemap was actually generated (for robots.txt Sitemap directive)
+      let sitemapGenerated = false;
+
       if (sitemapEnabled) {
         core.info("Generating sitemap.xml...");
-        const sitemapXml = generateSitemap(pages, siteUrl, {
-          changefreq: config.sitemap?.changefreq,
-          priority: config.sitemap?.priority,
-        });
-        pages.push({ path: "sitemap.xml", html: sitemapXml });
+        try {
+          const sitemapXml = generateSitemap(pages, siteUrl, {
+            changefreq: config.sitemap?.changefreq,
+            priority: config.sitemap?.priority,
+          });
+          pages.push({ path: "sitemap.xml", html: sitemapXml });
+          sitemapGenerated = true;
+          generated.push("sitemap.xml");
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          core.warning(
+            `Failed to generate sitemap.xml: ${errorMessage}. ` +
+              "Site will be generated without a sitemap."
+          );
+          skipped.push("sitemap.xml (generation failed)");
+        }
       }
 
       if (robotsEnabled) {
         core.info("Generating robots.txt...");
-        const robotsTxt = generateRobots(
-          siteUrl,
-          config.robots?.additionalRules
-        );
-        pages.push({ path: "robots.txt", html: robotsTxt });
+        try {
+          const robotsTxt = generateRobots(siteUrl, {
+            additionalRules: config.robots?.additionalRules,
+            includeSitemap: sitemapGenerated,
+          });
+          pages.push({ path: "robots.txt", html: robotsTxt });
+          generated.push("robots.txt");
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          core.warning(
+            `Failed to generate robots.txt: ${errorMessage}. ` +
+              "Site will be generated without robots.txt."
+          );
+          skipped.push("robots.txt (generation failed)");
+        }
       }
+    }
+  } else {
+    // Track explicitly disabled features
+    if (!sitemapEnabled) {
+      skipped.push("sitemap.xml (disabled)");
+    }
+    if (!robotsEnabled) {
+      skipped.push("robots.txt (disabled)");
     }
   }
 
+  // Log generation summary
   core.info("Site generation complete!");
+  core.info(`  Generated: ${generated.join(", ")}`);
+  if (skipped.length > 0) {
+    core.info(`  Skipped: ${skipped.join(", ")}`);
+  }
 
   return { pages, assets: [] };
 }
@@ -727,23 +772,32 @@ ${urls}
 /**
  * Generate robots.txt content
  * @param siteUrl Base URL for the site (used for sitemap reference)
- * @param additionalRules Additional rules to include
+ * @param options Options for robots.txt generation
  * @returns Text content for robots.txt
  */
 export function generateRobots(
   siteUrl: string,
-  additionalRules: string[] = []
+  options: {
+    additionalRules?: string[];
+    includeSitemap?: boolean;
+  } = {}
 ): string {
+  const { additionalRules = [], includeSitemap = true } = options;
+
   // Normalize siteUrl (remove trailing slash)
   const baseUrl = siteUrl.replace(/\/$/, "");
 
-  const rules = [
-    "User-agent: *",
-    "Allow: /",
-    "",
-    `Sitemap: ${baseUrl}/sitemap.xml`,
-    ...additionalRules,
-  ];
+  const rules = ["User-agent: *", "Allow: /", ""];
+
+  if (includeSitemap) {
+    rules.push(`Sitemap: ${baseUrl}/sitemap.xml`);
+  }
+
+  // Filter out empty strings from additional rules
+  const validAdditionalRules = additionalRules.filter(
+    (rule) => rule.trim() !== ""
+  );
+  rules.push(...validAdditionalRules);
 
   return rules.join("\n");
 }

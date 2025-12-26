@@ -118,7 +118,10 @@ export declare function generateSitemap(pages: GeneratedPage[], siteUrl: string,
 /**
  * Generate robots.txt content
  * @param siteUrl Base URL for the site (used for sitemap reference)
- * @param additionalRules Additional rules to include
+ * @param options Options for robots.txt generation
  * @returns Text content for robots.txt
  */
-export declare function generateRobots(siteUrl: string, additionalRules?: string[]): string;
+export declare function generateRobots(siteUrl: string, options?: {
+    additionalRules?: string[];
+    includeSitemap?: boolean;
+}): string;
