@@ -35,6 +35,25 @@ export function isValidThemeMode(value: unknown): value is ThemeMode {
   );
 }
 
+/** SEO and Open Graph configuration */
+export interface SeoConfig {
+  /** Custom page title (defaults to repository name) */
+  title?: string;
+  /** Meta description for search engines */
+  description?: string;
+  /** Keywords for search engines */
+  keywords?: string[];
+  /** Open Graph image configuration */
+  ogImage?: {
+    /** Relative path to OG image file in output directory (after copying) */
+    path: string;
+  };
+  /** Twitter/X handle (e.g., "@username") */
+  twitterHandle?: string;
+  /** Site URL for canonical link and OG URL */
+  siteUrl?: string;
+}
+
 export interface SiteConfig {
   outputDirectory: string;
   theme: {
@@ -56,6 +75,8 @@ export interface SiteConfig {
     /** Relative path to favicon file in output directory (after copying) */
     path: string;
   };
+  /** SEO and Open Graph configuration */
+  seo?: SeoConfig;
 }
 
 export interface GeneratedPage {
@@ -191,6 +212,48 @@ function buildAssetRequirements(config: SiteConfig): string {
 }
 
 /**
+ * Build SEO and OGP requirements for AI prompt
+ */
+function buildSeoRequirements(repoInfo: RepoInfo, config: SiteConfig): string {
+  const seo = config.seo || {};
+
+  // Use provided values or fallback to repo data
+  const title = seo.title || repoInfo.name;
+  const description = seo.description || repoInfo.description || "";
+  const keywords = seo.keywords?.length
+    ? seo.keywords.join(", ")
+    : repoInfo.topics?.join(", ") || "";
+  const ogUrl = seo.siteUrl || repoInfo.htmlUrl;
+  const ogImage = seo.ogImage?.path || "";
+  const twitterHandle = seo.twitterHandle || "";
+  const canonical = seo.siteUrl || "";
+
+  return `SEO AND OPEN GRAPH REQUIREMENTS:
+Generate these meta tags in the <head> section:
+
+Required meta tags:
+- <meta name="description" content="${description}">
+${keywords ? `- <meta name="keywords" content="${keywords}">` : ""}
+${canonical ? `- <link rel="canonical" href="${canonical}">` : ""}
+
+Open Graph tags (for social media sharing):
+- <meta property="og:title" content="${title}">
+- <meta property="og:description" content="${description}">
+- <meta property="og:url" content="${ogUrl}">
+- <meta property="og:type" content="website">
+${ogImage ? `- <meta property="og:image" content="${ogImage}">` : ""}
+
+Twitter Card tags:
+- <meta name="twitter:card" content="${ogImage ? "summary_large_image" : "summary"}">
+- <meta name="twitter:title" content="${title}">
+- <meta name="twitter:description" content="${description}">
+${ogImage ? `- <meta name="twitter:image" content="${ogImage}">` : ""}
+${twitterHandle ? `- <meta name="twitter:site" content="${twitterHandle}">` : ""}
+
+`;
+}
+
+/**
  * Build requirements string for refinement context
  */
 function buildRequirements(
@@ -207,6 +270,9 @@ function buildRequirements(
   // Build logo/favicon requirements
   const assetRequirements = buildAssetRequirements(config);
 
+  // Build SEO requirements
+  const seoRequirements = buildSeoRequirements(repoInfo, config);
+
   return `PROJECT INFO:
 - Name: ${analysis.name}
 - Description: ${analysis.description}
@@ -215,8 +281,7 @@ function buildRequirements(
 - GitHub URL: ${repoInfo.htmlUrl}
 
 ${themeRequirements}
-${assetRequirements}
-REQUIREMENTS:
+${assetRequirements}${seoRequirements}REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
 2. Include: hero section with project name and description, features section, footer with GitHub link
 3. Make it responsive (mobile-first)
@@ -460,6 +525,9 @@ async function generateIndexPage(
   // Build logo/favicon requirements
   const assetRequirements = buildAssetRequirements(config);
 
+  // Build SEO requirements
+  const seoRequirements = buildSeoRequirements(repoInfo, config);
+
   const prompt = `Generate a modern, beautiful landing page HTML for this project.
 
 PROJECT INFO:
@@ -470,7 +538,7 @@ PROJECT INFO:
 - GitHub URL: ${repoInfo.htmlUrl}
 
 ${themePrompt}
-${assetRequirements}REQUIREMENTS:
+${assetRequirements}${seoRequirements}REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
 2. Include: hero section with project name and description, features section, footer with GitHub link
 3. Make it responsive (mobile-first)

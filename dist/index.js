@@ -35341,6 +35341,45 @@ function buildAssetRequirements(config) {
     return parts.length > 0 ? `${parts.join("\n\n")}\n\n` : "";
 }
 /**
+ * Build SEO and OGP requirements for AI prompt
+ */
+function buildSeoRequirements(repoInfo, config) {
+    const seo = config.seo || {};
+    // Use provided values or fallback to repo data
+    const title = seo.title || repoInfo.name;
+    const description = seo.description || repoInfo.description || "";
+    const keywords = seo.keywords?.length
+        ? seo.keywords.join(", ")
+        : repoInfo.topics?.join(", ") || "";
+    const ogUrl = seo.siteUrl || repoInfo.htmlUrl;
+    const ogImage = seo.ogImage?.path || "";
+    const twitterHandle = seo.twitterHandle || "";
+    const canonical = seo.siteUrl || "";
+    return `SEO AND OPEN GRAPH REQUIREMENTS:
+Generate these meta tags in the <head> section:
+
+Required meta tags:
+- <meta name="description" content="${description}">
+${keywords ? `- <meta name="keywords" content="${keywords}">` : ""}
+${canonical ? `- <link rel="canonical" href="${canonical}">` : ""}
+
+Open Graph tags (for social media sharing):
+- <meta property="og:title" content="${title}">
+- <meta property="og:description" content="${description}">
+- <meta property="og:url" content="${ogUrl}">
+- <meta property="og:type" content="website">
+${ogImage ? `- <meta property="og:image" content="${ogImage}">` : ""}
+
+Twitter Card tags:
+- <meta name="twitter:card" content="${ogImage ? "summary_large_image" : "summary"}">
+- <meta name="twitter:title" content="${title}">
+- <meta name="twitter:description" content="${description}">
+${ogImage ? `- <meta name="twitter:image" content="${ogImage}">` : ""}
+${twitterHandle ? `- <meta name="twitter:site" content="${twitterHandle}">` : ""}
+
+`;
+}
+/**
  * Build requirements string for refinement context
  */
 function buildRequirements(repoInfo, analysis, design, config) {
@@ -35350,6 +35389,8 @@ function buildRequirements(repoInfo, analysis, design, config) {
         : buildSingleThemePrompt(design, config.theme.mode);
     // Build logo/favicon requirements
     const assetRequirements = buildAssetRequirements(config);
+    // Build SEO requirements
+    const seoRequirements = buildSeoRequirements(repoInfo, config);
     return `PROJECT INFO:
 - Name: ${analysis.name}
 - Description: ${analysis.description}
@@ -35358,8 +35399,7 @@ function buildRequirements(repoInfo, analysis, design, config) {
 - GitHub URL: ${repoInfo.htmlUrl}
 
 ${themeRequirements}
-${assetRequirements}
-REQUIREMENTS:
+${assetRequirements}${seoRequirements}REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
 2. Include: hero section with project name and description, features section, footer with GitHub link
 3. Make it responsive (mobile-first)
@@ -35561,6 +35601,8 @@ async function generateIndexPage(repoInfo, analysis, design, config, aiProvider)
         : buildSingleThemePrompt(design, config.theme.mode);
     // Build logo/favicon requirements
     const assetRequirements = buildAssetRequirements(config);
+    // Build SEO requirements
+    const seoRequirements = buildSeoRequirements(repoInfo, config);
     const prompt = `Generate a modern, beautiful landing page HTML for this project.
 
 PROJECT INFO:
@@ -35571,7 +35613,7 @@ PROJECT INFO:
 - GitHub URL: ${repoInfo.htmlUrl}
 
 ${themePrompt}
-${assetRequirements}REQUIREMENTS:
+${assetRequirements}${seoRequirements}REQUIREMENTS:
 1. Use Tailwind CSS classes only (loaded via CDN)
 2. Include: hero section with project name and description, features section, footer with GitHub link
 3. Make it responsive (mobile-first)
@@ -81052,6 +81094,46 @@ function isValidFaviconConfig(value) {
     }
     return true;
 }
+/**
+ * Validate SEO config structure from .gitlyte.json
+ */
+function isValidSeoConfig(value) {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+    const obj = value;
+    if (obj.title !== undefined && typeof obj.title !== "string") {
+        return false;
+    }
+    if (obj.description !== undefined && typeof obj.description !== "string") {
+        return false;
+    }
+    if (obj.twitterHandle !== undefined &&
+        typeof obj.twitterHandle !== "string") {
+        return false;
+    }
+    if (obj.siteUrl !== undefined && typeof obj.siteUrl !== "string") {
+        return false;
+    }
+    if (obj.keywords !== undefined) {
+        if (!Array.isArray(obj.keywords)) {
+            return false;
+        }
+        if (!obj.keywords.every((k) => typeof k === "string")) {
+            return false;
+        }
+    }
+    if (obj.ogImage !== undefined) {
+        if (typeof obj.ogImage !== "object" || obj.ogImage === null) {
+            return false;
+        }
+        const ogImage = obj.ogImage;
+        if (typeof ogImage.path !== "string" || ogImage.path.trim() === "") {
+            return false;
+        }
+    }
+    return true;
+}
 
 async function run() {
     try {
@@ -81073,6 +81155,12 @@ async function run() {
         // Logo and favicon inputs
         const logoPathInput = core.getInput("logo-path");
         const faviconPathInput = core.getInput("favicon-path");
+        // SEO inputs
+        const seoTitleInput = core.getInput("seo-title");
+        const seoDescriptionInput = core.getInput("seo-description");
+        const ogImagePathInput = core.getInput("og-image-path");
+        const twitterHandleInput = core.getInput("twitter-handle");
+        const siteUrlInput = core.getInput("site-url");
         // Validate provider
         if (!AI_PROVIDERS.includes(provider)) {
             throw new Error(`Invalid provider: ${provider}. Must be one of: ${AI_PROVIDERS.join(", ")}`);
@@ -81107,6 +81195,12 @@ async function run() {
         }
         if (faviconPathInput) {
             core.info(`⭐ Favicon: ${faviconPathInput}`);
+        }
+        if (seoTitleInput ||
+            seoDescriptionInput ||
+            ogImagePathInput ||
+            siteUrlInput) {
+            core.info("🔍 SEO settings provided");
         }
         // Get repository info
         const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
@@ -81199,6 +81293,60 @@ async function run() {
                 }
             }
         }
+        // Fetch OG image file if specified
+        let ogImageContent;
+        if (ogImagePathInput) {
+            try {
+                const { data: ogImageData } = await octokit.rest.repos.getContent({
+                    owner,
+                    repo,
+                    path: ogImagePathInput,
+                });
+                if ("content" in ogImageData && ogImageData.encoding === "base64") {
+                    ogImageContent = Buffer.from(ogImageData.content, "base64");
+                    core.info(`✅ OG image fetched: ${ogImagePathInput}`);
+                }
+                else {
+                    core.warning(`⚠️ OG image file "${ogImagePathInput}" is not a file or has unexpected format`);
+                }
+            }
+            catch (error) {
+                const status = error.status;
+                if (status === 404) {
+                    core.warning(`⚠️ OG image file not found: ${ogImagePathInput}`);
+                }
+                else if (status === 403) {
+                    core.warning(`⚠️ Access denied to OG image file: ${ogImagePathInput}`);
+                }
+                else if (status === 401) {
+                    core.warning(`⚠️ Authentication failed for OG image file: ${ogImagePathInput}`);
+                }
+                else {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    core.warning(`⚠️ Failed to fetch OG image: ${errorMessage}`);
+                }
+            }
+        }
+        // Build initial SEO config from action inputs
+        const buildSeoConfig = () => {
+            const hasSeoInput = seoTitleInput ||
+                seoDescriptionInput ||
+                ogImageContent ||
+                twitterHandleInput ||
+                siteUrlInput;
+            if (!hasSeoInput) {
+                return undefined;
+            }
+            return {
+                title: seoTitleInput || undefined,
+                description: seoDescriptionInput || undefined,
+                ogImage: ogImageContent
+                    ? { path: external_node_path_namespaceObject.basename(ogImagePathInput) }
+                    : undefined,
+                twitterHandle: twitterHandleInput || undefined,
+                siteUrl: siteUrlInput || undefined,
+            };
+        };
         // Load config from .gitlyte.json if exists
         let config = {
             outputDirectory,
@@ -81219,6 +81367,8 @@ async function run() {
             favicon: faviconContent
                 ? { path: external_node_path_namespaceObject.basename(faviconPathInput) }
                 : undefined,
+            // SEO config from action inputs
+            seo: buildSeoConfig(),
         };
         try {
             const { data: configFile } = await octokit.rest.repos.getContent({
@@ -81242,6 +81392,12 @@ async function run() {
                         typeof fileThemeToggle !== "boolean") {
                         throw new Error(`Invalid theme.toggle value "${fileThemeToggle}" in .gitlyte.json. ` +
                             "Must be a boolean (true or false).");
+                    }
+                    // Validate SEO config if present
+                    if (parsedConfig.seo !== undefined &&
+                        !isValidSeoConfig(parsedConfig.seo)) {
+                        throw new Error("Invalid seo config in .gitlyte.json. " +
+                            `Expected { title?: string, description?: string, keywords?: string[], ogImage?: { path: string }, twitterHandle?: string, siteUrl?: string }, got: ${JSON.stringify(parsedConfig.seo)}`);
                     }
                     // Validate and fetch logo from config file if not provided via action input
                     let configLogo;
@@ -81330,6 +81486,44 @@ async function run() {
                             }
                         }
                     }
+                    // Fetch OG image from config if not provided via action input
+                    let configOgImage;
+                    if (!ogImageContent && parsedConfig.seo?.ogImage?.path) {
+                        try {
+                            const { data: configOgImageData } = await octokit.rest.repos.getContent({
+                                owner,
+                                repo,
+                                path: parsedConfig.seo.ogImage.path,
+                            });
+                            if ("content" in configOgImageData &&
+                                configOgImageData.encoding === "base64") {
+                                ogImageContent = Buffer.from(configOgImageData.content, "base64");
+                                configOgImage = {
+                                    path: external_node_path_namespaceObject.basename(parsedConfig.seo.ogImage.path),
+                                };
+                                core.info(`✅ OG image fetched from config: ${parsedConfig.seo.ogImage.path}`);
+                            }
+                            else {
+                                core.warning(`⚠️ OG image file "${parsedConfig.seo.ogImage.path}" from config is not a file or has unexpected format`);
+                            }
+                        }
+                        catch (error) {
+                            const status = error.status;
+                            if (status === 404) {
+                                core.warning(`⚠️ OG image file not found (from config): ${parsedConfig.seo.ogImage.path}`);
+                            }
+                            else if (status === 403) {
+                                core.warning(`⚠️ Access denied to OG image file (from config): ${parsedConfig.seo.ogImage.path}`);
+                            }
+                            else if (status === 401) {
+                                core.warning(`⚠️ Authentication failed for OG image file (from config): ${parsedConfig.seo.ogImage.path}`);
+                            }
+                            else {
+                                const errorMessage = error instanceof Error ? error.message : String(error);
+                                core.warning(`⚠️ Failed to fetch OG image from config: ${errorMessage}`);
+                            }
+                        }
+                    }
                     // Merge config: explicit action input > config file > default
                     config = {
                         outputDirectory: parsedConfig.outputDirectory || outputDirectory,
@@ -81360,6 +81554,28 @@ async function run() {
                                 ? { path: external_node_path_namespaceObject.basename(faviconPathInput) }
                                 : configFavicon
                             : undefined,
+                        // SEO: merge action inputs with config file, action inputs take precedence
+                        seo: (() => {
+                            const actionSeo = buildSeoConfig();
+                            const configSeo = parsedConfig.seo;
+                            // If no SEO config from either source, return undefined
+                            if (!actionSeo && !configSeo) {
+                                return undefined;
+                            }
+                            // Build merged SEO config
+                            return {
+                                title: actionSeo?.title ?? configSeo?.title,
+                                description: actionSeo?.description ?? configSeo?.description,
+                                keywords: configSeo?.keywords,
+                                ogImage: ogImageContent
+                                    ? ogImagePathInput
+                                        ? { path: external_node_path_namespaceObject.basename(ogImagePathInput) }
+                                        : configOgImage
+                                    : undefined,
+                                twitterHandle: actionSeo?.twitterHandle ?? configSeo?.twitterHandle,
+                                siteUrl: actionSeo?.siteUrl ?? configSeo?.siteUrl,
+                            };
+                        })(),
                     };
                 }
                 catch (parseError) {
@@ -81376,7 +81592,8 @@ async function run() {
                     error.message.startsWith("Invalid theme mode") ||
                     error.message.startsWith("Invalid theme.toggle") ||
                     error.message.startsWith("Invalid logo config") ||
-                    error.message.startsWith("Invalid favicon config"))) {
+                    error.message.startsWith("Invalid favicon config") ||
+                    error.message.startsWith("Invalid seo config"))) {
                 throw error;
             }
             // Check if file not found
@@ -81467,6 +81684,19 @@ async function run() {
             catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 throw new Error(`Failed to write favicon "${config.favicon.path}" to "${faviconFilePath}": ${errorMessage}`, { cause: error });
+            }
+        }
+        // Write OG image file if fetched
+        if (ogImageContent && config.seo?.ogImage) {
+            const ogImageFilePath = external_node_path_namespaceObject.join(outDir, config.seo.ogImage.path);
+            validatePath(ogImageFilePath, config.seo.ogImage.path);
+            try {
+                external_node_fs_namespaceObject.writeFileSync(ogImageFilePath, ogImageContent);
+                core.info(`🔍 Written: ${ogImageFilePath}`);
+            }
+            catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                throw new Error(`Failed to write OG image "${config.seo.ogImage.path}" to "${ogImageFilePath}": ${errorMessage}`, { cause: error });
             }
         }
         core.info(`✅ Site generated successfully in ${config.outputDirectory}/`);
