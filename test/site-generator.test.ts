@@ -1786,6 +1786,13 @@ describe("Site Generator", () => {
       expect(formatCount(1500000)).toBe("1.5M");
       expect(formatCount(10000000)).toBe("10.0M");
     });
+
+    it("should handle negative numbers gracefully", () => {
+      // Negative numbers are not expected in GitHub stats, but handle gracefully
+      expect(formatCount(-1)).toBe("-1");
+      expect(formatCount(-100)).toBe("-100");
+      expect(formatCount(-1000)).toBe("-1000");
+    });
   });
 
   describe("formatRelativeDate", () => {
@@ -1808,6 +1815,9 @@ describe("Site Generator", () => {
     });
 
     it("should return 'X weeks ago' for dates within a month", () => {
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(oneWeekAgo)).toBe("1 week ago");
+
       const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
       expect(formatRelativeDate(twoWeeksAgo)).toBe("2 weeks ago");
 
@@ -1816,6 +1826,9 @@ describe("Site Generator", () => {
     });
 
     it("should return 'X months ago' for dates within a year", () => {
+      const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(oneMonthAgo)).toBe("1 month ago");
+
       const twoMonthsAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
       expect(formatRelativeDate(twoMonthsAgo)).toBe("2 months ago");
 
@@ -1823,12 +1836,26 @@ describe("Site Generator", () => {
       expect(formatRelativeDate(sixMonthsAgo)).toBe("6 months ago");
     });
 
-    it("should return 'X years ago' for dates older than a year", () => {
+    it("should return 'X years ago' for dates older than a year with correct grammar", () => {
       const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
-      expect(formatRelativeDate(oneYearAgo)).toBe("1 years ago");
+      expect(formatRelativeDate(oneYearAgo)).toBe("1 year ago");
 
       const twoYearsAgo = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString();
       expect(formatRelativeDate(twoYearsAgo)).toBe("2 years ago");
+    });
+
+    it("should return 'unknown' for invalid date strings", () => {
+      expect(formatRelativeDate("not-a-date")).toBe("unknown");
+      expect(formatRelativeDate("")).toBe("unknown");
+      expect(formatRelativeDate("invalid")).toBe("unknown");
+    });
+
+    it("should return 'recently' for future dates", () => {
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(tomorrow)).toBe("recently");
+
+      const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatRelativeDate(nextWeek)).toBe("recently");
     });
   });
 
@@ -1959,6 +1986,37 @@ describe("Site Generator", () => {
       expect(htmlPrompt).toContain("50.0K"); // stars
       expect(htmlPrompt).toContain("12.3K"); // forks
       expect(htmlPrompt).toContain("1.5M"); // watchers
+    });
+
+    it("should handle stats with zero values", async () => {
+      const mockProvider = createMockAIProvider({
+        analysis: VALID_ANALYSIS_RESPONSE,
+        design: VALID_DESIGN_RESPONSE,
+        html: VALID_HTML_RESPONSE,
+      });
+
+      const statsWithZeros: RepoStats = {
+        stars: 0,
+        forks: 0,
+        watchers: 0,
+        openIssues: 0,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-12-01T00:00:00Z",
+      };
+
+      const repoInfoWithZeroStats: RepoInfo = {
+        ...defaultRepoInfo,
+        stats: statsWithZeros,
+      };
+
+      await generateSite(repoInfoWithZeroStats, mockProvider, defaultConfig);
+
+      const calls = vi.mocked(mockProvider.generateText).mock.calls;
+      const htmlPrompt = calls[2][0].prompt;
+      expect(htmlPrompt).toContain("GITHUB STATISTICS");
+      expect(htmlPrompt).toContain("Stars: 0");
+      expect(htmlPrompt).toContain("Forks: 0");
+      expect(htmlPrompt).toContain("Watchers: 0");
     });
   });
 });

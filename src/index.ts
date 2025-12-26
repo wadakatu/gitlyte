@@ -337,13 +337,20 @@ export async function run(): Promise<void> {
           if (releases.length > 0) {
             repoStats.latestRelease = releases[0].tag_name;
             core.info(`🏷️ Latest release: ${releases[0].tag_name}`);
+          } else {
+            core.info("🏷️ No releases found for this repository");
           }
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          core.warning(
-            `⚠️ Failed to fetch latest release: ${errorMessage}. Proceeding without release info.`
-          );
+          const status = (error as { status?: number }).status;
+          if (status === 404) {
+            core.info("🏷️ No releases found for this repository");
+          } else {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            core.warning(
+              `⚠️ Failed to fetch latest release: ${errorMessage}. Proceeding without release info.`
+            );
+          }
         }
       }
 
@@ -375,13 +382,20 @@ export async function run(): Promise<void> {
           }
           if (repoStats.contributorCount) {
             core.info(`👨‍💻 Contributors: ${repoStats.contributorCount}`);
+          } else {
+            core.info("👨‍💻 No contributor information available");
           }
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          core.warning(
-            `⚠️ Failed to fetch contributors: ${errorMessage}. Proceeding without contributor info.`
-          );
+          const status = (error as { status?: number }).status;
+          if (status === 404) {
+            core.info("👨‍💻 No contributor information available");
+          } else {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            core.warning(
+              `⚠️ Failed to fetch contributors: ${errorMessage}. Proceeding without contributor info.`
+            );
+          }
         }
       }
 

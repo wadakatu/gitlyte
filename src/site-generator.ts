@@ -352,16 +352,33 @@ export function formatCount(count: number): string {
  */
 export function formatRelativeDate(isoDate: string): string {
   const date = new Date(isoDate);
+  // Handle invalid dates
+  if (Number.isNaN(date.getTime())) {
+    return "unknown";
+  }
+
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
+  // Handle future dates
+  if (diffDays < 0) {
+    return "recently";
+  }
+
   if (diffDays === 0) return "today";
   if (diffDays === 1) return "yesterday";
   if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-  return `${Math.floor(diffDays / 365)} years ago`;
+
+  const weeks = Math.floor(diffDays / 7);
+  if (diffDays < 30) return `${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
+
+  const months = Math.floor(diffDays / 30);
+  if (diffDays < 365)
+    return `${months} ${months === 1 ? "month" : "months"} ago`;
+
+  const years = Math.floor(diffDays / 365);
+  return `${years} ${years === 1 ? "year" : "years"} ago`;
 }
 
 /**

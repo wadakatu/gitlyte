@@ -35422,20 +35422,31 @@ function formatCount(count) {
  */
 function formatRelativeDate(isoDate) {
     const date = new Date(isoDate);
+    // Handle invalid dates
+    if (Number.isNaN(date.getTime())) {
+        return "unknown";
+    }
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    // Handle future dates
+    if (diffDays < 0) {
+        return "recently";
+    }
     if (diffDays === 0)
         return "today";
     if (diffDays === 1)
         return "yesterday";
     if (diffDays < 7)
         return `${diffDays} days ago`;
+    const weeks = Math.floor(diffDays / 7);
     if (diffDays < 30)
-        return `${Math.floor(diffDays / 7)} weeks ago`;
+        return `${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
+    const months = Math.floor(diffDays / 30);
     if (diffDays < 365)
-        return `${Math.floor(diffDays / 30)} months ago`;
-    return `${Math.floor(diffDays / 365)} years ago`;
+        return `${months} ${months === 1 ? "month" : "months"} ago`;
+    const years = Math.floor(diffDays / 365);
+    return `${years} ${years === 1 ? "year" : "years"} ago`;
 }
 /**
  * Build GitHub statistics section for AI prompt
@@ -81537,10 +81548,19 @@ async function run() {
                         repoStats.latestRelease = releases[0].tag_name;
                         core.info(`🏷️ Latest release: ${releases[0].tag_name}`);
                     }
+                    else {
+                        core.info("🏷️ No releases found for this repository");
+                    }
                 }
                 catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : String(error);
-                    core.warning(`⚠️ Failed to fetch latest release: ${errorMessage}. Proceeding without release info.`);
+                    const status = error.status;
+                    if (status === 404) {
+                        core.info("🏷️ No releases found for this repository");
+                    }
+                    else {
+                        const errorMessage = error instanceof Error ? error.message : String(error);
+                        core.warning(`⚠️ Failed to fetch latest release: ${errorMessage}. Proceeding without release info.`);
+                    }
                 }
             }
             // Optionally fetch contributor count
@@ -81569,10 +81589,19 @@ async function run() {
                     if (repoStats.contributorCount) {
                         core.info(`👨‍💻 Contributors: ${repoStats.contributorCount}`);
                     }
+                    else {
+                        core.info("👨‍💻 No contributor information available");
+                    }
                 }
                 catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : String(error);
-                    core.warning(`⚠️ Failed to fetch contributors: ${errorMessage}. Proceeding without contributor info.`);
+                    const status = error.status;
+                    if (status === 404) {
+                        core.info("👨‍💻 No contributor information available");
+                    }
+                    else {
+                        const errorMessage = error instanceof Error ? error.message : String(error);
+                        core.warning(`⚠️ Failed to fetch contributors: ${errorMessage}. Proceeding without contributor info.`);
+                    }
                 }
             }
             core.info(`📊 Stats: ⭐ ${repoStats.stars} | 🍴 ${repoStats.forks} | 👀 ${repoStats.watchers}`);
