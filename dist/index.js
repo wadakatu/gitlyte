@@ -81023,6 +81023,35 @@ function getModel(provider, quality, apiKey) {
 
 
 
+/**
+ * Validate logo config structure from .gitlyte.json
+ */
+function isValidLogoConfig(value) {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+    const obj = value;
+    if (typeof obj.path !== "string" || obj.path.trim() === "") {
+        return false;
+    }
+    if (obj.alt !== undefined && typeof obj.alt !== "string") {
+        return false;
+    }
+    return true;
+}
+/**
+ * Validate favicon config structure from .gitlyte.json
+ */
+function isValidFaviconConfig(value) {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+    const obj = value;
+    if (typeof obj.path !== "string" || obj.path.trim() === "") {
+        return false;
+    }
+    return true;
+}
 
 async function run() {
     try {
@@ -81124,6 +81153,12 @@ async function run() {
                 if (status === 404) {
                     core.warning(`⚠️ Logo file not found: ${logoPathInput}`);
                 }
+                else if (status === 403) {
+                    core.warning(`⚠️ Access denied to logo file: ${logoPathInput}`);
+                }
+                else if (status === 401) {
+                    core.warning(`⚠️ Authentication failed for logo file: ${logoPathInput}`);
+                }
                 else {
                     const errorMessage = error instanceof Error ? error.message : String(error);
                     core.warning(`⚠️ Failed to fetch logo: ${errorMessage}`);
@@ -81151,6 +81186,12 @@ async function run() {
                 const status = error.status;
                 if (status === 404) {
                     core.warning(`⚠️ Favicon file not found: ${faviconPathInput}`);
+                }
+                else if (status === 403) {
+                    core.warning(`⚠️ Access denied to favicon file: ${faviconPathInput}`);
+                }
+                else if (status === 401) {
+                    core.warning(`⚠️ Authentication failed for favicon file: ${faviconPathInput}`);
                 }
                 else {
                     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -81202,6 +81243,93 @@ async function run() {
                         throw new Error(`Invalid theme.toggle value "${fileThemeToggle}" in .gitlyte.json. ` +
                             "Must be a boolean (true or false).");
                     }
+                    // Validate and fetch logo from config file if not provided via action input
+                    let configLogo;
+                    if (!logoContent && parsedConfig.logo !== undefined) {
+                        if (!isValidLogoConfig(parsedConfig.logo)) {
+                            throw new Error("Invalid logo config in .gitlyte.json. " +
+                                `Expected { path: string, alt?: string }, got: ${JSON.stringify(parsedConfig.logo)}`);
+                        }
+                        // Fetch logo file from config
+                        try {
+                            const { data: configLogoData } = await octokit.rest.repos.getContent({
+                                owner,
+                                repo,
+                                path: parsedConfig.logo.path,
+                            });
+                            if ("content" in configLogoData &&
+                                configLogoData.encoding === "base64") {
+                                logoContent = Buffer.from(configLogoData.content, "base64");
+                                configLogo = {
+                                    path: external_node_path_namespaceObject.basename(parsedConfig.logo.path),
+                                    alt: parsedConfig.logo.alt,
+                                };
+                                core.info(`✅ Logo fetched from config: ${parsedConfig.logo.path}`);
+                            }
+                            else {
+                                core.warning(`⚠️ Logo file "${parsedConfig.logo.path}" from config is not a file or has unexpected format`);
+                            }
+                        }
+                        catch (error) {
+                            const status = error.status;
+                            if (status === 404) {
+                                core.warning(`⚠️ Logo file not found (from config): ${parsedConfig.logo.path}`);
+                            }
+                            else if (status === 403) {
+                                core.warning(`⚠️ Access denied to logo file (from config): ${parsedConfig.logo.path}`);
+                            }
+                            else if (status === 401) {
+                                core.warning(`⚠️ Authentication failed for logo file (from config): ${parsedConfig.logo.path}`);
+                            }
+                            else {
+                                const errorMessage = error instanceof Error ? error.message : String(error);
+                                core.warning(`⚠️ Failed to fetch logo from config: ${errorMessage}`);
+                            }
+                        }
+                    }
+                    // Validate and fetch favicon from config file if not provided via action input
+                    let configFavicon;
+                    if (!faviconContent && parsedConfig.favicon !== undefined) {
+                        if (!isValidFaviconConfig(parsedConfig.favicon)) {
+                            throw new Error("Invalid favicon config in .gitlyte.json. " +
+                                `Expected { path: string }, got: ${JSON.stringify(parsedConfig.favicon)}`);
+                        }
+                        // Fetch favicon file from config
+                        try {
+                            const { data: configFaviconData } = await octokit.rest.repos.getContent({
+                                owner,
+                                repo,
+                                path: parsedConfig.favicon.path,
+                            });
+                            if ("content" in configFaviconData &&
+                                configFaviconData.encoding === "base64") {
+                                faviconContent = Buffer.from(configFaviconData.content, "base64");
+                                configFavicon = {
+                                    path: external_node_path_namespaceObject.basename(parsedConfig.favicon.path),
+                                };
+                                core.info(`✅ Favicon fetched from config: ${parsedConfig.favicon.path}`);
+                            }
+                            else {
+                                core.warning(`⚠️ Favicon file "${parsedConfig.favicon.path}" from config is not a file or has unexpected format`);
+                            }
+                        }
+                        catch (error) {
+                            const status = error.status;
+                            if (status === 404) {
+                                core.warning(`⚠️ Favicon file not found (from config): ${parsedConfig.favicon.path}`);
+                            }
+                            else if (status === 403) {
+                                core.warning(`⚠️ Access denied to favicon file (from config): ${parsedConfig.favicon.path}`);
+                            }
+                            else if (status === 401) {
+                                core.warning(`⚠️ Authentication failed for favicon file (from config): ${parsedConfig.favicon.path}`);
+                            }
+                            else {
+                                const errorMessage = error instanceof Error ? error.message : String(error);
+                                core.warning(`⚠️ Failed to fetch favicon from config: ${errorMessage}`);
+                            }
+                        }
+                    }
                     // Merge config: explicit action input > config file > default
                     config = {
                         outputDirectory: parsedConfig.outputDirectory || outputDirectory,
@@ -81220,14 +81348,18 @@ async function run() {
                                 ? siteInstructionsInput
                                 : parsedConfig.prompts?.siteInstructions,
                         },
-                        // Logo: action input takes precedence, then config file
+                        // Logo: action input takes precedence, then config file (with fetched content)
                         logo: logoContent
-                            ? { path: external_node_path_namespaceObject.basename(logoPathInput), alt: repoData.name }
-                            : parsedConfig.logo,
-                        // Favicon: action input takes precedence, then config file
+                            ? logoPathInput
+                                ? { path: external_node_path_namespaceObject.basename(logoPathInput), alt: repoData.name }
+                                : configLogo
+                            : undefined,
+                        // Favicon: action input takes precedence, then config file (with fetched content)
                         favicon: faviconContent
-                            ? { path: external_node_path_namespaceObject.basename(faviconPathInput) }
-                            : parsedConfig.favicon,
+                            ? faviconPathInput
+                                ? { path: external_node_path_namespaceObject.basename(faviconPathInput) }
+                                : configFavicon
+                            : undefined,
                     };
                 }
                 catch (parseError) {
@@ -81242,7 +81374,9 @@ async function run() {
             if (error instanceof Error &&
                 (error.message.startsWith("Invalid JSON in .gitlyte.json") ||
                     error.message.startsWith("Invalid theme mode") ||
-                    error.message.startsWith("Invalid theme.toggle"))) {
+                    error.message.startsWith("Invalid theme.toggle") ||
+                    error.message.startsWith("Invalid logo config") ||
+                    error.message.startsWith("Invalid favicon config"))) {
                 throw error;
             }
             // Check if file not found
