@@ -7,18 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- **Architecture Conversion**: Converted from Probot GitHub App to GitHub Action
-  - Users now provide their own API keys via GitHub Secrets
-  - No hosted infrastructure required
-  - Full control over workflow configuration
+## [1.1.0] - 2025-12-27
 
-### Removed
-- Probot framework and webhook-based architecture
-- Evaluation system (Lighthouse CI, LLM-as-Judge)
-- Comment command trigger (`@gitlyte generate`)
-- Multi-page generation (features, docs, api pages)
-- Self-Refine mode (high quality mode)
+### Changed
+- **AI Models Updated**: Upgraded to latest AI models for improved performance
+  - Anthropic: `claude-sonnet-4-20250514` → `claude-sonnet-4-5` (SWE-bench 77.2%)
+  - OpenAI: `gpt-4o` → `gpt-4.1` (improved coding & instruction following)
+  - Google: `gemini-2.0-flash` → `gemini-3-flash` (3x faster, better performance)
+
+### Added
+- **FAQ Section**: Added 7 frequently asked questions to README
+  - AI provider selection guidance
+  - API key acquisition links
+  - Cost information
+  - Customization options
+  - Monorepo and private repository support
+- **Troubleshooting Guide**: Added 6 common issues and solutions
+  - API key errors
+  - Site generation failures
+  - GitHub Pages 404 errors
+  - Style issues
+  - Permission errors
+  - AI generation failures
+
+### Improved
+- **Test Coverage**: Increased from 91.27% to 98.5%
+  - Added 16 new tests for logo/favicon handling
+  - Improved error handling coverage
 
 ## [1.0.0] - 2025-12-25
 
@@ -59,5 +74,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub repository link
 - Light and dark theme support
 
-[Unreleased]: https://github.com/wadakatu/gitlyte/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/wadakatu/gitlyte/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/wadakatu/gitlyte/releases/tag/v1.1.0
 [1.0.0]: https://github.com/wadakatu/gitlyte/releases/tag/v1.0.0
