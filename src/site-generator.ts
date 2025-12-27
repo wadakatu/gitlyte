@@ -45,6 +45,15 @@ export interface Contributor {
   type: "User" | "Bot";
 }
 
+/** Maximum number of contributors allowed (API and performance limit) */
+export const MAX_CONTRIBUTORS_LIMIT = 500;
+
+/** Default number of contributors to display */
+export const DEFAULT_MAX_CONTRIBUTORS = 50;
+
+/** Maximum pages to fetch for pagination (safety limit) */
+export const MAX_CONTRIBUTOR_PAGES = 10;
+
 /** Contributors page configuration */
 export interface ContributorsConfig {
   /** Whether contributors page generation is enabled (default: false) */

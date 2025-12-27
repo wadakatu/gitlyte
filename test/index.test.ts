@@ -44,8 +44,12 @@ vi.mock("node:fs", () => ({
 vi.mock("../src/site-generator.js", () => ({
   generateSite: (...args: unknown[]) => mockGenerateSite(...args),
   THEME_MODES: ["light", "dark", "auto"],
+  SITEMAP_CHANGEFREQ: ["always", "hourly", "daily", "weekly", "monthly", "yearly", "never"],
   isValidThemeMode: (value: unknown) =>
     typeof value === "string" && ["light", "dark", "auto"].includes(value),
+  MAX_CONTRIBUTORS_LIMIT: 500,
+  DEFAULT_MAX_CONTRIBUTORS: 50,
+  MAX_CONTRIBUTOR_PAGES: 10,
 }));
 
 vi.mock("../src/ai-provider.js", () => ({
@@ -3213,7 +3217,7 @@ describe("GitHub Action Entry Point", () => {
 
       expect(mockInfo).toHaveBeenCalledWith(
         expect.stringContaining(
-          "No contributor information available for contributors page"
+          "No contributor information available for this repository"
         )
       );
     });
@@ -3318,6 +3322,432 @@ describe("GitHub Action Entry Point", () => {
 
       expect(mockSetFailed).toHaveBeenCalledWith(
         expect.stringContaining("Invalid contributors config")
+      );
+    });
+
+    it("should handle pagination when fetching more contributors than per_page", async () => {
+      const mockOctokit = createMockOctokit();
+      let callCount = 0;
+
+      // First page returns 100 contributors, second page returns 50
+      mockOctokit.rest.repos.listContributors = vi.fn().mockImplementation(
+        ({ page }: { page: number }) => {
+          callCount++;
+          if (page === 1) {
+            return Promise.resolve({
+              data: Array.from({ length: 100 }, (_, i) => ({
+                login: `user${i + 1}`,
+                avatar_url: `https://avatars.githubusercontent.com/user${i + 1}`,
+                html_url: `https://github.com/user${i + 1}`,
+                contributions: 100 - i,
+                type: "User",
+              })),
+              headers: {},
+            });
+          }
+          return Promise.resolve({
+            data: Array.from({ length: 50 }, (_, i) => ({
+              login: `user${101 + i}`,
+              avatar_url: `https://avatars.githubusercontent.com/user${101 + i}`,
+              html_url: `https://github.com/user${101 + i}`,
+              contributions: 50 - i,
+              type: "User",
+            })),
+            headers: {},
+          });
+        }
+      );
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+          "max-contributors": "150",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      // Should have called listContributors twice for pagination
+      expect(callCount).toBe(2);
+      const callArgs = mockGenerateSite.mock.calls[0][0];
+      expect(callArgs.contributors).toHaveLength(150);
+    });
+
+    it("should handle max-contributors value of 0", async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+          "max-contributors": "0",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(createMockOctokit());
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid max-contributors")
+      );
+    });
+
+    it("should skip contributors with missing login field and log warning", async () => {
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.repos.listContributors = vi.fn().mockResolvedValue({
+        data: [
+          {
+            login: "validuser",
+            avatar_url: "https://avatars.githubusercontent.com/validuser",
+            html_url: "https://github.com/validuser",
+            contributions: 100,
+            type: "User",
+          },
+          {
+            // Missing login field
+            avatar_url: "https://avatars.githubusercontent.com/noname",
+            html_url: "https://github.com/noname",
+            contributions: 50,
+            type: "User",
+          },
+        ],
+        headers: {},
+      });
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining("Skipping contributor with missing login field")
+      );
+
+      const callArgs = mockGenerateSite.mock.calls[0][0];
+      expect(callArgs.contributors).toHaveLength(1);
+      expect(callArgs.contributors[0].login).toBe("validuser");
+    });
+
+    it("should warn but include contributors with missing avatar or profile URL", async () => {
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.repos.listContributors = vi.fn().mockResolvedValue({
+        data: [
+          {
+            login: "usernoavatar",
+            // Missing avatar_url
+            html_url: "https://github.com/usernoavatar",
+            contributions: 100,
+            type: "User",
+          },
+          {
+            login: "usernoprofile",
+            avatar_url: "https://avatars.githubusercontent.com/usernoprofile",
+            // Missing html_url
+            contributions: 50,
+            type: "User",
+          },
+        ],
+        headers: {},
+      });
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      // Should warn about incomplete data
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining("usernoavatar has incomplete data")
+      );
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining("usernoprofile has incomplete data")
+      );
+
+      // But should still include them
+      const callArgs = mockGenerateSite.mock.calls[0][0];
+      expect(callArgs.contributors).toHaveLength(2);
+    });
+
+    it("should allow action input to override config file for contributors", async () => {
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.repos.listContributors = vi.fn().mockResolvedValue({
+        data: [
+          {
+            login: "user1",
+            avatar_url: "https://avatars.githubusercontent.com/user1",
+            html_url: "https://github.com/user1",
+            contributions: 100,
+            type: "User",
+          },
+        ],
+        headers: {},
+      });
+
+      mockOctokit.rest.repos.getContent = vi.fn().mockImplementation(
+        async ({ path }: { path: string }) => {
+          if (path === ".gitlyte.json") {
+            return {
+              data: {
+                content: Buffer.from(
+                  JSON.stringify({
+                    contributors: {
+                      enabled: false, // Config says disabled
+                      maxContributors: 10,
+                    },
+                  })
+                ).toString("base64"),
+              },
+            };
+          }
+          throw { status: 404 };
+        }
+      );
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true", // Action input overrides config
+          "max-contributors": "30", // Action input overrides config
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          contributors: expect.objectContaining({
+            enabled: true, // Action input took precedence
+            maxContributors: 30, // Action input took precedence
+          }),
+        })
+      );
+    });
+
+    it("should reject maxContributors exceeding 500 in .gitlyte.json", async () => {
+      const mockOctokit = createMockOctokit();
+
+      mockOctokit.rest.repos.getContent = vi.fn().mockImplementation(
+        async ({ path }: { path: string }) => {
+          if (path === ".gitlyte.json") {
+            return {
+              data: {
+                content: Buffer.from(
+                  JSON.stringify({
+                    contributors: {
+                      enabled: true,
+                      maxContributors: 501, // Exceeds 500 limit
+                    },
+                  })
+                ).toString("base64"),
+              },
+            };
+          }
+          throw { status: 404 };
+        }
+      );
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid contributors config")
+      );
+    });
+
+    it("should handle 403 rate limit error when fetching contributors", async () => {
+      const mockOctokit = createMockOctokit();
+      const error = new Error("Rate limit exceeded") as Error & { status: number };
+      error.status = 403;
+      mockOctokit.rest.repos.listContributors = vi.fn().mockRejectedValue(error);
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining("API rate limit exceeded or insufficient permissions")
+      );
+    });
+
+    it("should handle 401 authentication error when fetching contributors", async () => {
+      const mockOctokit = createMockOctokit();
+      const error = new Error("Unauthorized") as Error & { status: number };
+      error.status = 401;
+      mockOctokit.rest.repos.listContributors = vi.fn().mockRejectedValue(error);
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining("Authentication failed")
+      );
+    });
+
+    it("should handle 500 server error when fetching contributors", async () => {
+      const mockOctokit = createMockOctokit();
+      const error = new Error("Internal Server Error") as Error & { status: number };
+      error.status = 500;
+      mockOctokit.rest.repos.listContributors = vi.fn().mockRejectedValue(error);
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          "generate-contributors-page": "true",
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      expect(mockWarning).toHaveBeenCalledWith(
+        expect.stringContaining("GitHub server error (500)")
+      );
+    });
+
+    it("should re-fetch contributors when enabled via .gitlyte.json but not via action input", async () => {
+      const mockOctokit = createMockOctokit();
+      mockOctokit.rest.repos.listContributors = vi.fn().mockResolvedValue({
+        data: [
+          {
+            login: "user1",
+            avatar_url: "https://avatars.githubusercontent.com/user1",
+            html_url: "https://github.com/user1",
+            contributions: 100,
+            type: "User",
+          },
+        ],
+        headers: {},
+      });
+
+      mockOctokit.rest.repos.getContent = vi.fn().mockImplementation(
+        async ({ path }: { path: string }) => {
+          if (path === ".gitlyte.json") {
+            return {
+              data: {
+                content: Buffer.from(
+                  JSON.stringify({
+                    contributors: {
+                      enabled: true,
+                      maxContributors: 25,
+                    },
+                  })
+                ).toString("base64"),
+              },
+            };
+          }
+          throw { status: 404 };
+        }
+      );
+
+      mockGetInput.mockImplementation((name: string) => {
+        const inputs: Record<string, string> = {
+          "api-key": "test-key",
+          provider: "anthropic",
+          quality: "standard",
+          "github-token": "token",
+          // Not setting generate-contributors-page, relying on config file
+        };
+        return inputs[name] || "";
+      });
+
+      mockGetOctokit.mockReturnValue(mockOctokit);
+
+      await runAction();
+
+      // Should log the re-fetch message
+      expect(mockInfo).toHaveBeenCalledWith(
+        expect.stringContaining("Contributors enabled via .gitlyte.json")
+      );
+
+      // Should have fetched contributors
+      expect(mockOctokit.rest.repos.listContributors).toHaveBeenCalled();
+
+      // Contributors should be passed to generateSite
+      expect(mockGenerateSite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contributors: expect.arrayContaining([
+            expect.objectContaining({ login: "user1" }),
+          ]),
+        }),
+        expect.anything(),
+        expect.anything()
       );
     });
   });
