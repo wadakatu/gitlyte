@@ -1,0 +1,39 @@
+name: Generate Site with GitLyte (High Quality)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Site
+        uses: wadakatu/gitlyte@v1.2.0
+        with:
+          api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          provider: anthropic
+          quality: high
+          output-directory: docs
+          theme-mode: dark
+          theme-toggle: true
+          site-url: https://wadakatu.github.io/gitlyte
+          generate-sitemap: true
+          generate-robots: true
+          show-stats: true
+          fetch-contributors: true
+          fetch-releases: true
+          generate-contributors-page: true
+          max-contributors: 100
+
+      - name: Commit and Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git diff --staged --quiet || git commit -m "chore: update GitLyte generated site"
+          git push
