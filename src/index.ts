@@ -7,12 +7,17 @@ import {
   THEME_MODES,
   SITEMAP_CHANGEFREQ,
   isValidThemeMode,
+  MAX_CONTRIBUTORS_LIMIT,
+  DEFAULT_MAX_CONTRIBUTORS,
+  MAX_CONTRIBUTOR_PAGES,
   type ThemeMode,
   type SeoConfig,
   type SitemapConfig,
   type RobotsConfig,
   type SitemapChangefreq,
   type RepoStats,
+  type Contributor,
+  type ContributorsConfig,
 } from "./site-generator.js";
 
 /**
@@ -182,6 +187,33 @@ function isValidRobotsConfig(value: unknown): value is RobotsConfig {
   return true;
 }
 
+/**
+ * Validate contributors config structure from .gitlyte.json
+ */
+function isValidContributorsConfig(
+  value: unknown
+): value is ContributorsConfig {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+
+  if (typeof obj.enabled !== "boolean") {
+    return false;
+  }
+  if (obj.maxContributors !== undefined) {
+    if (
+      typeof obj.maxContributors !== "number" ||
+      obj.maxContributors < 1 ||
+      obj.maxContributors > MAX_CONTRIBUTORS_LIMIT
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 import {
   createAIProvider,
   AI_PROVIDERS,
@@ -234,8 +266,31 @@ export async function run(): Promise<void> {
     // GitHub stats inputs
     const showStatsInput = core.getInput("show-stats");
     const showStats = showStatsInput !== "false"; // default true
-    const fetchContributors = core.getInput("fetch-contributors") === "true"; // default false
+    const fetchContributorsCount =
+      core.getInput("fetch-contributors") === "true"; // default false
     const fetchReleases = core.getInput("fetch-releases") === "true"; // default false
+
+    // Contributors page inputs
+    const generateContributorsPageInput = core.getInput(
+      "generate-contributors-page"
+    );
+    const generateContributorsPage = generateContributorsPageInput === "true"; // default false
+    const maxContributorsInput = core.getInput("max-contributors");
+    const maxContributors = maxContributorsInput
+      ? Number.parseInt(maxContributorsInput, 10)
+      : DEFAULT_MAX_CONTRIBUTORS;
+
+    // Validate max-contributors
+    if (Number.isNaN(maxContributors) || maxContributors < 1) {
+      throw new Error(
+        `Invalid max-contributors: ${maxContributorsInput}. Must be a positive integer.`
+      );
+    }
+    if (maxContributors > MAX_CONTRIBUTORS_LIMIT) {
+      throw new Error(
+        `Invalid max-contributors: ${maxContributors}. Maximum allowed is ${MAX_CONTRIBUTORS_LIMIT}.`
+      );
+    }
 
     // Validate provider
     if (!AI_PROVIDERS.includes(provider)) {
@@ -355,7 +410,7 @@ export async function run(): Promise<void> {
       }
 
       // Optionally fetch contributor count
-      if (fetchContributors) {
+      if (fetchContributorsCount) {
         try {
           // Use per_page=1 and check the Link header for total count
           const response = await octokit.rest.repos.listContributors({
@@ -402,6 +457,114 @@ export async function run(): Promise<void> {
       core.info(
         `📊 Stats: ⭐ ${repoStats.stars} | 🍴 ${repoStats.forks} | 👀 ${repoStats.watchers}`
       );
+    }
+
+    // Fetch full contributors list for contributors page
+    let contributors: Contributor[] | undefined;
+    let contributorsFetchAttempted = false;
+    if (generateContributorsPage) {
+      contributorsFetchAttempted = true;
+      core.info("👥 Fetching contributors for contributors page...");
+      try {
+        const allContributors: Contributor[] = [];
+        let page = 1;
+        const perPage = 100;
+
+        // Safety limit: prevent infinite loops with MAX_CONTRIBUTOR_PAGES
+        while (
+          allContributors.length < maxContributors &&
+          page <= MAX_CONTRIBUTOR_PAGES
+        ) {
+          const response = await octokit.rest.repos.listContributors({
+            owner,
+            repo,
+            per_page: perPage,
+            page,
+            anon: "false",
+          });
+
+          if (response.data.length === 0) {
+            break;
+          }
+
+          for (const contributor of response.data) {
+            if (allContributors.length >= maxContributors) {
+              break;
+            }
+            // Filter out bots (type is "User" or "Bot")
+            if (contributor.type === "Bot") {
+              continue;
+            }
+            // Skip contributors with missing login (required field)
+            if (!contributor.login) {
+              core.warning("⚠️ Skipping contributor with missing login field.");
+              continue;
+            }
+            // Warn about missing optional fields but still include
+            if (!contributor.avatar_url || !contributor.html_url) {
+              core.warning(
+                `⚠️ Contributor ${contributor.login} has incomplete data (missing avatar or profile URL).`
+              );
+            }
+            allContributors.push({
+              login: contributor.login,
+              avatarUrl: contributor.avatar_url || "",
+              profileUrl:
+                contributor.html_url ||
+                `https://github.com/${contributor.login}`,
+              contributions: contributor.contributions || 0,
+              type: (contributor.type as "User" | "Bot") || "User",
+            });
+          }
+
+          // Check if there are more pages
+          if (response.data.length < perPage) {
+            break;
+          }
+          page++;
+        }
+
+        // Warn if pagination limit was reached
+        if (page > MAX_CONTRIBUTOR_PAGES) {
+          core.warning(
+            `⚠️ Reached maximum pagination limit (${MAX_CONTRIBUTOR_PAGES} pages). ` +
+              "Some contributors may not be included."
+          );
+        }
+
+        contributors = allContributors;
+        core.info(`👥 Fetched ${contributors.length} contributors`);
+      } catch (error) {
+        const status = (error as { status?: number }).status;
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+
+        if (status === 404) {
+          core.info(
+            "👥 No contributor information available for this repository."
+          );
+        } else if (status === 403) {
+          core.warning(
+            "⚠️ Failed to fetch contributors: API rate limit exceeded or insufficient permissions. " +
+              "Contributors page will not be generated."
+          );
+        } else if (status === 401) {
+          core.warning(
+            "⚠️ Failed to fetch contributors: Authentication failed. Please verify your github-token. " +
+              "Contributors page will not be generated."
+          );
+        } else if (status && status >= 500) {
+          core.warning(
+            `⚠️ Failed to fetch contributors: GitHub server error (${status}). ` +
+              "This may be a temporary issue. Contributors page will not be generated."
+          );
+        } else {
+          core.warning(
+            `⚠️ Failed to fetch contributors: ${errorMessage}. ` +
+              "Contributors page will not be generated."
+          );
+        }
+      }
     }
 
     // Get README
@@ -584,6 +747,7 @@ export async function run(): Promise<void> {
       seo?: SeoConfig;
       sitemap?: SitemapConfig;
       robots?: RobotsConfig;
+      contributors?: ContributorsConfig;
     } = {
       outputDirectory,
       theme: {
@@ -609,6 +773,11 @@ export async function run(): Promise<void> {
       sitemap: { enabled: generateSitemap },
       // Robots config from action inputs (default enabled)
       robots: { enabled: generateRobots },
+      // Contributors page config from action inputs (default disabled)
+      contributors: {
+        enabled: generateContributorsPage,
+        maxContributors,
+      },
     };
     try {
       const { data: configFile } = await octokit.rest.repos.getContent({
@@ -675,6 +844,17 @@ export async function run(): Promise<void> {
             throw new Error(
               "Invalid robots config in .gitlyte.json. " +
                 `Expected { enabled: boolean, additionalRules?: string[] }, got: ${JSON.stringify(parsedConfig.robots)}`
+            );
+          }
+
+          // Validate contributors config if present
+          if (
+            parsedConfig.contributors !== undefined &&
+            !isValidContributorsConfig(parsedConfig.contributors)
+          ) {
+            throw new Error(
+              "Invalid contributors config in .gitlyte.json. " +
+                `Expected { enabled: boolean, maxContributors?: number (1-500) }, got: ${JSON.stringify(parsedConfig.contributors)}`
             );
           }
 
@@ -937,6 +1117,30 @@ export async function run(): Promise<void> {
                 additionalRules: configRobots?.additionalRules,
               };
             })(),
+            // Contributors: merge action inputs with config file, action inputs take precedence
+            contributors: (() => {
+              const configContributors = parsedConfig.contributors as
+                | ContributorsConfig
+                | undefined;
+
+              // Action input takes precedence for enabled flag
+              const generateContributorsPageExplicit =
+                generateContributorsPageInput !== "";
+              const enabled = generateContributorsPageExplicit
+                ? generateContributorsPage
+                : (configContributors?.enabled ?? generateContributorsPage);
+
+              // Action input takes precedence for maxContributors
+              const maxContributorsExplicit = maxContributorsInput !== "";
+              const finalMaxContributors = maxContributorsExplicit
+                ? maxContributors
+                : (configContributors?.maxContributors ?? maxContributors);
+
+              return {
+                enabled,
+                maxContributors: finalMaxContributors,
+              };
+            })(),
           };
         } catch (parseError) {
           // JSON parse error - this is a user config error, fail explicitly
@@ -957,7 +1161,8 @@ export async function run(): Promise<void> {
           error.message.startsWith("Invalid favicon config") ||
           error.message.startsWith("Invalid seo config") ||
           error.message.startsWith("Invalid sitemap config") ||
-          error.message.startsWith("Invalid robots config"))
+          error.message.startsWith("Invalid robots config") ||
+          error.message.startsWith("Invalid contributors config"))
       ) {
         throw error;
       }
@@ -974,6 +1179,101 @@ export async function run(): Promise<void> {
       }
     }
 
+    // Re-fetch contributors if config file enabled it but action input didn't
+    if (
+      config.contributors?.enabled &&
+      !contributorsFetchAttempted &&
+      contributors === undefined
+    ) {
+      core.info(
+        "👥 Contributors enabled via .gitlyte.json, fetching contributors..."
+      );
+      const configMaxContributors =
+        config.contributors.maxContributors || DEFAULT_MAX_CONTRIBUTORS;
+      try {
+        const allContributors: Contributor[] = [];
+        let page = 1;
+        const perPage = 100;
+
+        while (
+          allContributors.length < configMaxContributors &&
+          page <= MAX_CONTRIBUTOR_PAGES
+        ) {
+          const response = await octokit.rest.repos.listContributors({
+            owner,
+            repo,
+            per_page: perPage,
+            page,
+            anon: "false",
+          });
+
+          if (response.data.length === 0) {
+            break;
+          }
+
+          for (const contributor of response.data) {
+            if (allContributors.length >= configMaxContributors) {
+              break;
+            }
+            if (contributor.type === "Bot") {
+              continue;
+            }
+            if (!contributor.login) {
+              core.warning("⚠️ Skipping contributor with missing login field.");
+              continue;
+            }
+            if (!contributor.avatar_url || !contributor.html_url) {
+              core.warning(
+                `⚠️ Contributor ${contributor.login} has incomplete data (missing avatar or profile URL).`
+              );
+            }
+            allContributors.push({
+              login: contributor.login,
+              avatarUrl: contributor.avatar_url || "",
+              profileUrl:
+                contributor.html_url ||
+                `https://github.com/${contributor.login}`,
+              contributions: contributor.contributions || 0,
+              type: (contributor.type as "User" | "Bot") || "User",
+            });
+          }
+
+          if (response.data.length < perPage) {
+            break;
+          }
+          page++;
+        }
+
+        contributors = allContributors;
+        core.info(`👥 Fetched ${contributors.length} contributors`);
+      } catch (error) {
+        const status = (error as { status?: number }).status;
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+
+        if (status === 404) {
+          core.info(
+            "👥 No contributor information available for this repository."
+          );
+        } else if (status === 403) {
+          core.warning(
+            "⚠️ Failed to fetch contributors: API rate limit exceeded or insufficient permissions. " +
+              "Contributors page will not be generated."
+          );
+        } else if (status === 401) {
+          core.warning(
+            "⚠️ Failed to fetch contributors: Authentication failed. Please verify your github-token. " +
+              "Contributors page will not be generated."
+          );
+        } else {
+          core.warning(
+            `⚠️ Failed to fetch contributors: ${errorMessage}. ` +
+              "Contributors page will not be generated."
+          );
+        }
+      }
+    }
+
     // Create AI provider
     const aiProvider = createAIProvider(provider, quality, apiKey);
 
@@ -987,6 +1287,7 @@ export async function run(): Promise<void> {
       topics: repoData.topics || [],
       readme,
       stats: repoStats,
+      contributors,
     };
 
     core.info("🎨 Generating site...");

@@ -35278,6 +35278,12 @@ async function selfRefine(initialHtml, config, aiProvider) {
 
 
 
+/** Maximum number of contributors allowed (API and performance limit) */
+const MAX_CONTRIBUTORS_LIMIT = 500;
+/** Default number of contributors to display */
+const DEFAULT_MAX_CONTRIBUTORS = 50;
+/** Maximum pages to fetch for pagination (safety limit) */
+const MAX_CONTRIBUTOR_PAGES = 10;
 /** Valid theme mode values - single source of truth */
 const THEME_MODES = ["light", "dark", "auto"];
 /**
@@ -35331,7 +35337,31 @@ async function generateSite(repoInfo, aiProvider, config) {
     // Track generation results for summary
     const generated = ["index.html"];
     const skipped = [];
-    // Step 5: Generate sitemap.xml (if enabled and siteUrl is set)
+    // Step 5: Generate contributors page (if enabled and contributors data is available)
+    const contributorsEnabled = config.contributors?.enabled === true;
+    const hasContributors = repoInfo.contributors && repoInfo.contributors.length > 0;
+    if (contributorsEnabled) {
+        if (hasContributors && repoInfo.contributors) {
+            core.info("Generating contributors page...");
+            try {
+                const contributorsHtml = await generateContributorsPage(repoInfo, repoInfo.contributors, design, config, aiProvider);
+                pages.push({ path: "contributors.html", html: contributorsHtml });
+                generated.push("contributors.html");
+            }
+            catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                core.warning(`Failed to generate contributors page: ${errorMessage}. ` +
+                    "Site will be generated without contributors page.");
+                skipped.push("contributors.html (generation failed)");
+            }
+        }
+        else {
+            core.info("Contributors page skipped: no contributors data available. " +
+                "This may be because the repository has no contributors or the API call failed.");
+            skipped.push("contributors.html (no data)");
+        }
+    }
+    // Step 6: Generate sitemap.xml (if enabled and siteUrl is set)
     const sitemapEnabled = config.sitemap?.enabled !== false;
     const robotsEnabled = config.robots?.enabled !== false;
     const siteUrl = config.seo?.siteUrl;
@@ -35875,6 +35905,111 @@ function generateRobots(siteUrl, options = {}) {
     const validAdditionalRules = additionalRules.filter((rule) => rule.trim() !== "");
     rules.push(...validAdditionalRules);
     return rules.join("\n");
+}
+/**
+ * Build contributors section for AI prompt
+ */
+function buildContributorsRequirements(contributors, repoInfo) {
+    const contributorsList = contributors
+        .slice(0, 10) // Only include top 10 for prompt context
+        .map((c, i) => `${i + 1}. ${c.login} (${c.contributions} contributions) - ${c.avatarUrl}`)
+        .join("\n");
+    return `CONTRIBUTORS DATA:
+Total contributors: ${contributors.length}
+Repository: ${repoInfo.name}
+
+Top contributors:
+${contributorsList}
+
+All contributor data will be embedded in the HTML as a data attribute for the full list.`;
+}
+/**
+ * Generate contributors page HTML
+ */
+async function generateContributorsPage(repoInfo, contributors, design, config, aiProvider) {
+    // Build theme-specific prompt based on toggle setting
+    const themePrompt = config.theme.toggle
+        ? buildDarkModeTogglePrompt(design, config.theme.mode)
+        : buildSingleThemePrompt(design, config.theme.mode);
+    // Build SEO requirements for contributors page
+    const seoRequirements = config.seo
+        ? `SEO REQUIREMENTS:
+- Page title: "Contributors - ${repoInfo.name}"
+- Meta description: "Meet the contributors who build and maintain ${repoInfo.name}"
+${config.seo.siteUrl ? `- Canonical URL: ${config.seo.siteUrl}/contributors` : ""}
+`
+        : "";
+    // Build contributors data for prompt
+    const contributorsPrompt = buildContributorsRequirements(contributors, repoInfo);
+    const prompt = `Generate a beautiful contributors page HTML for this project.
+
+PROJECT INFO:
+- Name: ${repoInfo.name}
+- Description: ${repoInfo.description || "A software project"}
+- GitHub URL: ${repoInfo.htmlUrl}
+
+${contributorsPrompt}
+
+${themePrompt}
+
+${seoRequirements}
+
+DESIGN REQUIREMENTS:
+1. Use Tailwind CSS classes only (loaded via CDN)
+2. Create a responsive grid of contributor cards
+3. Each contributor card should include:
+   - Avatar image (use the avatarUrl from data)
+   - Username (login) with link to profileUrl
+   - Contribution count
+4. Add a navigation header with:
+   - Project name/logo linking to index.html
+   - "Back to Home" button
+5. Include a hero section with title "Contributors" and total count
+6. Make it responsive (mobile-first): 1 column on mobile, 2 on tablet, 3-4 on desktop
+7. Use modern design patterns matching the main site
+8. Include smooth hover effects on contributor cards
+9. Add a footer with GitHub link
+
+CONTRIBUTOR DATA TO EMBED:
+Generate the page with all ${contributors.length} contributors embedded directly in the HTML.
+Use this exact data for each contributor:
+${JSON.stringify(contributors.map((c) => ({
+        login: c.login,
+        avatarUrl: c.avatarUrl,
+        profileUrl: c.profileUrl,
+        contributions: c.contributions,
+    })), null, 2)}
+
+OUTPUT: Return ONLY the complete HTML document, no explanation. Start with <!DOCTYPE html>.`;
+    const result = await aiProvider.generateText({
+        prompt,
+        temperature: 0.7,
+    });
+    let html = cleanHtmlResponse(result.text);
+    // Validate that we got valid HTML
+    if (!html || html.length < 100) {
+        throw new Error("Contributors page generation failed: AI returned empty or invalid response. " +
+            `Response length: ${html?.length ?? 0} characters.`);
+    }
+    if (!html.includes("<!DOCTYPE html>") && !html.includes("<html")) {
+        core.warning("Generated contributors HTML may be malformed: missing DOCTYPE or html tag. " +
+            `Response preview: ${html.slice(0, 100)}...`);
+    }
+    // Repair incomplete HTML with warnings
+    if (!html.includes("</html>")) {
+        core.warning("Generated contributors HTML was incomplete, adding missing closing tags.");
+        html = `${html}\n</body>\n</html>`;
+    }
+    // Ensure Tailwind CDN is included
+    if (!html.includes("tailwindcss")) {
+        if (html.includes("</head>")) {
+            html = html.replace("</head>", `  <script src="https://cdn.tailwindcss.com"></script>\n  </head>`);
+        }
+        else {
+            core.warning("Generated contributors HTML missing </head> tag, cannot inject Tailwind CDN.");
+        }
+    }
+    return html;
 }
 
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@ai-sdk+provider@3.0.0/node_modules/@ai-sdk/provider/dist/index.mjs
@@ -81434,6 +81569,26 @@ function isValidRobotsConfig(value) {
     }
     return true;
 }
+/**
+ * Validate contributors config structure from .gitlyte.json
+ */
+function isValidContributorsConfig(value) {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+    const obj = value;
+    if (typeof obj.enabled !== "boolean") {
+        return false;
+    }
+    if (obj.maxContributors !== undefined) {
+        if (typeof obj.maxContributors !== "number" ||
+            obj.maxContributors < 1 ||
+            obj.maxContributors > MAX_CONTRIBUTORS_LIMIT) {
+            return false;
+        }
+    }
+    return true;
+}
 
 async function run() {
     try {
@@ -81471,8 +81626,22 @@ async function run() {
         // GitHub stats inputs
         const showStatsInput = core.getInput("show-stats");
         const showStats = showStatsInput !== "false"; // default true
-        const fetchContributors = core.getInput("fetch-contributors") === "true"; // default false
+        const fetchContributorsCount = core.getInput("fetch-contributors") === "true"; // default false
         const fetchReleases = core.getInput("fetch-releases") === "true"; // default false
+        // Contributors page inputs
+        const generateContributorsPageInput = core.getInput("generate-contributors-page");
+        const generateContributorsPage = generateContributorsPageInput === "true"; // default false
+        const maxContributorsInput = core.getInput("max-contributors");
+        const maxContributors = maxContributorsInput
+            ? Number.parseInt(maxContributorsInput, 10)
+            : DEFAULT_MAX_CONTRIBUTORS;
+        // Validate max-contributors
+        if (Number.isNaN(maxContributors) || maxContributors < 1) {
+            throw new Error(`Invalid max-contributors: ${maxContributorsInput}. Must be a positive integer.`);
+        }
+        if (maxContributors > MAX_CONTRIBUTORS_LIMIT) {
+            throw new Error(`Invalid max-contributors: ${maxContributors}. Maximum allowed is ${MAX_CONTRIBUTORS_LIMIT}.`);
+        }
         // Validate provider
         if (!AI_PROVIDERS.includes(provider)) {
             throw new Error(`Invalid provider: ${provider}. Must be one of: ${AI_PROVIDERS.join(", ")}`);
@@ -81564,7 +81733,7 @@ async function run() {
                 }
             }
             // Optionally fetch contributor count
-            if (fetchContributors) {
+            if (fetchContributorsCount) {
                 try {
                     // Use per_page=1 and check the Link header for total count
                     const response = await octokit.rest.repos.listContributors({
@@ -81605,6 +81774,93 @@ async function run() {
                 }
             }
             core.info(`📊 Stats: ⭐ ${repoStats.stars} | 🍴 ${repoStats.forks} | 👀 ${repoStats.watchers}`);
+        }
+        // Fetch full contributors list for contributors page
+        let contributors;
+        let contributorsFetchAttempted = false;
+        if (generateContributorsPage) {
+            contributorsFetchAttempted = true;
+            core.info("👥 Fetching contributors for contributors page...");
+            try {
+                const allContributors = [];
+                let page = 1;
+                const perPage = 100;
+                // Safety limit: prevent infinite loops with MAX_CONTRIBUTOR_PAGES
+                while (allContributors.length < maxContributors &&
+                    page <= MAX_CONTRIBUTOR_PAGES) {
+                    const response = await octokit.rest.repos.listContributors({
+                        owner,
+                        repo,
+                        per_page: perPage,
+                        page,
+                        anon: "false",
+                    });
+                    if (response.data.length === 0) {
+                        break;
+                    }
+                    for (const contributor of response.data) {
+                        if (allContributors.length >= maxContributors) {
+                            break;
+                        }
+                        // Filter out bots (type is "User" or "Bot")
+                        if (contributor.type === "Bot") {
+                            continue;
+                        }
+                        // Skip contributors with missing login (required field)
+                        if (!contributor.login) {
+                            core.warning("⚠️ Skipping contributor with missing login field.");
+                            continue;
+                        }
+                        // Warn about missing optional fields but still include
+                        if (!contributor.avatar_url || !contributor.html_url) {
+                            core.warning(`⚠️ Contributor ${contributor.login} has incomplete data (missing avatar or profile URL).`);
+                        }
+                        allContributors.push({
+                            login: contributor.login,
+                            avatarUrl: contributor.avatar_url || "",
+                            profileUrl: contributor.html_url ||
+                                `https://github.com/${contributor.login}`,
+                            contributions: contributor.contributions || 0,
+                            type: contributor.type || "User",
+                        });
+                    }
+                    // Check if there are more pages
+                    if (response.data.length < perPage) {
+                        break;
+                    }
+                    page++;
+                }
+                // Warn if pagination limit was reached
+                if (page > MAX_CONTRIBUTOR_PAGES) {
+                    core.warning(`⚠️ Reached maximum pagination limit (${MAX_CONTRIBUTOR_PAGES} pages). ` +
+                        "Some contributors may not be included.");
+                }
+                contributors = allContributors;
+                core.info(`👥 Fetched ${contributors.length} contributors`);
+            }
+            catch (error) {
+                const status = error.status;
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (status === 404) {
+                    core.info("👥 No contributor information available for this repository.");
+                }
+                else if (status === 403) {
+                    core.warning("⚠️ Failed to fetch contributors: API rate limit exceeded or insufficient permissions. " +
+                        "Contributors page will not be generated.");
+                }
+                else if (status === 401) {
+                    core.warning("⚠️ Failed to fetch contributors: Authentication failed. Please verify your github-token. " +
+                        "Contributors page will not be generated.");
+                }
+                else if (status && status >= 500) {
+                    core.warning(`⚠️ Failed to fetch contributors: GitHub server error (${status}). ` +
+                        "This may be a temporary issue. Contributors page will not be generated.");
+                }
+                else {
+                    core.warning(`⚠️ Failed to fetch contributors: ${errorMessage}. ` +
+                        "Contributors page will not be generated.");
+                }
+            }
         }
         // Get README
         let readme;
@@ -81775,6 +82031,11 @@ async function run() {
             sitemap: { enabled: generateSitemap },
             // Robots config from action inputs (default enabled)
             robots: { enabled: generateRobots },
+            // Contributors page config from action inputs (default disabled)
+            contributors: {
+                enabled: generateContributorsPage,
+                maxContributors,
+            },
         };
         try {
             const { data: configFile } = await octokit.rest.repos.getContent({
@@ -81816,6 +82077,12 @@ async function run() {
                         !isValidRobotsConfig(parsedConfig.robots)) {
                         throw new Error("Invalid robots config in .gitlyte.json. " +
                             `Expected { enabled: boolean, additionalRules?: string[] }, got: ${JSON.stringify(parsedConfig.robots)}`);
+                    }
+                    // Validate contributors config if present
+                    if (parsedConfig.contributors !== undefined &&
+                        !isValidContributorsConfig(parsedConfig.contributors)) {
+                        throw new Error("Invalid contributors config in .gitlyte.json. " +
+                            `Expected { enabled: boolean, maxContributors?: number (1-500) }, got: ${JSON.stringify(parsedConfig.contributors)}`);
                     }
                     // Validate and fetch logo from config file if not provided via action input
                     let configLogo;
@@ -82019,6 +82286,24 @@ async function run() {
                                 additionalRules: configRobots?.additionalRules,
                             };
                         })(),
+                        // Contributors: merge action inputs with config file, action inputs take precedence
+                        contributors: (() => {
+                            const configContributors = parsedConfig.contributors;
+                            // Action input takes precedence for enabled flag
+                            const generateContributorsPageExplicit = generateContributorsPageInput !== "";
+                            const enabled = generateContributorsPageExplicit
+                                ? generateContributorsPage
+                                : (configContributors?.enabled ?? generateContributorsPage);
+                            // Action input takes precedence for maxContributors
+                            const maxContributorsExplicit = maxContributorsInput !== "";
+                            const finalMaxContributors = maxContributorsExplicit
+                                ? maxContributors
+                                : (configContributors?.maxContributors ?? maxContributors);
+                            return {
+                                enabled,
+                                maxContributors: finalMaxContributors,
+                            };
+                        })(),
                     };
                 }
                 catch (parseError) {
@@ -82038,7 +82323,8 @@ async function run() {
                     error.message.startsWith("Invalid favicon config") ||
                     error.message.startsWith("Invalid seo config") ||
                     error.message.startsWith("Invalid sitemap config") ||
-                    error.message.startsWith("Invalid robots config"))) {
+                    error.message.startsWith("Invalid robots config") ||
+                    error.message.startsWith("Invalid contributors config"))) {
                 throw error;
             }
             // Check if file not found
@@ -82049,6 +82335,79 @@ async function run() {
             else {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 core.warning(`⚠️ Failed to load .gitlyte.json: ${errorMessage}. Using defaults.`);
+            }
+        }
+        // Re-fetch contributors if config file enabled it but action input didn't
+        if (config.contributors?.enabled &&
+            !contributorsFetchAttempted &&
+            contributors === undefined) {
+            core.info("👥 Contributors enabled via .gitlyte.json, fetching contributors...");
+            const configMaxContributors = config.contributors.maxContributors || DEFAULT_MAX_CONTRIBUTORS;
+            try {
+                const allContributors = [];
+                let page = 1;
+                const perPage = 100;
+                while (allContributors.length < configMaxContributors &&
+                    page <= MAX_CONTRIBUTOR_PAGES) {
+                    const response = await octokit.rest.repos.listContributors({
+                        owner,
+                        repo,
+                        per_page: perPage,
+                        page,
+                        anon: "false",
+                    });
+                    if (response.data.length === 0) {
+                        break;
+                    }
+                    for (const contributor of response.data) {
+                        if (allContributors.length >= configMaxContributors) {
+                            break;
+                        }
+                        if (contributor.type === "Bot") {
+                            continue;
+                        }
+                        if (!contributor.login) {
+                            core.warning("⚠️ Skipping contributor with missing login field.");
+                            continue;
+                        }
+                        if (!contributor.avatar_url || !contributor.html_url) {
+                            core.warning(`⚠️ Contributor ${contributor.login} has incomplete data (missing avatar or profile URL).`);
+                        }
+                        allContributors.push({
+                            login: contributor.login,
+                            avatarUrl: contributor.avatar_url || "",
+                            profileUrl: contributor.html_url ||
+                                `https://github.com/${contributor.login}`,
+                            contributions: contributor.contributions || 0,
+                            type: contributor.type || "User",
+                        });
+                    }
+                    if (response.data.length < perPage) {
+                        break;
+                    }
+                    page++;
+                }
+                contributors = allContributors;
+                core.info(`👥 Fetched ${contributors.length} contributors`);
+            }
+            catch (error) {
+                const status = error.status;
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (status === 404) {
+                    core.info("👥 No contributor information available for this repository.");
+                }
+                else if (status === 403) {
+                    core.warning("⚠️ Failed to fetch contributors: API rate limit exceeded or insufficient permissions. " +
+                        "Contributors page will not be generated.");
+                }
+                else if (status === 401) {
+                    core.warning("⚠️ Failed to fetch contributors: Authentication failed. Please verify your github-token. " +
+                        "Contributors page will not be generated.");
+                }
+                else {
+                    core.warning(`⚠️ Failed to fetch contributors: ${errorMessage}. ` +
+                        "Contributors page will not be generated.");
+                }
             }
         }
         // Create AI provider
@@ -82063,6 +82422,7 @@ async function run() {
             topics: repoData.topics || [],
             readme,
             stats: repoStats,
+            contributors,
         };
         core.info("🎨 Generating site...");
         const result = await generateSite(repoInfo, aiProvider, config);
